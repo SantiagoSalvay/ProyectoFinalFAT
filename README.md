@@ -1,176 +1,204 @@
-# Demos+ - Plataforma de Solidaridad
+# 🚀 Demos+ Platform
 
-## 🌟 Descripción
+Una plataforma completa para conectar ONGs con la comunidad, facilitando donaciones, voluntariado y colaboración social.
 
-Demos+ es una plataforma web moderna que conecta personas con organizaciones sin fines de lucro, facilitando donaciones, voluntariado y colaboración social. La aplicación está construida con React y está preparada para integrarse con un backend Express.
+## ✨ Características Principales
 
-## ✨ Características
+### 🌍 **Mapa Interactivo**
+- Visualización de ONGs en un mapa interactivo
+- Filtros por ubicación y tipo de organización
+- Información detallada de cada ONG
 
-### 🎨 Diseño y UX
-- **Paleta de colores moderna**: Púrpura, verde esmeralda y naranja
-- **Tipografía profesional**: Inter + Poppins
-- **Diseño responsive**: Mobile-first
-- **Animaciones suaves**: Transiciones y efectos visuales
+### 📊 **Sistema de Ranking**
+- Ranking de ONGs por impacto social
+- Filtros por tipo (pública/privada) y ubicación
+- Estadísticas de proyectos y voluntarios
 
-### 👥 Sistema de Roles
-- **Personas**: Pueden donar y hacer voluntariado
-- **ONGs**: Pueden crear publicaciones y gestionar campañas
-- **Registro diferenciado**: Formularios específicos por tipo de usuario
+### 🏢 **Directorio de ONGs**
+- Lista completa de organizaciones
+- Búsqueda y filtros avanzados
+- Sistema de calificaciones y comentarios
+- Información detallada de cada ONG
 
-### 💬 Foro Comunitario
-- **Publicaciones**: Solo ONGs pueden crear contenido
-- **Comentarios**: Usuarios pueden interactuar
-- **Filtros avanzados**: Por tipo, ubicación, etiquetas
-- **Sistema de notificaciones**: Alertas en tiempo real
+### 💬 **Foro Comunitario**
+- **Visible sin sesión** - Todos pueden ver las publicaciones
+- **Interacción requiere autenticación** - Comentar y dar me gusta
+- Publicaciones de ONGs sobre campañas y eventos
+- Sistema de etiquetas y filtros
 
-### 📊 Dashboard Personalizado
-- **Estadísticas**: Métricas relevantes según el rol
-- **Actividad reciente**: Historial de acciones
-- **Acciones rápidas**: Navegación optimizada
+### 🔐 **Sistema de Autenticación**
+- Registro de usuarios (personas y ONGs)
+- Inicio de sesión seguro
+- Perfiles personalizados
+- Rutas protegidas
 
-## 🛠️ Tecnologías
+### 📱 **Diseño Responsivo**
+- Interfaz moderna y accesible
+- Optimizado para móviles y desktop
+- Diseño intuitivo y fácil de usar
+
+## 🛠️ Tecnologías Utilizadas
 
 ### Frontend
-- **React 18** - Framework principal
+- **React 18** - Biblioteca de interfaz de usuario
 - **TypeScript** - Tipado estático
-- **Vite** - Bundler y dev server
-- **React Router** - Enrutamiento
-- **Tailwind CSS** - Estilos y diseño
-- **Lucide React** - Iconografía
+- **Vite** - Build tool y dev server
+- **React Router DOM** - Enrutamiento
+- **Tailwind CSS** - Framework de estilos
 - **React Hook Form** - Manejo de formularios
 - **React Hot Toast** - Notificaciones
+- **Lucide React** - Iconos
+- **Leaflet** - Mapas interactivos
 
-### Preparado para Backend
-- **Express.js** - Servidor backend
-- **Node.js** - Runtime
-- **MongoDB/PostgreSQL** - Base de datos
+### Backend
+- **Node.js** - Runtime de JavaScript
+- **Express.js** - Framework web
+- **SQLite** - Base de datos
 - **JWT** - Autenticación
+- **bcryptjs** - Encriptación de contraseñas
+- **CORS** - Cross-origin resource sharing
+- **Helmet** - Seguridad
+
+## 🚀 Instalación y Configuración
+
+### Prerrequisitos
+- Node.js (versión 18 o superior)
+- npm o pnpm
+
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/tu-usuario/demos-platform.git
+cd demos-platform
+```
+
+### 2. Instalar dependencias
+```bash
+# Instalar dependencias del frontend
+npm install
+
+# Instalar dependencias del backend
+cd server
+npm install
+cd ..
+```
+
+### 3. Configurar variables de entorno (opcional)
+Crear archivo `.env` en la raíz del proyecto:
+```env
+JWT_SECRET=tu_jwt_secret_aqui
+PORT=5000
+```
+
+### 4. Ejecutar el proyecto
+```bash
+# Ejecutar frontend y backend simultáneamente
+npm run dev:full
+
+# O ejecutar por separado:
+# Frontend
+npm run dev
+
+# Backend
+npm run server
+```
+
+### 5. Acceder a la aplicación
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
+- **API Health**: http://localhost:5000/api/health
 
 ## 📁 Estructura del Proyecto
 
 ```
 demoslanding/
-├── src/
-│   ├── components/          # Componentes reutilizables
-│   ├── contexts/           # Contextos de React
-│   ├── pages/              # Páginas de la aplicación
-│   ├── App.tsx             # Componente principal
-│   ├── main.tsx            # Punto de entrada
-│   └── index.css           # Estilos globales
-├── public/                 # Archivos estáticos
-├── index.html              # HTML principal
-├── package.json            # Dependencias
-├── vite.config.ts          # Configuración de Vite
-├── tailwind.config.ts      # Configuración de Tailwind
-└── tsconfig.json           # Configuración de TypeScript
+├── src/                    # Frontend React
+│   ├── components/         # Componentes reutilizables
+│   ├── contexts/          # Contextos de React
+│   ├── pages/             # Páginas de la aplicación
+│   ├── services/          # Servicios de API
+│   └── ...
+├── server/                # Backend Express
+│   ├── src/
+│   │   ├── database/      # Configuración de base de datos
+│   │   ├── routes/        # Rutas de la API
+│   │   └── index.js       # Servidor principal
+│   └── ...
+├── public/                # Archivos estáticos
+└── ...
 ```
 
-## 🚀 Instalación y Uso
-
-### Prerrequisitos
-- Node.js 18+ 
-- npm o yarn
-
-### Instalación Completa
-
-1. **Clonar el repositorio**
-```bash
-git clone https://github.com/tu-usuario/demoslanding.git
-cd demoslanding
-```
-
-2. **Instalar todas las dependencias (Frontend + Backend)**
-```bash
-npm run install:all
-```
-
-3. **Ejecutar el proyecto completo (Frontend + Backend)**
-```bash
-npm run dev:full
-```
-
-4. **Abrir en el navegador**
-```
-Frontend: http://localhost:3000
-Backend API: http://localhost:5000
-```
-
-### Instalación por Separado
-
-**Solo Frontend:**
-```bash
-npm install
-npm run dev
-```
-
-**Solo Backend:**
-```bash
-cd server
-npm install
-npm run dev
-```
-
-### Scripts Disponibles
+## 🔧 Scripts Disponibles
 
 ```bash
-npm run dev          # Servidor de desarrollo
-npm run build        # Build para producción
-npm run preview      # Preview del build
-npm run lint         # Linting del código
+# Desarrollo
+npm run dev              # Solo frontend
+npm run server           # Solo backend
+npm run dev:full         # Frontend + Backend
+
+# Producción
+npm run build            # Build del frontend
+npm start                # Iniciar servidor de producción
 ```
 
-## 🎯 Funcionalidades Principales
+## 🗄️ Base de Datos
 
-### 🏠 Página Principal
-- Hero section con llamadas a la acción
-- Sección de características
-- Estadísticas de impacto
-- Navegación intuitiva
+La aplicación utiliza SQLite con las siguientes tablas principales:
 
-### 👤 Registro y Login
-- Formularios modernos con validación
-- Selección de rol (Persona/ONG)
-- Campos específicos por tipo de usuario
-- Experiencia de usuario optimizada
+- **users** - Usuarios y ONGs registradas
+- **ongs** - Información de organizaciones
+- **forum_posts** - Publicaciones del foro
+- **comments** - Comentarios en posts y ONGs
+- **ratings** - Calificaciones de ONGs
 
-### 📋 Dashboard
-- Métricas personalizadas según rol
-- Actividad reciente
-- Acciones rápidas
-- Información de perfil
+Los datos de ejemplo se insertan automáticamente al iniciar el servidor.
 
-### 💬 Foro
-- Publicaciones con imágenes y etiquetas
-- Sistema de comentarios
-- Filtros por categoría
-- Búsqueda avanzada
+## 🔐 Autenticación
 
-### 📖 Página de Misión
-- Explicación clara del propósito
-- Valores y principios
-- Impacto medible
-- Llamadas a la acción
+### Tipos de Usuario
+- **Persona**: Puede ver contenido, comentar, calificar y hacer voluntariado
+- **ONG**: Puede crear publicaciones, gestionar perfil y recibir donaciones
 
-## 🔧 Configuración
+### Endpoints de Autenticación
+- `POST /api/auth/register` - Registro de usuarios
+- `POST /api/auth/login` - Inicio de sesión
+- `GET /api/auth/profile` - Obtener perfil
+- `PUT /api/auth/profile` - Actualizar perfil
 
-### Variables de Entorno
-```env
-VITE_API_URL=http://localhost:5000
-VITE_APP_NAME=Demos+
-```
+## 🗺️ API Endpoints
 
-### Personalización
-- **Colores**: Editar variables CSS en `src/index.css`
-- **Tipografía**: Cambiar fuentes en `index.html`
-- **Configuración**: Modificar `vite.config.ts`
+### ONGs
+- `GET /api/ongs` - Listar ONGs con filtros
+- `GET /api/ongs/:id` - Obtener ONG específica
+- `POST /api/ongs/:id/rate` - Calificar ONG
+- `POST /api/ongs/:id/comment` - Comentar ONG
 
-## 📱 Responsive Design
+### Foro
+- `GET /api/forum/posts` - Listar publicaciones
+- `POST /api/forum/posts` - Crear publicación
+- `POST /api/forum/posts/:id/comment` - Comentar publicación
+- `POST /api/forum/posts/:id/like` - Dar me gusta
 
-La aplicación está optimizada para:
-- 📱 Móviles (320px+)
-- 📱 Tablets (768px+)
-- 💻 Desktop (1024px+)
-- 🖥️ Pantallas grandes (1440px+)
+### Ranking
+- `GET /api/ranking` - Ranking de ONGs
+- `GET /api/ranking/stats` - Estadísticas generales
+
+## 🎨 Características del Foro
+
+### Visibilidad Pública
+- ✅ Ver todas las publicaciones sin sesión
+- ✅ Buscar y filtrar contenido
+- ✅ Ver información de ONGs
+
+### Interacción Requiere Autenticación
+- 🔒 Comentar publicaciones
+- 🔒 Dar me gusta
+- 🔒 Crear publicaciones (solo ONGs)
+
+### Modal de Autenticación
+Cuando un usuario sin sesión intenta interactuar, aparece un modal con:
+- Opción de iniciar sesión
+- Opción de registrarse
+- Opción de continuar sin sesión
 
 ## 🤝 Contribuir
 
@@ -184,19 +212,16 @@ La aplicación está optimizada para:
 
 Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
 
-## 👨‍💻 Autor
+## 👥 Autores
 
-**Tu Nombre**
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
-- LinkedIn: [Tu LinkedIn](https://linkedin.com/in/tu-perfil)
+- **Tu Nombre** - *Desarrollo inicial* - [TuUsuario](https://github.com/TuUsuario)
 
 ## 🙏 Agradecimientos
 
-- [React](https://reactjs.org/) - Framework de UI
-- [Vite](https://vitejs.dev/) - Build tool
-- [Tailwind CSS](https://tailwindcss.com/) - Framework de CSS
-- [Lucide](https://lucide.dev/) - Iconos
+- Comunidad de React y Node.js
+- Contribuidores de las librerías utilizadas
+- ONGs que inspiran este proyecto
 
 ---
 
-⭐ **Si te gusta este proyecto, dale una estrella en GitHub!** 
+**Demos+ Platform** - Conectando ONGs con la comunidad para un mundo mejor 🌟 
