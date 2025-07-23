@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ONG {
+  id_ong     Int    @id @default(autoincrement())
+  usuario    String
+  correo     String
+  contrasena String
+  foros      Foro[]
+}
+
+model Foro {
+  id_foro     Int    @id @default(autoincrement())
+  id_ong      Int
+  titulo      String
+  descripcion String
+  fecha       DateTime
+  ong         ONG    @relation(fields: [id_ong], references: [id_ong])
+  foroCategorias ForoCategoria[]
+  respuestas  RespuestaForo[]
+  pedidos     PedidoDonacion[]
+}
+
+model Categoria {
+  id_categoria Int    @id @default(autoincrement())
+  etiqueta     String
+  foroCategorias ForoCategoria[]
+}
+
+model ForoCategoria {
+  id_foro_categoria Int @id @default(autoincrement())
+  id_foro           Int
+  id_categoria      Int
+  foro              Foro      @relation(fields: [id_foro], references: [id_foro])
+  categoria         Categoria @relation(fields: [id_categoria], references: [id_categoria])
+}
+
+model Usuario {
+  id_usuario  Int    @id @default(autoincrement())
+  nombre      String
+  apellido    String
+  usuario     String
+  telefono    String
+  correo      String
+  contrasena  String
+  respuestas  RespuestaForo[]
+  pedidos     PedidoDonacion[]
+}
+
+model RespuestaForo {
+  id_respuesta Int      @id @default(autoincrement())
+  id_foro      Int
+  id_usuario   Int
+  mensaje      String
+  fecha        DateTime
+  foro         Foro     @relation(fields: [id_foro], references: [id_foro])
+  usuario      Usuario  @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+model Donacion {
+  id_donacion   Int    @id @default(autoincrement())
+  tipo_donacion String
+  descripcion   String
+  puntos        Int
+  pedidos       PedidoDonacion[]
+}
+
+model PedidoDonacion {
+  id_pedido    Int    @id @default(autoincrement())
+  id_foro      Int
+  id_usuario   Int
+  id_donacion  Int
+  descripcion  String
+  cantidad     Int
+  fecha        DateTime
+  foro         Foro     @relation(fields: [id_foro], references: [id_foro])
+  usuario      Usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  donacion     Donacion @relation(fields: [id_donacion], references: [id_donacion])
+  rankingUsuarios RankingUsuario[]
+  rankingONGs     RankingONG[]
+}
+
+model RankingUsuario {
+  id_ranking_usuario Int @id @default(autoincrement())
+  id_pedido          Int
+  puesto             Int
+  puntos             Int
+  pedido             PedidoDonacion @relation(fields: [id_pedido], references: [id_pedido])
+}
+
+model RankingONG {
+  id_ranking_ong Int @id @default(autoincrement())
+  id_pedido      Int
+  puesto         Int
+  puntos         Int
+  pedido         PedidoDonacion @relation(fields: [id_pedido], references: [id_pedido])
+} 
