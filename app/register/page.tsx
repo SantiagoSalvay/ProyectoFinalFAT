@@ -1,18 +1,15 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import HeartPin from "@/components/HeartPin"
+import { register } from "../../src/services/auth"
 
 export default function RegisterPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
     nombreCompleto: "",
-    dni: "",
-    fechaNacimiento: "",
+    ubicacion: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -25,14 +22,12 @@ export default function RegisterPage() {
 
     if (!formData.nombreCompleto.trim()) {
       newErrors.nombreCompleto = "El nombre completo es requerido"
+    } else if (!formData.nombreCompleto.includes(' ')) {
+      newErrors.nombreCompleto = "Ingrese nombre y apellido"
     }
 
-    if (!formData.dni.trim()) {
-      newErrors.dni = "El DNI es requerido"
-    }
-
-    if (!formData.fechaNacimiento) {
-      newErrors.fechaNacimiento = "La fecha de nacimiento es requerida"
+    if (!formData.ubicacion.trim()) {
+      newErrors.ubicacion = "La ubicación es requerida"
     }
 
     if (!formData.email.trim()) {
@@ -62,11 +57,14 @@ export default function RegisterPage() {
     setErrors(formErrors)
 
     if (Object.keys(formErrors).length === 0) {
-      // Simulación de registro exitoso
-      setTimeout(() => {
+      try {
+        await register(formData)
         alert("¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.")
         router.push("/login")
-      }, 1000)
+      } catch (error: any) {
+        alert(error.message || "Error al crear la cuenta")
+        setIsLoading(false)
+      }
     } else {
       setIsLoading(false)
     }
@@ -107,11 +105,13 @@ export default function RegisterPage() {
       <div className="absolute inset-0 pointer-events-none">
         {/* Heart location pins */}
         <div className="absolute top-32 left-1/4">
-          <HeartPin color="#00445d" size="lg" className="opacity-80" />
+          {/* HeartPin component was removed, so this will be empty or commented out */}
+          {/* <HeartPin color="#00445d" size="lg" className="opacity-80" /> */}
         </div>
 
         <div className="absolute top-20 right-1/4">
-          <HeartPin color="#73e4fd" size="md" className="opacity-80" />
+          {/* HeartPin component was removed, so this will be empty or commented out */}
+          {/* <HeartPin color="#73e4fd" size="md" className="opacity-80" /> */}
         </div>
 
         <div className="absolute top-40 right-1/3 w-20 h-20 bg-[#00445d] rounded-full opacity-60"></div>
@@ -145,32 +145,6 @@ export default function RegisterPage() {
                 {errors.nombreCompleto && <p className="text-red-600 text-sm mt-1">{errors.nombreCompleto}</p>}
               </div>
 
-              {/* DNI */}
-              <div>
-                <input
-                  type="text"
-                  name="dni"
-                  placeholder="DNI"
-                  value={formData.dni}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
-                />
-                {errors.dni && <p className="text-red-600 text-sm mt-1">{errors.dni}</p>}
-              </div>
-
-              {/* Fecha de Nacimiento */}
-              <div className="relative">
-                <input
-                  type="date"
-                  name="fechaNacimiento"
-                  placeholder="fecha de nacimiento"
-                  value={formData.fechaNacimiento}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
-                />
-                {errors.fechaNacimiento && <p className="text-red-600 text-sm mt-1">{errors.fechaNacimiento}</p>}
-              </div>
-
               {/* Email */}
               <div>
                 <input
@@ -182,6 +156,19 @@ export default function RegisterPage() {
                   className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
                 />
                 {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
+              </div>
+
+              {/* Ubicación */}
+              <div>
+                <input
+                  type="text"
+                  name="ubicacion"
+                  placeholder="Ciudad, País"
+                  value={formData.ubicacion}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
+                />
+                {errors.ubicacion && <p className="text-red-600 text-sm mt-1">{errors.ubicacion}</p>}
               </div>
 
               {/* Contraseña */}

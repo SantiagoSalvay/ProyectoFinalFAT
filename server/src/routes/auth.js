@@ -1,45 +1,62 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getDatabase } from '../database/init.js';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
 // Registro de usuario
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, role, organization, location, bio } = req.body;
-    const db = await getDatabase();
+    const { nombre, apellido, usuario, telefono, correo, contrasena } = req.body;
 
     // Verificar si el usuario ya existe
-    const existingUser = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const existingUser = await prisma.usuario.findFirst({
+      where: {
+        OR: [
+          { correo },
+          { usuario }
+        ]
+      }
+    });
+
     if (existingUser) {
-      return res.status(400).json({ error: 'El email ya está registrado' });
+      return res.status(400).json({ 
+        error: existingUser.correo === correo 
+          ? 'El correo ya está registrado' 
+          : 'El DNI ya está registrado' 
+      });
     }
 
     // Encriptar contraseña
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(contrasena, 10);
 
-    // Insertar usuario
-    const result = await db.run(`
-      INSERT INTO users (email, password, name, role, organization, location, bio)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [email, hashedPassword, name, role, organization, location, bio]);
+    // Crear usuario
+    const newUser = await prisma.usuario.create({
+      data: {
+        nombre,
+        apellido,
+        usuario,
+        telefono: telefono || "", // Si no se proporciona teléfono, usar string vacío
+        correo,
+        contrasena: hashedPassword
+      }
+    });
 
-    // Obtener usuario creado
-    const newUser = await db.get('SELECT id, email, name, role, organization, location, bio, created_at FROM users WHERE id = ?', [result.lastID]);
-
-    // Generar token
+    // Generar token JWT
     const token = jwt.sign(
-      { userId: newUser.id, email: newUser.email, role: newUser.role },
+      { userId: newUser.id_usuario, email: newUser.correo },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );
 
+    // Omitir contraseña de la respuesta
+    const { contrasena: _, ...userWithoutPassword } = newUser;
+
     res.status(201).json({
       message: 'Usuario registrado exitosamente',
-      user: newUser,
+      user: userWithoutPassword,
       token
     });
   } catch (error) {
@@ -52,29 +69,31 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const db = await getDatabase();
 
-    // Buscar usuario
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    // Buscar usuario por correo
+    const user = await prisma.usuario.findFirst({
+      where: { correo: email }
+    });
+
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     // Verificar contraseña
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(password, user.contrasena);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Generar token
+    // Generar token JWT
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id_usuario, email: user.correo },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );
 
     // Omitir contraseña de la respuesta
-    const { password: _, ...userWithoutPassword } = user;
+    const { contrasena: _, ...userWithoutPassword } = user;
 
     res.json({
       message: 'Login exitoso',
@@ -96,9 +115,18 @@ router.get('/profile', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
-    const db = await getDatabase();
-
-    const user = await db.get('SELECT id, email, name, role, organization, location, bio, avatar, created_at FROM users WHERE id = ?', [decoded.userId]);
+    
+    const user = await prisma.usuario.findUnique({
+      where: { id_usuario: decoded.userId },
+      select: {
+        id_usuario: true,
+        nombre: true,
+        apellido: true,
+        usuario: true,
+        telefono: true,
+        correo: true
+      }
+    });
     
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -107,36 +135,9 @@ router.get('/profile', async (req, res) => {
     res.json({ user });
   } catch (error) {
     console.error('Error al obtener perfil:', error);
-    res.status(401).json({ error: 'Token inválido' });
-  }
-});
-
-// Actualizar perfil del usuario
-router.put('/profile', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'Token no proporcionado' });
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token inválido' });
     }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
-    const { name, organization, location, bio } = req.body;
-    const db = await getDatabase();
-
-    await db.run(`
-      UPDATE users 
-      SET name = ?, organization = ?, location = ?, bio = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [name, organization, location, bio, decoded.userId]);
-
-    const updatedUser = await db.get('SELECT id, email, name, role, organization, location, bio, avatar, created_at FROM users WHERE id = ?', [decoded.userId]);
-
-    res.json({
-      message: 'Perfil actualizado exitosamente',
-      user: updatedUser
-    });
-  } catch (error) {
-    console.error('Error al actualizar perfil:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
