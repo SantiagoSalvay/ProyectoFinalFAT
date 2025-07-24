@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,100 +10,94 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model TipoUsuario {
-  tipo_usuario      Int      @id @default(autoincrement())
-  nombre_tipo_usuario String
-  usuarios          Usuario[]
+  tipo_usuario          Int      @id @default(autoincrement())
+  nombre_tipo_usuario   String   @db.VarChar(255)
+  usuarios             Usuario[]
 }
 
 model Usuario {
-  id_usuario    Int    @id @default(autoincrement())
-  usuario       String
-  telefono      String
-  correo        String
-  contrasena    String
+  id_usuario    Int      @id @default(autoincrement())
+  usuario       String   @db.VarChar(255)
+  telefono      String   @db.VarChar(255)
+  correo        String   @db.VarChar(255)
+  contrasena    String   @db.VarChar(255)
   tipo_usuario  Int
   tipo          TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
   foros         Foro[]
   respuestas    RespuestaForo[]
   pedidos       PedidoDonacion[]
-  rankings      Ranking[]
 }
 
 model Foro {
-  id_foro       Int    @id @default(autoincrement())
+  id_foro       Int      @id @default(autoincrement())
   id_usuario    Int
-  titulo        String
-  descripcion   String
-  fecha         DateTime
+  titulo        String   @db.VarChar(255)
+  descripcion   String   @db.VarChar(255)
+  fecha         DateTime @db.Date
   usuario       Usuario  @relation(fields: [id_usuario], references: [id_usuario])
-  foroCategorias ForoCategoria[]
   respuestas    RespuestaForo[]
-  pedidos       PedidoDonacion[]
-}
-
-model Categoria {
-  id_categoria   Int    @id @default(autoincrement())
-  etiqueta       String
   foroCategorias ForoCategoria[]
-}
-
-model ForoCategoria {
-  id_foro_categoria Int @id @default(autoincrement())
-  id_foro           Int
-  id_categoria      Int
-  foro              Foro      @relation(fields: [id_foro], references: [id_foro])
-  categoria         Categoria @relation(fields: [id_categoria], references: [id_categoria])
-  pedidos           PedidoDonacion[]
 }
 
 model RespuestaForo {
   id_respuesta Int      @id @default(autoincrement())
   id_foro      Int
   id_usuario   Int
-  mensaje      String
-  fecha        DateTime
+  mensaje      String   @db.VarChar(255)
+  fecha        DateTime @db.Date
   foro         Foro     @relation(fields: [id_foro], references: [id_foro])
   usuario      Usuario  @relation(fields: [id_usuario], references: [id_usuario])
 }
 
+model Categoria {
+  id_categoria   Int    @id @default(autoincrement())
+  etiqueta       String @db.VarChar(255)
+  foroCategorias ForoCategoria[]
+}
+
+model ForoCategoria {
+  id_foro_categoria Int @id @default(autoincrement())
+  id_foro          Int
+  id_categoria     Int
+  num_me_gusta     Int @default(0)
+  foro             Foro      @relation(fields: [id_foro], references: [id_foro])
+  categoria        Categoria @relation(fields: [id_categoria], references: [id_categoria])
+}
+
 model Donacion {
-  id_donacion   Int    @id @default(autoincrement())
-  tipo_donacion String
-  descripcion   String
-  puntos        Int
-  pedidos       PedidoDonacion[]
+  id_donacion     Int    @id @default(autoincrement())
+  tipo_donacion   String @db.VarChar(255)
+  descripcion     String @db.VarChar(255)
+  puntos          Int
+  pedidos         PedidoDonacion[]
 }
 
 model PedidoDonacion {
-  id_pedido    Int    @id @default(autoincrement())
-  id_foro_categoria Int
-  id_usuario   Int
-  id_donacion  Int
-  descripcion  String
-  cantidad     Int
-  fecha        DateTime
-  foroCategoria ForoCategoria @relation(fields: [id_foro_categoria], references: [id_foro_categoria])
-  usuario      Usuario  @relation(fields: [id_usuario], references: [id_usuario])
-  donacion     Donacion @relation(fields: [id_donacion], references: [id_donacion])
-  rankings     Ranking[]
+  id_pedido          Int      @id @default(autoincrement())
+  id_foro            Int
+  id_usuario         Int
+  id_donacion        Int
+  descripcion        String   @db.VarChar(255)
+  cantidad           Int
+  fecha              DateTime @db.Date
+  usuario            Usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  donacion           Donacion @relation(fields: [id_donacion], references: [id_donacion])
+  rankings           Ranking[]
+}
+
+model TipoRanking {
+  id_tipo_ranking Int    @id @default(autoincrement())
+  tipo_ranking    String @db.VarChar(255)
+  rankings        Ranking[]
 }
 
 model Ranking {
   id_ranking      Int    @id @default(autoincrement())
   id_tipo_ranking Int
   id_pedido       Int
-  id_usuario      Int
   puesto          Int
   puntos          Int
-  tipoRanking     TipoRanking @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
-  pedido          PedidoDonacion @relation(fields: [id_pedido], references: [id_pedido])
-  usuario         Usuario @relation(fields: [id_usuario], references: [id_usuario])
-}
-
-model TipoRanking {
-  id_tipo_ranking Int    @id @default(autoincrement())
-  tipo_ranking    String
-  rankings        Ranking[]
+  tipoRanking     TipoRanking     @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
+  pedido          PedidoDonacion  @relation(fields: [id_pedido], references: [id_pedido])
 }
