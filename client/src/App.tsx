@@ -10,6 +10,9 @@ import DashboardPage from './pages/DashboardPage'
 import ForumPage from './pages/ForumPage'
 import MissionPage from './pages/MissionPage'
 import ProfilePage from './pages/ProfilePage'
+import MapPage from './pages/MapPage'
+import RankingPage from './pages/RankingPage'
+import ONGsPage from './pages/ONGsPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -23,6 +26,9 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/mission" element={<MissionPage />} />
+              <Route path="/ongs" element={<ONGsPage />} />
+              <Route path="/map" element={<MapPage />} />
+              <Route path="/ranking" element={<RankingPage />} />
               
               {/* Rutas protegidas */}
               <Route path="/dashboard" element={

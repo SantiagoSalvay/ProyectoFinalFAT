@@ -1,26 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { api, User } from '../services/api'
+import toast from 'react-hot-toast'
 
 export type UserRole = 'person' | 'ong'
 
-export interface User {
-  id: string
-  email: string
-  name: string
-  role: UserRole
-  avatar?: string
-  organization?: string
-  location?: string
-  bio?: string
-  createdAt: Date
-}
-
 interface AuthContextType {
   user: User | null
+  isAuthenticated: boolean
+  isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (userData: RegisterData) => Promise<void>
   logout: () => void
-  isLoading: boolean
-  isAuthenticated: boolean
+  updateProfile: (profileData: UpdateProfileData) => Promise<void>
 }
 
 interface RegisterData {
@@ -30,6 +21,14 @@ interface RegisterData {
   role: UserRole
   organization?: string
   location?: string
+  bio?: string
+}
+
+interface UpdateProfileData {
+  name: string
+  organization?: string
+  location?: string
+  bio?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,83 +38,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Simular verificación de sesión guardada
-    const savedUser = localStorage.getItem('demos_user')
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser)
-        setUser(userData)
-      } catch (error) {
-        console.error('Error parsing saved user:', error)
-        localStorage.removeItem('demos_user')
-      }
+    // Verificar token y cargar perfil
+    const token = api.getToken()
+    if (token) {
+      loadProfile()
+    } else {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }, [])
 
-  const login = async (email: string, _password: string) => {
-    setIsLoading(true)
+  const loadProfile = async () => {
     try {
-      // Simular llamada a API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock user data - en producción esto vendría de tu backend
-      const mockUser: User = {
-        id: '1',
-        email,
-        name: email.split('@')[0],
-        role: 'person',
-        createdAt: new Date(),
-        avatar: '/placeholder-user.jpg'
-      }
-      
-      setUser(mockUser)
-      localStorage.setItem('demos_user', JSON.stringify(mockUser))
+      const { user } = await api.getProfile()
+      setUser(user)
     } catch (error) {
-      throw new Error('Error al iniciar sesión')
+      console.error('Error loading profile:', error)
+      api.clearToken()
     } finally {
       setIsLoading(false)
     }
   }
 
-  const register = async (userData: RegisterData) => {
-    setIsLoading(true)
+  const login = async (email: string, password: string) => {
     try {
-      // Simular llamada a API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        organization: userData.organization,
-        location: userData.location,
-        createdAt: new Date(),
-        avatar: '/placeholder-user.jpg'
-      }
-      
-      setUser(newUser)
-      localStorage.setItem('demos_user', JSON.stringify(newUser))
+      const { user } = await api.login({ email, password })
+      setUser(user)
+      toast.success('¡Inicio de sesión exitoso!')
     } catch (error) {
-      throw new Error('Error al registrarse')
-    } finally {
-      setIsLoading(false)
+      toast.error('Error en el inicio de sesión')
+      throw error
+    }
+  }
+
+  const register = async (userData: RegisterData) => {
+    try {
+      const { user } = await api.register(userData)
+      setUser(user)
+      toast.success('¡Registro exitoso!')
+    } catch (error) {
+      toast.error('Error en el registro')
+      throw error
+    }
+  }
+
+  const updateProfile = async (profileData: UpdateProfileData) => {
+    try {
+      const { user } = await api.updateProfile(profileData)
+      setUser(user)
+      toast.success('Perfil actualizado exitosamente')
+    } catch (error) {
+      toast.error('Error al actualizar perfil')
+      throw error
     }
   }
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem('demos_user')
+    api.clearToken()
+    toast.success('Sesión cerrada')
   }
 
   const value = {
     user,
+    isAuthenticated: !!user,
+    isLoading,
     login,
     register,
     logout,
-    isLoading,
-    isAuthenticated: !!user
+    updateProfile
   }
 
   return (

@@ -1,9 +1,11 @@
 import type { Config } from 'tailwindcss'
 
-export default {
+import tailwindcssAnimate from "tailwindcss-animate"
+
+const config: Config = {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./client/src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -63,5 +65,7 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
-} satisfies Config
+  plugins: [tailwindcssAnimate],
+}
+
+export default config
