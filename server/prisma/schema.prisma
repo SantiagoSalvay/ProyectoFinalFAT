@@ -14,19 +14,24 @@ model TipoUsuario {
 }
 
 model Usuario {
-  id_usuario    Int    @id @default(autoincrement())
-  nombre        String
-  apellido      String
-  usuario       String @unique
-  telefono      String
-  correo        String @unique
-  contrasena    String
-  tipo_usuario  Int
-  tipo          TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
-  foros         Foro[]
-  respuestas    RespuestaForo[]
-  pedidos       PedidoDonacion[]
-  rankings      Ranking[]
+  id_usuario           Int      @id @default(autoincrement())
+  nombre               String
+  apellido             String
+  usuario              String   @unique
+  telefono             String
+  correo               String   @unique
+  contrasena           String
+  tipo_usuario         Int
+  is_email_verified    Boolean  @default(false)
+  is_phone_verified    Boolean  @default(false)
+  verification_token   String?
+  phone_code          String?
+  verification_expires DateTime?
+  tipo                TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
+  foros               Foro[]
+  respuestas          RespuestaForo[]
+  pedidos             PedidoDonacion[]
+  rankings            Ranking[]
 }
 
 model Foro {
