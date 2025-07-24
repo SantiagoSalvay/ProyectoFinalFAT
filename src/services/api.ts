@@ -8,6 +8,11 @@ export interface User {
   usuario: string;
   telefono: string;
   correo: string;
+  nombre?: string;
+  apellido?: string;
+  ubicacion?: string;
+  bio?: string;
+  createdAt?: Date;
 }
 
 // Clase API
@@ -162,6 +167,45 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error en el login:', error);
+      throw error;
+    }
+  }
+
+  // Obtener perfil del usuario
+  async getProfile() {
+    try {
+      const response = await this.request<{ user: User }>(
+        '/auth/profile',
+        {
+          method: 'GET'
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener perfil:', error);
+      throw error;
+    }
+  }
+
+  // Actualizar perfil del usuario
+  async updateProfile(profileData: {
+    nombre?: string;
+    apellido?: string;
+    telefono?: string;
+    ubicacion?: string;
+    bio?: string;
+  }) {
+    try {
+      const response = await this.request<{ message: string; user: User }>(
+        '/auth/profile',
+        {
+          method: 'PUT',
+          body: JSON.stringify(profileData),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
       throw error;
     }
   }
