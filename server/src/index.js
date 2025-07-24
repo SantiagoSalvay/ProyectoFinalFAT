@@ -9,8 +9,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// Configurar CORS
+app.use(cors({
+  origin: 'http://localhost:3000', // URL del frontend
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Middleware para parsear JSON
 app.use(express.json());
 
 // Rutas
@@ -23,8 +30,8 @@ app.get('/', (req, res) => {
 
 // Manejo de errores global
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Error interno del servidor' });
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Error interno del servidor: ' + err.message });
 });
 
 // Iniciar servidor

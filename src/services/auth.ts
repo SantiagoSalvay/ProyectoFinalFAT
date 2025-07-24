@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3002';
 
 interface RegisterData {
   nombreCompleto: string;
@@ -18,6 +18,14 @@ export const register = async (data: RegisterData) => {
       throw new Error('Por favor ingresa nombre y apellido');
     }
 
+    console.log('Enviando datos al servidor:', {
+      nombre,
+      apellido,
+      usuario: data.email.split('@')[0],
+      correo: data.email,
+      contrasena: '[PROTECTED]'
+    });
+
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: {
@@ -33,18 +41,17 @@ export const register = async (data: RegisterData) => {
       })
     });
 
+    const responseData = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al crear la cuenta');
+      throw new Error(responseData.error || 'Error al crear la cuenta');
     }
     
-    return response.json();
+    console.log('Respuesta del servidor:', responseData);
+    return responseData;
   } catch (error: any) {
-    if (error.message) {
-      throw new Error(error.message);
-    } else {
-      throw new Error('Error al crear la cuenta');
-    }
+    console.error('Error en el registro:', error);
+    throw new Error(error.message || 'Error al crear la cuenta');
   }
 };
 
@@ -61,13 +68,15 @@ export const login = async (email: string, password: string) => {
       })
     });
 
+    const responseData = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al iniciar sesión');
+      throw new Error(responseData.error || 'Error al iniciar sesión');
     }
     
-    return response.json();
+    return responseData;
   } catch (error: any) {
+    console.error('Error en el login:', error);
     throw new Error(error.message || 'Error al iniciar sesión');
   }
 }; 

@@ -9,11 +9,20 @@ const prisma = new PrismaClient();
 // Registro de usuario
 router.post('/register', async (req, res) => {
   try {
-    const { nombre, apellido, usuario, telefono, correo, contrasena } = req.body;
+    console.log('Datos recibidos:', req.body);
 
-    // Verificar si el usuario ya existe
+    const { nombre, apellido, correo, contrasena, usuario, telefono } = req.body;
+
+    // Validar que todos los campos requeridos estén presentes
+    if (!nombre || !apellido || !correo || !contrasena) {
+      return res.status(400).json({ 
+        error: 'Todos los campos son requeridos' 
+      });
+    }
+
+    // Verificar si el usuario ya existe por correo
     const existingUser = await prisma.usuario.findFirst({
-      where: {
+      where: { 
         OR: [
           { correo },
           { usuario }
@@ -25,12 +34,34 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ 
         error: existingUser.correo === correo 
           ? 'El correo ya está registrado' 
-          : 'El DNI ya está registrado' 
+          : 'El nombre de usuario ya está registrado'
+      });
+    }
+
+    // Obtener o crear el tipo de usuario normal
+    let tipoUsuario = await prisma.tipoUsuario.findFirst({
+      where: { nombre_tipo_usuario: 'normal' }
+    });
+
+    if (!tipoUsuario) {
+      tipoUsuario = await prisma.tipoUsuario.create({
+        data: {
+          nombre_tipo_usuario: 'normal'
+        }
       });
     }
 
     // Encriptar contraseña
     const hashedPassword = await bcrypt.hash(contrasena, 10);
+
+    console.log('Creando usuario con datos:', {
+      nombre,
+      apellido,
+      usuario,
+      telefono,
+      correo,
+      tipo_usuario: tipoUsuario.tipo_usuario
+    });
 
     // Crear usuario
     const newUser = await prisma.usuario.create({
@@ -38,10 +69,17 @@ router.post('/register', async (req, res) => {
         nombre,
         apellido,
         usuario,
-        telefono: telefono || "", // Si no se proporciona teléfono, usar string vacío
+        telefono: telefono || "",
         correo,
-        contrasena: hashedPassword
+        contrasena: hashedPassword,
+        tipo_usuario: tipoUsuario.tipo_usuario
       }
+    });
+
+    console.log('Usuario creado:', {
+      id: newUser.id_usuario,
+      usuario: newUser.usuario,
+      correo: newUser.correo
     });
 
     // Generar token JWT
@@ -61,7 +99,7 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Error en registro:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
 

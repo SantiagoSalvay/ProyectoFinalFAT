@@ -3,31 +3,33 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { register } from "../../src/services/auth"
+import { api } from "../../src/services/api"
 
 export default function RegisterPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    nombreCompleto: "",
-    ubicacion: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    location: "",
+    role: "person" as const
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [apiError, setApiError] = useState<string>("")
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.nombreCompleto.trim()) {
-      newErrors.nombreCompleto = "El nombre completo es requerido"
-    } else if (!formData.nombreCompleto.includes(' ')) {
-      newErrors.nombreCompleto = "Ingrese nombre y apellido"
+    if (!formData.name.trim()) {
+      newErrors.name = "El nombre completo es requerido"
+    } else if (!formData.name.includes(' ')) {
+      newErrors.name = "Ingrese nombre y apellido"
     }
 
-    if (!formData.ubicacion.trim()) {
-      newErrors.ubicacion = "La ubicación es requerida"
+    if (!formData.location.trim()) {
+      newErrors.location = "La ubicación es requerida"
     }
 
     if (!formData.email.trim()) {
@@ -52,17 +54,39 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setApiError("")
 
     const formErrors = validateForm()
     setErrors(formErrors)
 
     if (Object.keys(formErrors).length === 0) {
       try {
-        await register(formData)
+        console.log('Enviando datos de registro:', {
+          name: formData.name,
+          email: formData.email,
+          location: formData.location,
+          role: formData.role,
+          password: '[PROTECTED]'
+        });
+
+        const response = await api.register({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          location: formData.location,
+          role: formData.role
+        });
+        
+        console.log('Respuesta del registro:', {
+          message: response.message,
+          user: { ...response.user, contrasena: undefined }
+        });
+
         alert("¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.")
         router.push("/login")
       } catch (error: any) {
-        alert(error.message || "Error al crear la cuenta")
+        console.error('Error en el registro:', error);
+        setApiError(error.message || "Error al crear la cuenta")
         setIsLoading(false)
       }
     } else {
@@ -81,6 +105,10 @@ export default function RegisterPage() {
         ...errors,
         [e.target.name]: "",
       })
+    }
+    // Limpiar error de API cuando el usuario modifica algún campo
+    if (apiError) {
+      setApiError("")
     }
   }
 
@@ -131,18 +159,23 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Register Form Container */}
           <div className="bg-[#73e4fd] bg-opacity-90 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-white border-opacity-30">
+            {apiError && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {apiError}
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nombre Completo */}
               <div>
                 <input
                   type="text"
-                  name="nombreCompleto"
+                  name="name"
                   placeholder="Nombre completo"
-                  value={formData.nombreCompleto}
+                  value={formData.name}
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
                 />
-                {errors.nombreCompleto && <p className="text-red-600 text-sm mt-1">{errors.nombreCompleto}</p>}
+                {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
               </div>
 
               {/* Email */}
@@ -162,13 +195,13 @@ export default function RegisterPage() {
               <div>
                 <input
                   type="text"
-                  name="ubicacion"
+                  name="location"
                   placeholder="Ciudad, País"
-                  value={formData.ubicacion}
+                  value={formData.location}
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
                 />
-                {errors.ubicacion && <p className="text-red-600 text-sm mt-1">{errors.ubicacion}</p>}
+                {errors.location && <p className="text-red-600 text-sm mt-1">{errors.location}</p>}
               </div>
 
               {/* Contraseña */}
