@@ -15,6 +15,7 @@ export default function Header() {
     { name: 'Inicio', href: '/' },
     { name: 'Misión', href: '/mission' },
     { name: 'ONGs', href: '/ongs' },
+    { name: 'Donaciones', href: '/donaciones' },
     { name: 'Mapa', href: '/map' },
     { name: 'Ranking', href: '/ranking' },
     { name: 'Foro', href: '/forum', protected: true },
