@@ -12,7 +12,9 @@ import {
   Tag,
   Calendar,
   User,
-  Building
+  Building,
+  LogIn,
+  UserPlus
 } from 'lucide-react'
 
 interface Post {
@@ -34,8 +36,6 @@ interface Post {
   createdAt: Date
   isLiked?: boolean
 }
-
-
 
 export default function ForumPage() {
   const { user } = useAuth()
@@ -75,8 +75,8 @@ export default function ForumPage() {
     }
   ])
 
-
   const [showCreatePost, setShowCreatePost] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [newPost, setNewPost] = useState({
@@ -89,6 +89,11 @@ export default function ForumPage() {
   const isONG = user?.role === 'ong'
 
   const handleLike = (postId: string) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+
     setPosts(prev => prev.map(post => {
       if (post.id === postId) {
         const isLiked = post.isLiked
@@ -102,9 +107,22 @@ export default function ForumPage() {
     }))
   }
 
-
+  const handleComment = (postId: string) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+    
+    // Aquí iría la lógica para comentar
+    toast.success('Función de comentarios próximamente')
+  }
 
   const handleCreatePost = () => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+
     if (!isONG) {
       toast.error('Solo las ONGs pueden crear publicaciones')
       return
@@ -120,7 +138,7 @@ export default function ForumPage() {
       title: newPost.title,
       content: newPost.content,
       author: {
-        id: user!.id,
+        id: user!.id.toString(),
         name: user!.name,
         role: user!.role,
         organization: user!.organization
@@ -160,7 +178,7 @@ export default function ForumPage() {
             <p className="text-gray-600">Conecta, comparte y colabora con la comunidad</p>
           </div>
           
-          {isONG && (
+          {user && isONG && (
             <button
               onClick={() => setShowCreatePost(true)}
               className="btn-primary flex items-center"
@@ -196,6 +214,52 @@ export default function ForumPage() {
             </select>
           </div>
         </div>
+
+        {/* Auth Modal */}
+        {showAuthModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 w-full max-w-md">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <LogIn className="w-8 h-8 text-purple-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">No tienes sesión iniciada</h2>
+                <p className="text-gray-600">Para comentar y dar me gusta, necesitas iniciar sesión o registrarte</p>
+              </div>
+              
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    setShowAuthModal(false)
+                    window.location.href = '/login'
+                  }}
+                  className="w-full btn-primary flex items-center justify-center"
+                >
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Iniciar Sesión
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowAuthModal(false)
+                    window.location.href = '/register'
+                  }}
+                  className="w-full btn-secondary flex items-center justify-center"
+                >
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Registrarse
+                </button>
+                
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="w-full px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Continuar sin sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Create Post Modal */}
         {showCreatePost && (
@@ -334,7 +398,10 @@ export default function ForumPage() {
                       <span>{post.likes}</span>
                     </button>
                     
-                    <button className="flex items-center space-x-2 text-gray-500 hover:text-purple-600">
+                    <button 
+                      onClick={() => handleComment(post.id)}
+                      className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
+                    >
                       <MessageCircle className="w-5 h-5" />
                       <span>{post.comments}</span>
                     </button>

@@ -13,7 +13,11 @@ export default function Header() {
 
   const navigation = [
     { name: 'Inicio', href: '/' },
-    { name: 'Nuestra Misión', href: '/mission' },
+    { name: 'Misión', href: '/mission' },
+    { name: 'ONGs', href: '/ongs' },
+    { name: 'Donaciones', href: '/donaciones' },
+    { name: 'Mapa', href: '/map' },
+    { name: 'Ranking', href: '/ranking' },
     { name: 'Foro', href: '/forum', protected: true },
     { name: 'Dashboard', href: '/dashboard', protected: true },
   ]

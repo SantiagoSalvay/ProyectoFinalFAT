@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { User, Mail, Phone, MapPin, Calendar, Edit } from "lucide-react"
-import { api } from "../../src/services/api"
+import { api } from "../../client/src/services/api"
 import { toast } from "react-hot-toast"
 
 export default function MiInformacionPage() {

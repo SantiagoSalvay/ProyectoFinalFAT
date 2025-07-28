@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
+import mercadopagoRoutes from '../routes/mercadopago.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -22,6 +23,7 @@ app.use(express.json());
 
 // Rutas
 app.use('/auth', authRoutes);
+app.use('/mercadopago', mercadopagoRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {

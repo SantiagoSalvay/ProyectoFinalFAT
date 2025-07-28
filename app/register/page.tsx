@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { api } from "../../src/services/api"
+import { api } from "../../client/src/services/api"
 import { toast } from "react-hot-toast"
 
 export default function RegisterPage() {
