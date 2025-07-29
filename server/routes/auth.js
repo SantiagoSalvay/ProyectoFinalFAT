@@ -1,7 +1,9 @@
-const express = require('express');
+import express from 'express';
+import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+
 const router = express.Router();
-const prisma = require('../prismaClient');
-const jwt = require('jsonwebtoken');
+const prisma = new PrismaClient();
 
 // Middleware para verificar token
 const verifyToken = (req, res, next) => {
@@ -83,4 +85,4 @@ router.put('/profile', verifyToken, async (req, res) => {
   }
 });
 
-module.exports = router; 
+export default router; 
