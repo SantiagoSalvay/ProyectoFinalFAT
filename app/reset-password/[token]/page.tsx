@@ -1,11 +1,14 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import HeartPin from "../../components/HeartPin"
+import HeartPin from "../../../components/HeartPin"
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("")
+export default function ResetPasswordPage({ params }: { params: { token: string } }) {
+  const router = useRouter()
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -16,40 +19,42 @@ export default function ForgotPasswordPage() {
     setError("")
     setMessage("")
 
+    // Validar que las contraseñas coincidan
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      setIsLoading(false)
+      return
+    }
+
+    // Validar longitud mínima
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      console.log('Iniciando solicitud de recuperación de contraseña...')
-      
-      const response = await fetch('/api/auth/request-password-reset', {
+      const response = await fetch(`/api/auth/reset-password/${params.token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ correo: email }),
-      })
-
-      console.log('Respuesta del servidor:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
+        body: JSON.stringify({ nuevaContrasena: password }),
       })
 
       const data = await response.json()
-      console.log('Datos de la respuesta:', data)
 
       if (response.ok) {
-        setMessage(data.message)
-        console.log('Solicitud procesada exitosamente')
+        setMessage("Contraseña actualizada exitosamente")
+        // Redirigir al login después de 2 segundos
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000)
       } else {
-        console.error('Error en la respuesta:', {
-          status: response.status,
-          data: data
-        })
-        setError(data.error || 'Ocurrió un error al procesar tu solicitud')
+        setError(data.error || 'Ocurrió un error al actualizar la contraseña')
       }
     } catch (err) {
-      console.error('Error detallado:', err)
-      setError('Error al conectar con el servidor. Por favor, intenta nuevamente.')
+      setError('Error al conectar con el servidor')
     } finally {
       setIsLoading(false)
     }
@@ -90,28 +95,34 @@ export default function ForgotPasswordPage() {
       <main className="relative z-10 flex items-center justify-center min-h-[calc(100vh-100px)] px-6 py-16">
         <div className="w-full max-w-md">
           <div className="bg-[#73e4fd] bg-opacity-90 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-white border-opacity-30">
-            <h1 className="text-2xl font-bold text-[#2b555f] text-center mb-6">Recuperar Contraseña</h1>
+            <h1 className="text-2xl font-bold text-[#2b555f] text-center mb-6">Crear Nueva Contraseña</h1>
 
             {message ? (
               <div className="text-center">
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4">
                   <p>{message}</p>
                 </div>
-                <Link href="/login" className="text-[#00445d] hover:text-[#2b555f] font-semibold underline">
-                  Volver al login
-                </Link>
+                <p className="text-[#2b555f] text-sm">Redirigiendo al login...</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <p className="text-[#2b555f] text-sm mb-4 text-center">
-                    Ingresa tu email y te enviaremos un enlace para recuperar tu contraseña.
+                    Ingresa tu nueva contraseña.
                   </p>
                   <input
-                    type="email"
-                    placeholder="Tu email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="password"
+                    placeholder="Nueva contraseña"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all mb-4"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirmar nueva contraseña"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
                   />
@@ -128,14 +139,8 @@ export default function ForgotPasswordPage() {
                   disabled={isLoading}
                   className="w-full bg-[#2b555f] text-white py-3 rounded-lg font-semibold hover:bg-[#00445d] transition-colors disabled:opacity-50"
                 >
-                  {isLoading ? "Enviando..." : "Enviar enlace de recuperación"}
+                  {isLoading ? "Actualizando..." : "Actualizar contraseña"}
                 </button>
-
-                <div className="text-center mt-4">
-                  <Link href="/login" className="text-[#00445d] hover:text-[#2b555f] font-semibold text-sm underline">
-                    Volver al login
-                  </Link>
-                </div>
               </form>
             )}
           </div>
@@ -143,4 +148,4 @@ export default function ForgotPasswordPage() {
       </main>
     </div>
   )
-}
+} 

@@ -17,20 +17,25 @@ model TipoUsuario {
 }
 
 model Usuario {
-  id_usuario    Int      @id @default(autoincrement())
-  usuario       String   @db.VarChar(255)
-  telefono      String   @db.VarChar(255)
-  correo        String   @db.VarChar(255)
-  contrasena    String   @db.VarChar(255)
-  tipo_usuario  Int
-  nombre        String?  @db.VarChar(255)
-  apellido      String?  @db.VarChar(255)
-  ubicacion     String?  @db.VarChar(255)
-  createdAt     DateTime @default(now())
-  tipo          TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
-  foros         Foro[]
-  respuestas    RespuestaForo[]
-  pedidos       PedidoDonacion[]
+  id_usuario              Int      @id @default(autoincrement())
+  usuario                 String   @unique @db.VarChar(255)
+  telefono                String   @db.VarChar(255)
+  correo                  String   @unique @db.VarChar(255)
+  contrasena              String   @db.VarChar(255)
+  tipo_usuario            Int
+  nombre                  String?  @db.VarChar(255)
+  apellido                String?  @db.VarChar(255)
+  ubicacion               String?  @db.VarChar(255)
+  reset_token             String?  @db.VarChar(255)
+  reset_token_expiry      DateTime?
+  verification_token      String?  @db.VarChar(255)
+  verification_token_expiry DateTime?
+  email_verified          Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  tipo                    TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
+  foros                   Foro[]
+  respuestas              RespuestaForo[]
+  pedidos                 PedidoDonacion[]
 }
 
 model Foro {

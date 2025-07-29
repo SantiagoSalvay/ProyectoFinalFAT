@@ -11,9 +11,10 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
+    location: "",
     password: "",
     confirmPassword: "",
-    location: "",
     role: "person" as const
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -28,14 +29,20 @@ export default function RegisterPage() {
       newErrors.name = "Ingrese nombre y apellido"
     }
 
-    if (!formData.location.trim()) {
-      newErrors.location = "La ubicación es requerida"
-    }
-
     if (!formData.email.trim()) {
       newErrors.email = "El email es requerido"
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "El email no es válido"
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "El teléfono es requerido"
+    } else if (!/^\+?[\d\s-]{8,}$/.test(formData.phone.trim())) {
+      newErrors.phone = "Ingrese un número de teléfono válido"
+    }
+
+    if (!formData.location.trim()) {
+      newErrors.location = "La ubicación es requerida"
     }
 
     if (!formData.password) {
@@ -68,8 +75,9 @@ export default function RegisterPage() {
       const response = await api.register({
         name: formData.name,
         email: formData.email,
-        password: formData.password,
+        phone: formData.phone,
         location: formData.location,
+        password: formData.password,
         role: formData.role
       })
 
@@ -89,7 +97,6 @@ export default function RegisterPage() {
       ...formData,
       [e.target.name]: e.target.value,
     })
-    // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[e.target.name]) {
       setErrors({
         ...errors,
@@ -105,10 +112,7 @@ export default function RegisterPage() {
           <Link href="/" className="text-4xl md:text-5xl font-bold text-[#2b555f]">
             DEMOS+
           </Link>
-          <Link
-            href="/login"
-            className="border-2 border-[#2b555f] text-[#2b555f] px-6 py-2 rounded-lg font-semibold hover:bg-[#2b555f] hover:text-white transition-colors"
-          >
+          <Link href="/login" className="border-2 border-[#2b555f] text-[#2b555f] px-6 py-2 rounded-lg font-semibold hover:bg-[#2b555f] hover:text-white transition-colors">
             INICIAR SESIÓN
           </Link>
         </div>
@@ -116,10 +120,8 @@ export default function RegisterPage() {
 
       <main className="relative z-10 flex items-center justify-center min-h-[calc(100vh-100px)] px-6 py-8">
         <div className="w-full max-w-md">
-          {/* Register Form Container */}
           <div className="bg-[#73e4fd] bg-opacity-90 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-white border-opacity-30">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Nombre Completo */}
               <div>
                 <input
                   type="text"
@@ -132,7 +134,6 @@ export default function RegisterPage() {
                 {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
               </div>
 
-              {/* Email */}
               <div>
                 <input
                   type="email"
@@ -145,7 +146,18 @@ export default function RegisterPage() {
                 {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
               </div>
 
-              {/* Ubicación */}
+              <div>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Número de teléfono"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
+                />
+                {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
+              </div>
+
               <div>
                 <input
                   type="text"
@@ -158,12 +170,11 @@ export default function RegisterPage() {
                 {errors.location && <p className="text-red-600 text-sm mt-1">{errors.location}</p>}
               </div>
 
-              {/* Contraseña */}
               <div>
                 <input
                   type="password"
                   name="password"
-                  placeholder="contraseña"
+                  placeholder="Contraseña"
                   value={formData.password}
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
@@ -171,12 +182,11 @@ export default function RegisterPage() {
                 {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
               </div>
 
-              {/* Repetir Contraseña */}
               <div>
                 <input
                   type="password"
                   name="confirmPassword"
-                  placeholder="repetir contraseña"
+                  placeholder="Repetir contraseña"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
