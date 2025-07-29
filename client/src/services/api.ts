@@ -131,7 +131,8 @@ class ApiService {
             correo: userData.email,
             contrasena: userData.password,
             usuario: userData.email.split('@')[0],
-            telefono: ""
+            telefono: "",
+            ubicacion: userData.location
           }),
         }
       );

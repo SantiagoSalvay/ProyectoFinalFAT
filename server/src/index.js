@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from '../routes/auth.js';
+import authRoutes from './routes/auth.js';
 import mercadopagoRoutes from '../routes/mercadopago.js';
 
 // Cargar variables de entorno
