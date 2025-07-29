@@ -23,11 +23,6 @@ model Usuario {
   contrasena           String
   tipo_usuario         Int
   ubicacion            String?
-  is_email_verified    Boolean  @default(false)
-  is_phone_verified    Boolean  @default(false)
-  verification_token   String?
-  phone_code          String?
-  verification_expires DateTime?
   tipo                TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
   foros               Foro[]
   respuestas          RespuestaForo[]

@@ -20,13 +20,18 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Verificar si el usuario ya existe por correo
+    // Verificar si el usuario ya existe por correo o usuario
     const existingUser = await prisma.usuario.findFirst({
       where: { 
         OR: [
           { correo },
           { usuario }
         ]
+      },
+      select: {
+        id_usuario: true,
+        correo: true,
+        usuario: true
       }
     });
 

@@ -64,6 +64,7 @@ export default function RegisterPage() {
     }
 
     try {
+      console.log("Enviando datos de registro...")
       const response = await api.register({
         name: formData.name,
         email: formData.email,
@@ -72,9 +73,12 @@ export default function RegisterPage() {
         role: formData.role
       })
 
+      console.log("Respuesta del registro:", response)
+      
       toast.success("¡Cuenta creada exitosamente!")
       router.push("/login")
     } catch (error: any) {
+      console.error("Error completo del registro:", error)
       toast.error(error.message || "Error al crear la cuenta")
       setIsLoading(false)
     }
