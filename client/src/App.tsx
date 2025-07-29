@@ -1,3 +1,4 @@
+import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
@@ -10,6 +11,7 @@ import DashboardPage from './pages/DashboardPage'
 import ForumPage from './pages/ForumPage'
 import MissionPage from './pages/MissionPage'
 import ProfilePage from './pages/ProfilePage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 
 import MapPage from './pages/MapPage'
 import RankingPage from './pages/RankingPage'
@@ -32,6 +34,7 @@ function App() {
               <Route path="/donaciones" element={<Donaciones />} />
               <Route path="/map" element={<MapPage />} />
               <Route path="/ranking" element={<RankingPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               
               {/* Rutas protegidas */}
               <Route path="/dashboard" element={
