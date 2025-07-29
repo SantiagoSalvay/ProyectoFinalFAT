@@ -38,35 +38,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar token y cargar perfil
-    const token = api.getToken()
+    console.log('Estado del usuario actualizado:', user);
+  }, [user]);
+
+  useEffect(() => {
+    const token = api.getToken();
+    console.log('Token encontrado:', token ? 'Sí' : 'No');
     if (token) {
-      loadProfile()
+      loadProfile();
     } else {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   const loadProfile = async () => {
     try {
-      const { user } = await api.getProfile()
-      setUser(user)
+      console.log('Cargando perfil de usuario...');
+      const { user } = await api.getProfile();
+      console.log('Perfil cargado:', user);
+      setUser(user);
     } catch (error) {
-      console.error('Error loading profile:', error)
-      api.clearToken()
+      console.error('Error detallado al cargar perfil:', error);
+      api.clearToken();
+      setUser(null);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   const login = async (email: string, password: string) => {
     try {
-      const { user } = await api.login({ email, password })
-      setUser(user)
-      toast.success('¡Inicio de sesión exitoso!')
+      console.log('Intentando login con:', { email, password: '[PROTECTED]' });
+      const response = await api.login({ email, password });
+      console.log('Respuesta de login:', { ...response, token: response.token ? '[TOKEN]' : null });
+      
+      if (response.user) {
+        setUser(response.user);
+        toast.success('¡Inicio de sesión exitoso!');
+      } else {
+        console.error('No se recibieron datos del usuario en la respuesta');
+        toast.error('Error en el inicio de sesión: datos de usuario no recibidos');
+      }
     } catch (error) {
-      toast.error('Error en el inicio de sesión')
-      throw error
+      console.error('Error detallado en login:', error);
+      toast.error('Error en el inicio de sesión');
+      throw error;
     }
   }
 

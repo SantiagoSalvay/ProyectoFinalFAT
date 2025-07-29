@@ -108,19 +108,37 @@ router.post('/register', async (req, res) => {
 // Login de usuario
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    console.log('Datos de login recibidos:', { ...req.body, contrasena: '[PROTECTED]' });
+    const { correo, contrasena } = req.body;
+
+    if (!correo || !contrasena) {
+      return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
+    }
 
     // Buscar usuario por correo
     const user = await prisma.usuario.findFirst({
-      where: { correo: email }
+      where: { correo },
+      select: {
+        id_usuario: true,
+        usuario: true,
+        nombre: true,
+        apellido: true,
+        correo: true,
+        contrasena: true,
+        telefono: true,
+        ubicacion: true,
+        tipo_usuario: true
+      }
     });
+
+    console.log('Usuario encontrado:', user ? { ...user, contrasena: '[PROTECTED]' } : null);
 
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     // Verificar contraseña
-    const isValidPassword = await bcrypt.compare(password, user.contrasena);
+    const isValidPassword = await bcrypt.compare(contrasena, user.contrasena);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -135,13 +153,15 @@ router.post('/login', async (req, res) => {
     // Omitir contraseña de la respuesta
     const { contrasena: _, ...userWithoutPassword } = user;
 
+    console.log('Datos a enviar en respuesta:', { user: userWithoutPassword, token: token.substring(0, 20) + '...' });
+
     res.json({
       message: 'Login exitoso',
       user: userWithoutPassword,
       token
     });
   } catch (error) {
-    console.error('Error en login:', error);
+    console.error('Error detallado en login:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -149,12 +169,16 @@ router.post('/login', async (req, res) => {
 // Obtener perfil del usuario
 router.get('/profile', async (req, res) => {
   try {
+    console.log('Headers recibidos:', req.headers);
     const token = req.headers.authorization?.split(' ')[1];
+    
     if (!token) {
       return res.status(401).json({ error: 'Token no proporcionado' });
     }
 
+    console.log('Token recibido:', token);
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    console.log('Token decodificado:', decoded);
     
     const user = await prisma.usuario.findUnique({
       where: { id_usuario: decoded.userId },
@@ -164,17 +188,21 @@ router.get('/profile', async (req, res) => {
         apellido: true,
         usuario: true,
         telefono: true,
-        correo: true
+        correo: true,
+        ubicacion: true,
+        tipo_usuario: true
       }
     });
     
+    console.log('Datos del usuario encontrados:', user);
+
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
     res.json({ user });
   } catch (error) {
-    console.error('Error al obtener perfil:', error);
+    console.error('Error detallado al obtener perfil:', error);
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ error: 'Token inválido' });
     }

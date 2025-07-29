@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { User, Mail, Phone, MapPin, Calendar, Edit } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { User, Mail, MapPin, Calendar, Edit } from "lucide-react"
 import { api } from "../../client/src/services/api"
 import { toast } from "react-hot-toast"
 
@@ -16,41 +15,74 @@ export default function MiInformacionPage() {
     telefono: "",
     ubicacion: "",
     bio: "",
+    createdAt: null as Date | null,
   })
-
-  useEffect(() => {
-    loadUserProfile()
-  }, [])
 
   const loadUserProfile = async () => {
     try {
       setIsLoading(true)
-      const { user } = await api.getProfile()
-      setUserInfo({
-        nombre: user.nombre || "",
-        apellido: user.apellido || "",
-        correo: user.correo || "",
-        telefono: user.telefono || "",
-        ubicacion: user.ubicacion || "",
-        bio: user.bio || "",
-      })
+      const response = await api.getProfile()
+      console.log('Respuesta completa del perfil:', response)
+      
+      if (response?.user) {
+        const userData = response.user
+        console.log('Datos del usuario a cargar:', userData)
+        
+        // Actualizar el estado inmediatamente
+        const newUserInfo = {
+          nombre: userData.nombre || "",
+          apellido: userData.apellido || "",
+          correo: userData.correo || "",
+          telefono: userData.telefono || "",
+          ubicacion: userData.ubicacion || "",
+          bio: userData.bio || "",
+          createdAt: userData.createdAt || null,
+        }
+        console.log('Actualizando estado con:', newUserInfo)
+        setUserInfo(newUserInfo)
+      } else {
+        console.error('No se recibieron datos del usuario')
+        toast.error("No se pudieron cargar los datos del usuario")
+      }
     } catch (error) {
-      console.error("Error al cargar perfil:", error)
+      console.error("Error detallado al cargar perfil:", error)
       toast.error("Error al cargar la información del perfil")
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    loadUserProfile()
+  }, [])
+
+  // Efecto para mostrar los datos actualizados
+  useEffect(() => {
+    console.log('Estado de userInfo actualizado:', userInfo)
+  }, [userInfo])
+
   const handleSave = async () => {
     try {
-      await api.updateProfile(userInfo)
+      const response = await api.updateProfile(userInfo)
+      console.log('Respuesta de actualización:', response)
+      if (response?.user) {
+        setUserInfo(prev => ({
+          ...prev,
+          ...response.user
+        }))
+      }
       setIsEditing(false)
       toast.success("Perfil actualizado exitosamente")
     } catch (error) {
       console.error("Error al actualizar perfil:", error)
       toast.error("Error al actualizar el perfil")
     }
+  }
+
+  const handleCancel = () => {
+    loadUserProfile()
+    setIsEditing(false)
   }
 
   if (isLoading) {
@@ -65,146 +97,131 @@ export default function MiInformacionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-[#73e4fd] px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/main-dashboard" className="text-4xl md:text-5xl font-bold text-[#2b555f]">
-            DEMOS+
-          </Link>
-          <Link
-            href="/main-dashboard"
-            className="border-2 border-[#2b555f] text-[#2b555f] px-6 py-2 rounded-lg font-semibold hover:bg-[#2b555f] hover:text-white transition-colors"
-          >
-            VOLVER
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white p-8">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Mi Información</h1>
+        
+        <pre className="mb-4 p-4 bg-gray-100 rounded">
+          {JSON.stringify(userInfo, null, 2)}
+        </pre>
 
-      <main className="py-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white border-2 border-[#2b555f] rounded-2xl p-8 shadow-lg">
-            <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-[#2b555f]">Mi Información</h1>
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Información Personal</h2>
+            {!isEditing ? (
               <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center gap-2 bg-[#73e4fd] text-[#2b555f] px-4 py-2 rounded-lg hover:bg-[#2b555f] hover:text-white transition-colors"
+                onClick={() => setIsEditing(true)}
+                className="flex items-center text-blue-600 hover:text-blue-700"
               >
-                <Edit className="w-4 h-4" />
-                {isEditing ? "Cancelar" : "Editar"}
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
               </button>
-            </div>
-
-            <div className="space-y-6">
-              {/* Nombre */}
-              <div className="flex items-center gap-4">
-                <User className="w-5 h-5 text-[#2b555f]" />
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-[#2b555f] mb-1">Nombre completo</label>
-                  {isEditing ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={userInfo.nombre}
-                        onChange={(e) => setUserInfo({ ...userInfo, nombre: e.target.value })}
-                        placeholder="Nombre"
-                        className="w-1/2 px-3 py-2 border border-[#2b555f] rounded-lg focus:outline-none focus:border-[#00445d]"
-                      />
-                      <input
-                        type="text"
-                        value={userInfo.apellido}
-                        onChange={(e) => setUserInfo({ ...userInfo, apellido: e.target.value })}
-                        placeholder="Apellido"
-                        className="w-1/2 px-3 py-2 border border-[#2b555f] rounded-lg focus:outline-none focus:border-[#00445d]"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-[#2b555f] font-medium">{`${userInfo.nombre} ${userInfo.apellido}`}</p>
-                  )}
-                </div>
+            ) : (
+              <div className="space-x-2">
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Guardar
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
               </div>
+            )}
+          </div>
 
-              {/* Email */}
-              <div className="flex items-center gap-4">
-                <Mail className="w-5 h-5 text-[#2b555f]" />
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-[#2b555f] mb-1">Email</label>
-                  <p className="text-[#2b555f] font-medium">{userInfo.correo}</p>
-                </div>
-              </div>
-
-              {/* Teléfono */}
-              <div className="flex items-center gap-4">
-                <Phone className="w-5 h-5 text-[#2b555f]" />
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-[#2b555f] mb-1">Teléfono</label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      value={userInfo.telefono}
-                      onChange={(e) => setUserInfo({ ...userInfo, telefono: e.target.value })}
-                      className="w-full px-3 py-2 border border-[#2b555f] rounded-lg focus:outline-none focus:border-[#00445d]"
-                    />
-                  ) : (
-                    <p className="text-[#2b555f] font-medium">{userInfo.telefono || "No especificado"}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Ubicación */}
-              <div className="flex items-center gap-4">
-                <MapPin className="w-5 h-5 text-[#2b555f]" />
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-[#2b555f] mb-1">Ubicación</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={userInfo.ubicacion}
-                      onChange={(e) => setUserInfo({ ...userInfo, ubicacion: e.target.value })}
-                      className="w-full px-3 py-2 border border-[#2b555f] rounded-lg focus:outline-none focus:border-[#00445d]"
-                      placeholder="Ciudad, País"
-                    />
-                  ) : (
-                    <p className="text-[#2b555f] font-medium">{userInfo.ubicacion || "No especificada"}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Biografía */}
-              <div>
-                <label className="block text-sm font-medium text-[#2b555f] mb-1">Biografía</label>
-                {isEditing ? (
-                  <textarea
-                    value={userInfo.bio}
-                    onChange={(e) => setUserInfo({ ...userInfo, bio: e.target.value })}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-[#2b555f] rounded-lg focus:outline-none focus:border-[#00445d]"
-                    placeholder="Cuéntanos sobre ti..."
+          <div className="space-y-6">
+            {/* Nombre completo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre Completo
+              </label>
+              {isEditing ? (
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    value={userInfo.nombre}
+                    onChange={(e) => setUserInfo(prev => ({ ...prev, nombre: e.target.value }))}
+                    className="flex-1 rounded-md border border-gray-300 p-2"
+                    placeholder="Nombre"
                   />
-                ) : (
-                  <p className="text-[#2b555f] font-medium">{userInfo.bio || "No hay biografía disponible"}</p>
-                )}
-              </div>
-
-              {isEditing && (
-                <div className="flex space-x-4 pt-4">
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 bg-[#00445d] text-white py-3 rounded-lg font-semibold hover:bg-[#2b555f] transition-colors"
-                  >
-                    Guardar cambios
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="flex-1 px-4 py-2 border border-[#2b555f] rounded-lg text-[#2b555f] hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
+                  <input
+                    type="text"
+                    value={userInfo.apellido}
+                    onChange={(e) => setUserInfo(prev => ({ ...prev, apellido: e.target.value }))}
+                    className="flex-1 rounded-md border border-gray-300 p-2"
+                    placeholder="Apellido"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <User className="w-5 h-5 text-gray-400 mr-3" />
+                  <span>
+                    {userInfo.nombre || userInfo.apellido 
+                      ? `${userInfo.nombre} ${userInfo.apellido}`.trim()
+                      : "No especificado"}
+                  </span>
                 </div>
               )}
             </div>
+
+            {/* Correo electrónico - No editable */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Correo Electrónico
+              </label>
+              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <Mail className="w-5 h-5 text-gray-400 mr-3" />
+                <span>{userInfo.correo || "No especificado"}</span>
+              </div>
+            </div>
+
+            {/* Ubicación */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ubicación
+              </label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={userInfo.ubicacion}
+                  onChange={(e) => setUserInfo(prev => ({ ...prev, ubicacion: e.target.value }))}
+                  className="w-full rounded-md border border-gray-300 p-2"
+                  placeholder="Tu ubicación"
+                />
+              ) : (
+                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <MapPin className="w-5 h-5 text-gray-400 mr-3" />
+                  <span>{userInfo.ubicacion || "No especificada"}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Miembro desde - No editable */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Miembro desde
+              </label>
+              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <Calendar className="w-5 h-5 text-gray-400 mr-3" />
+                <span>
+                  {userInfo.createdAt 
+                    ? new Date(userInfo.createdAt).toLocaleDateString('es-ES', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })
+                    : "Fecha no disponible"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

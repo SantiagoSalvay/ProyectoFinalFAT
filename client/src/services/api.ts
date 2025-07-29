@@ -43,24 +43,27 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getToken();
 
+    if (!token && endpoint !== '/auth/login' && endpoint !== '/auth/register') {
+      throw new Error('No hay token de autenticación');
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    };
+
     console.log('Haciendo petición a:', url);
+    console.log('Headers:', headers);
     console.log('Opciones:', {
-      method: options.method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+      ...options,
+      headers,
       body: options.body ? JSON.parse(options.body as string) : undefined
     });
 
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
       ...options,
+      headers,
     };
 
     try {
@@ -91,6 +94,7 @@ class ApiService {
         error,
         url,
         method: options.method,
+        headers,
         body: options.body ? JSON.parse(options.body as string) : undefined
       });
       throw error;
@@ -158,13 +162,15 @@ class ApiService {
         {
           method: 'POST',
           body: JSON.stringify({
-            email: credentials.email,
-            password: credentials.password
+            correo: credentials.email,
+            contrasena: credentials.password
           }),
         }
       );
 
-      this.setToken(response.token);
+      if (response.token) {
+        this.setToken(response.token);
+      }
       return response;
     } catch (error) {
       console.error('Error en el login:', error);
@@ -175,15 +181,20 @@ class ApiService {
   // Obtener perfil del usuario
   async getProfile() {
     try {
+      console.log('Obteniendo perfil de usuario...');
       const response = await this.request<{ user: User }>(
         '/auth/profile',
         {
-          method: 'GET'
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`
+          }
         }
       );
+      console.log('Perfil obtenido:', response);
       return response;
     } catch (error) {
-      console.error('Error al obtener perfil:', error);
+      console.error('Error detallado al obtener perfil:', error);
       throw error;
     }
   }
@@ -197,6 +208,7 @@ class ApiService {
     bio?: string;
   }) {
     try {
+      console.log('Actualizando perfil con datos:', profileData);
       const response = await this.request<{ message: string; user: User }>(
         '/auth/profile',
         {
@@ -204,9 +216,10 @@ class ApiService {
           body: JSON.stringify(profileData),
         }
       );
+      console.log('Perfil actualizado:', response);
       return response;
     } catch (error) {
-      console.error('Error al actualizar perfil:', error);
+      console.error('Error detallado al actualizar perfil:', error);
       throw error;
     }
   }

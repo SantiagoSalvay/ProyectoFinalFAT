@@ -23,6 +23,10 @@ model Usuario {
   correo        String   @db.VarChar(255)
   contrasena    String   @db.VarChar(255)
   tipo_usuario  Int
+  nombre        String?  @db.VarChar(255)
+  apellido      String?  @db.VarChar(255)
+  ubicacion     String?  @db.VarChar(255)
+  createdAt     DateTime @default(now())
   tipo          TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
   foros         Foro[]
   respuestas    RespuestaForo[]
