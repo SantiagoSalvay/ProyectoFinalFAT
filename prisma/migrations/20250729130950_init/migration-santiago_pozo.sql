@@ -17,6 +17,8 @@ CREATE TABLE "Usuario" (
     "nombre" VARCHAR(255),
     "apellido" VARCHAR(255),
     "ubicacion" VARCHAR(255),
+    "reset_token" VARCHAR(255),
+    "reset_token_expiry" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Usuario_pkey" PRIMARY KEY ("id_usuario")
@@ -103,6 +105,12 @@ CREATE TABLE "Ranking" (
 
     CONSTRAINT "Ranking_pkey" PRIMARY KEY ("id_ranking")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Usuario_usuario_key" ON "Usuario"("usuario");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Usuario_correo_key" ON "Usuario"("correo");
 
 -- AddForeignKey
 ALTER TABLE "Usuario" ADD CONSTRAINT "Usuario_tipo_usuario_fkey" FOREIGN KEY ("tipo_usuario") REFERENCES "TipoUsuario"("tipo_usuario") ON DELETE RESTRICT ON UPDATE CASCADE;

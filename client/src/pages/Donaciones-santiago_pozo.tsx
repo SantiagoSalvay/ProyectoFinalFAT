@@ -76,7 +76,7 @@ export default function Donaciones() {
               className="input-field w-full"
               value={selectedOng}
               onChange={e => setSelectedOng(e.target.value)}
-              
+              required
             >
               {ongs.length === 0 && <option value="">Cargando ONGs...</option>}
               {ongs.map(ong => (

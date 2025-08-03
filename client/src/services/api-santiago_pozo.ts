@@ -107,12 +107,14 @@ class ApiService {
     email: string;
     password: string;
     location: string;
+    phone: string;
     role: UserRole;
   }) {
     console.log('Iniciando registro con datos:', {
       name: userData.name,
       email: userData.email,
       location: userData.location,
+      phone: userData.phone,
       role: userData.role,
       password: '[PROTECTED]'
     });
@@ -135,7 +137,7 @@ class ApiService {
             correo: userData.email,
             contrasena: userData.password,
             usuario: userData.email.split('@')[0],
-            telefono: "",
+            telefono: userData.phone,
             ubicacion: userData.location
           }),
         }
