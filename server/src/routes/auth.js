@@ -130,7 +130,6 @@ router.post('/login', async (req, res) => {
         apellido: true,
         correo: true,
         contrasena: true,
-        telefono: true,
         ubicacion: true,
         tipo_usuario: true
       }
@@ -192,7 +191,6 @@ router.get('/profile', async (req, res) => {
         nombre: true,
         apellido: true,
         usuario: true,
-        telefono: true,
         correo: true,
         ubicacion: true,
         tipo_usuario: true

@@ -33,7 +33,6 @@ router.get('/profile', verifyToken, async (req, res) => {
         nombre: true,
         apellido: true,
         correo: true,
-        telefono: true,
         ubicacion: true,
         bio: true,
         createdAt: true
@@ -53,7 +52,7 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 // Actualizar perfil del usuario
 router.put('/profile', verifyToken, async (req, res) => {
-  const { nombre, apellido, telefono, ubicacion, bio } = req.body;
+  const { nombre, apellido, ubicacion, bio } = req.body;
 
   try {
     const user = await prisma.usuario.update({
@@ -61,7 +60,6 @@ router.put('/profile', verifyToken, async (req, res) => {
       data: {
         nombre,
         apellido,
-        telefono,
         ubicacion,
         bio
       },
@@ -71,7 +69,6 @@ router.put('/profile', verifyToken, async (req, res) => {
         nombre: true,
         apellido: true,
         correo: true,
-        telefono: true,
         ubicacion: true,
         bio: true,
         createdAt: true

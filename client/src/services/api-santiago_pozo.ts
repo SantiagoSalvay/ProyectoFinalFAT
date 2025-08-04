@@ -6,7 +6,6 @@ export type UserRole = 'person' | 'ong';
 export interface User {
   id_usuario: number;
   usuario: string;
-  telefono: string;
   correo: string;
   nombre?: string;
   apellido?: string;
@@ -137,7 +136,6 @@ class ApiService {
             correo: userData.email,
             contrasena: userData.password,
             usuario: userData.email.split('@')[0],
-            telefono: userData.phone,
             ubicacion: userData.location
           }),
         }
@@ -205,7 +203,6 @@ class ApiService {
   async updateProfile(profileData: {
     nombre?: string;
     apellido?: string;
-    telefono?: string;
     ubicacion?: string;
     bio?: string;
   }) {
