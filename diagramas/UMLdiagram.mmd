@@ -1,0 +1,113 @@
+classDiagram
+    TipoUsuario <-- Usuario: tiene
+    Usuario <-- PedidoDonacion : tiene
+    Usuario <-- Foro: tiene
+    Foro --o ForoCategoria: depende
+    ForoCategoria --> Categoria
+    PedidoDonacion --> ForoCategoria
+    PedidoDonacion --> Donacion
+    RespuestaForo --> Usuario
+    RespuestaForo --o Foro
+    Usuario <-- Ranking
+    PedidoDonacion <-- Ranking
+    Ranking --> TipoRanking
+
+    class TipoUsuario{
+        int tipo_usuario
+        varchar nombre_tipo_usuario
+
+        +new()
+        +get()
+        +set()
+    }
+    note for TipoUsuario "Metodos get, set, new son creados y extendidos a la demas clases"
+    class Usuario {
+        + int id_usuario
+        + varchar usuario
+        + varchar telefono
+        + varchar correo
+        - varchar contrasena
+
+        +conocerTipoUsuario()
+        +identificarUsuario()
+        +verificarContrasena()
+        +reestrablecerContrasena()
+        +verificarMail()
+        +verificarONG()
+        
+    }
+    class Ranking{
+        int id_ranking
+        int id_tipo_ranking
+        int id_pedido 
+        int puesto
+        int puntos
+
+        +conocerTipoRanking()
+        +identificarRanking()
+        +calcularPuntos()
+        +reordenarPuestos()
+    }
+    class TipoRanking{
+        int id_tipo_ranking
+        varchar tipo_ranking
+    }
+    class Donacion {
+        int id_donacion 
+        varchar tipo_donacion
+        varchar descripcion
+        int puntos
+    }
+    class Foro {
+        int id_foro 
+        int id_usuario 
+        varchar titulo
+        varchar descripcion
+        date fecha
+
+        +conocerUsuario()
+        +editarAnuncio()
+
+    }
+    class Categoria {
+        int id_categoria 
+        varchar etiqueta
+    }
+    class ForoCategoria {
+        int id_foro_categoria 
+        int id_foro 
+        int id_categoria
+        int num_me_gusta 
+
+        +editarCategorias()
+        +ordenarporCategoria()
+        +conocerForo()
+        +conocerCategoria()
+        +AumentarMeGusta()
+        +RestarMeGusta()
+    }
+    class RespuestaForo {
+        int id_respuesta 
+        int id_foro 
+        int id_usuario 
+        varchar mensaje
+        date fecha
+
+        +conocerForo()
+        +conocerUsuario()
+        +editarRta()
+    }
+    class PedidoDonacion {
+        int id_pedido 
+        int id_foro 
+        int id_usuario 
+        int id_donacion 
+        varchar descripcion
+        int cantidad
+        date fecha
+
+        +conocerUsuario()
+        +conocerForoCategoria()
+        +conocerDonacion()
+        +calcularPuntos()
+    }

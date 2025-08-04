@@ -1,0 +1,73 @@
+erDiagram
+
+    TipoUsuario{
+        int tipo_usuario
+        string nombre_tipo_usuario
+    }
+    Usuario{
+        int id_usuario PK
+        string usuario
+        string telefono
+        string correo
+        string contrasena
+    }
+    Ranking{
+        int id_ranking PK
+        int id_tipo_ranking
+        int id_pedido FK
+        int puesto
+        int puntos
+    }
+    TipoRanking{
+        int id_tipo_ranking
+        string tipo_ranking
+    }
+    Donacion {
+        int id_donacion PK
+        string tipo_donacion
+        string descripcion
+        int puntos
+    }
+    Foro {
+        int id_foro PK
+        int id_usuario FK
+        string titulo
+        string descripcion
+        date fecha
+    }
+    Categoria {
+        int id_categoria PK
+        string etiqueta
+    }
+    ForoCategoria {
+        int id_foro_categoria PK
+        int id_foro FK
+        int id_categoria FK
+    }
+    RespuestaForo {
+        int id_respuesta PK
+        int id_foro FK
+        int id_usuario FK
+        string mensaje
+        date fecha
+    }
+    PedidoDonacion {
+        int id_pedido PK
+        int id_foro FK
+        int id_usuario FK
+        int id_donacion FK
+        string descripcion
+        int cantidad
+        date fecha
+    }
+    TipoUsuario ||-- |{ Usuario: tiene
+    Usuario ||--o{ Foro : publica
+    Foro ||--o{ ForoCategoria : tiene
+    Categoria ||--o{ ForoCategoria : clasifica
+    ForoCategoria ||--o{ PedidoDonacion : tiene
+    RespuestaForo }|--|| ForoCategoria : tiene
+    Usuario ||--|{ RespuestaForo: tiene
+    Usuario ||--o{ PedidoDonacion : realiza
+    PedidoDonacion }|--|| Donacion : clasifica
+    PedidoDonacion ||--o{ Ranking : clasifica
+    TipoRanking ||--|{Ranking: tiene
