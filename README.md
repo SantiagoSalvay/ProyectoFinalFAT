@@ -78,7 +78,12 @@ cd server
 pnpm prisma migrate reset --force
 pnpm prisma generate
 ```
-
+### Error: error npm
+Si encuentras errores con npm dev primero ejecuta:
+```bash
+cd server
+pnpm add express
+```
 ## Estructura del Proyecto
 
 - `/app` - Componentes y páginas de Next.js
