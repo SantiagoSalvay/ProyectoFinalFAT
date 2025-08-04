@@ -13,7 +13,7 @@ router.post('/register', async (req, res) => {
   try {
     console.log('Datos recibidos:', req.body);
 
-    const { nombre, apellido, correo, contrasena, usuario, telefono, ubicacion } = req.body;
+    const { nombre, apellido, correo, contrasena, usuario, ubicacion } = req.body;
 
     // Validar que todos los campos requeridos estén presentes
     if (!nombre || !apellido || !correo || !contrasena) {
@@ -65,7 +65,6 @@ router.post('/register', async (req, res) => {
       nombre,
       apellido,
       usuario,
-      telefono,
       correo,
       ubicacion,
       tipo_usuario: tipoUsuario.tipo_usuario
@@ -77,7 +76,6 @@ router.post('/register', async (req, res) => {
         nombre,
         apellido,
         usuario,
-        telefono: telefono || "",
         correo,
         contrasena: hashedPassword,
         tipo_usuario: tipoUsuario.tipo_usuario,

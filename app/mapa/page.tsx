@@ -1,5 +1,5 @@
-"use client"
-
+'use client';
+import React from 'react';
 import { useState } from "react"
 import Link from "next/link"
 import { MapPin, Search, Filter, Phone, Mail, Globe } from "lucide-react"
@@ -11,7 +11,6 @@ const ongsEnMapa = [
     categoria: "Desarrollo Social",
     ubicacion: "Buenos Aires, Argentina",
     coordenadas: { lat: -34.6037, lng: -58.3816 },
-    telefono: "+54 11 1234-5678",
     email: "contacto@manosunidas.org",
     web: "www.manosunidas.org",
     descripcion: "Ayudamos a comunidades vulnerables con programas de desarrollo integral.",
@@ -22,7 +21,6 @@ const ongsEnMapa = [
     categoria: "Educación",
     ubicacion: "Córdoba, Argentina",
     coordenadas: { lat: -31.4201, lng: -64.1888 },
-    telefono: "+54 351 987-6543",
     email: "info@esperanza.org",
     web: "www.esperanza.org",
     descripcion: "Brindamos educación de calidad a niños en situación de vulnerabilidad.",
@@ -33,7 +31,6 @@ const ongsEnMapa = [
     categoria: "Salud",
     ubicacion: "Rosario, Argentina",
     coordenadas: { lat: -32.9442, lng: -60.6505 },
-    telefono: "+54 341 555-0123",
     email: "salud@corazones.org",
     web: "www.corazones.org",
     descripcion: "Proporcionamos atención médica gratuita en comunidades rurales.",
@@ -44,7 +41,6 @@ const ongsEnMapa = [
     categoria: "Medio Ambiente",
     ubicacion: "Mendoza, Argentina",
     coordenadas: { lat: -32.8895, lng: -68.8458 },
-    telefono: "+54 261 444-7890",
     email: "ambiente@verdefuturo.org",
     web: "www.verdefuturo.org",
     descripcion: "Protegemos el medio ambiente y promovemos la sustentabilidad.",
@@ -175,10 +171,6 @@ export default function MapaPage() {
                           <h4 className="text-lg font-bold text-[#2b555f] mb-2">{ong.nombre}</h4>
                           <p className="text-sm text-[#2b555f] mb-3">{ong.descripcion}</p>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div className="flex items-center">
-                              <Phone className="w-4 h-4 text-[#2b555f] mr-2" />
-                              <span className="text-[#2b555f]">{ong.telefono}</span>
-                            </div>
                             <div className="flex items-center">
                               <Mail className="w-4 h-4 text-[#2b555f] mr-2" />
                               <span className="text-[#2b555f]">{ong.email}</span>

@@ -35,7 +35,6 @@ export const register = async (data: RegisterData) => {
         nombre,
         apellido,
         usuario: data.email.split('@')[0], // Usamos la parte del email antes del @ como nombre de usuario
-        telefono: "", // Campo requerido por el esquema pero no solicitado en el formulario
         correo: data.email,
         contrasena: data.password
       })

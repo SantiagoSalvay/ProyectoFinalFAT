@@ -10,7 +10,6 @@ export default function RegistrarOngPage() {
   const [formData, setFormData] = useState({
     nombreOng: "",
     email: "",
-    telefono: "",
     descripcion: "",
     area: "",
     ubicacion: "",
@@ -73,20 +72,6 @@ export default function RegistrarOngPage() {
                 name="email"
                 required
                 value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-[#2b555f] rounded-lg focus:outline-none focus:border-[#00445d]"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="telefono" className="block text-lg font-semibold text-[#2b555f] mb-2">
-                Teléfono
-              </label>
-              <input
-                type="tel"
-                id="telefono"
-                name="telefono"
-                value={formData.telefono}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border-2 border-[#2b555f] rounded-lg focus:outline-none focus:border-[#00445d]"
               />

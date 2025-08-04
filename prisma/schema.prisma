@@ -19,7 +19,6 @@ model TipoUsuario {
 model Usuario {
   id_usuario              Int      @id @default(autoincrement())
   usuario                 String   @unique @db.VarChar(255)
-  telefono                String   @db.VarChar(255)
   correo                  String   @unique @db.VarChar(255)
   contrasena              String   @db.VarChar(255)
   tipo_usuario            Int
