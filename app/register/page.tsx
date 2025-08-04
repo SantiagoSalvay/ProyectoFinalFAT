@@ -11,7 +11,6 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
     location: "",
     password: "",
     confirmPassword: "",
@@ -33,12 +32,6 @@ export default function RegisterPage() {
       newErrors.email = "El email es requerido"
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "El email no es válido"
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "El teléfono es requerido"
-    } else if (!/^\+?[\d\s-]{8,}$/.test(formData.phone.trim())) {
-      newErrors.phone = "Ingrese un número de teléfono válido"
     }
 
     if (!formData.location.trim()) {
@@ -75,7 +68,6 @@ export default function RegisterPage() {
       const response = await api.register({
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
         location: formData.location,
         password: formData.password,
         role: formData.role
@@ -144,18 +136,6 @@ export default function RegisterPage() {
                   className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
                 />
                 {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
-              </div>
-
-              <div>
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="Número de teléfono"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-white border-opacity-50 bg-white bg-opacity-80 placeholder-gray-500 text-[#2b555f] focus:outline-none focus:border-[#2b555f] focus:bg-white transition-all"
-                />
-                {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
               </div>
 
               <div>
