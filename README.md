@@ -11,11 +11,13 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
   - Verificación de documentación
   - Panel de control personalizado
 
-- 👥 **Sistema de Usuarios**
-  - Registro con verificación de email
-  - Autenticación segura
-  - Perfiles personalizados
-  - Sistema de roles y permisos
+- 👥 **Sistema de Usuarios Avanzado**
+  - ✅ **Registro con verificación de email** (IMPLEMENTADO)
+  - ✅ **Flujo de activación de cuenta por email** (NUEVO)
+  - ✅ **Autenticación JWT segura** (IMPLEMENTADO)
+  - ✅ **Perfiles personalizados** (IMPLEMENTADO)
+  - ✅ **Sistema de roles y permisos** (IMPLEMENTADO)
+  - ✅ **Inicio de sesión automático tras verificación** (NUEVO)
 
 - 💰 **Gestión de Donaciones**
   - Integración con MercadoPago
@@ -24,9 +26,9 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
   - Generación de comprobantes
 
 - 📍 **Mapa Interactivo**
-  - Visualización de ONGs cercanas
-  - Filtros por categoría y ubicación
-  - Información detallada de cada punto
+  - ✅ **Visualización de ONGs cercanas** (IMPLEMENTADO)
+  - ✅ **Filtros por categoría y ubicación** (IMPLEMENTADO)
+  - ✅ **Información detallada de cada punto** (IMPLEMENTADO)
 
 - 📊 **Sistema de Ranking**
   - Puntuación por actividades
@@ -38,26 +40,42 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
   - Comentarios y respuestas
   - Moderación de contenido
 
+- 📧 **Sistema de Emails** (NUEVO)
+  - ✅ **Verificación de email con diseño personalizado** (IMPLEMENTADO)
+  - ✅ **Recuperación de contraseña** (IMPLEMENTADO)
+  - ✅ **Plantillas HTML profesionales** (IMPLEMENTADO)
+
 ## 🛠️ Especificaciones Técnicas
 
 ### Frontend
-- React + Vite
-- TypeScript
-- Tailwind CSS
-- Context API para gestión de estado
-- React Router para navegación
+- **React 18** + **Vite** (Hot reload y desarrollo rápido)
+- **TypeScript** (Tipado estático)
+- **Tailwind CSS** (Estilos utilitarios y diseño responsive)
+- **React Router v6** (Navegación SPA)
+- **Context API** (Gestión de estado global)
+- **React Hook Form** (Manejo de formularios)
+- **React Hot Toast** (Notificaciones elegantes)
 
 ### Backend
-- Node.js + Express
-- Prisma ORM
-- PostgreSQL
-- JWT para autenticación
-- Nodemailer para emails
+- **Node.js** + **Express.js** (Servidor REST API)
+- **Prisma ORM** (ORM type-safe para base de datos)
+- **PostgreSQL** (Base de datos relacional)
+- **JWT** (JSON Web Tokens para autenticación)
+- **Nodemailer** (Envío de emails SMTP)
+- **bcryptjs** (Hashing de contraseñas)
+- **UUID** (Generación de tokens únicos)
 
-### Integraciones
-- MercadoPago API
-- Google Maps API
-- Cloudinary para almacenamiento de imágenes
+### Integraciones y Servicios
+- **MercadoPago API** (Procesamiento de pagos)
+- **Gmail SMTP** (Envío de emails de verificación)
+- **Railway/PostgreSQL** (Base de datos en la nube)
+
+### Seguridad
+- ✅ **Verificación de email obligatoria**
+- ✅ **Tokens de verificación con expiración**
+- ✅ **Hashing de contraseñas con bcrypt**
+- ✅ **JWT con expiración de 7 días**
+- ✅ **Validación de datos en frontend y backend**
 
 ## 📋 Requisitos Previos
 
@@ -87,18 +105,40 @@ pnpm install
 4. Configura las variables de entorno:
    - Crea un archivo `.env` en la carpeta `server` con el siguiente contenido:
    ```env
+   # Base de datos
    DATABASE_URL="postgresql://usuario:contraseña@host:puerto/nombre_base_datos"
-   JWT_SECRET="tu_secreto_jwt"
-   EMAIL_USER="tu_email@gmail.com"
-   EMAIL_PASSWORD="tu_contraseña_de_app"
-   FRONTEND_URL="http://localhost:5173"
+   
+   # Autenticación
+   JWT_SECRET="tu_secreto_jwt_super_seguro"
+   
+   # Configuración SMTP para emails (Gmail)
+   SMTP_HOST="smtp.gmail.com"
+   SMTP_PORT="465"
+   SMTP_USER="tu_email@gmail.com"
+   SMTP_PASS="tu_contraseña_de_aplicacion_gmail"
+   
+   # URL de la aplicación para enlaces de verificación
+   APP_URL="http://localhost:3000"
    ```
 
-5. Genera el cliente de Prisma y aplica las migraciones:
+   > **Nota importante:** Para Gmail, necesitas generar una "Contraseña de aplicación":
+   > 1. Ve a tu cuenta de Google → Seguridad
+   > 2. Activa la verificación en 2 pasos
+   > 3. Genera una contraseña de aplicación
+   > 4. Usa esa contraseña en `SMTP_PASS`
+
+5. Configura la base de datos:
 ```bash
 cd server
+
+# Genera el cliente de Prisma
 pnpm prisma generate
-pnpm prisma migrate dev
+
+# Sincroniza el esquema con la base de datos
+pnpm prisma db push
+
+# O aplica migraciones (si prefieres usar migraciones)
+# pnpm prisma migrate dev
 ```
 
 ## 🏃‍♂️ Ejecución del Proyecto
