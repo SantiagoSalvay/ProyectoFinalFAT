@@ -143,15 +143,41 @@ pnpm prisma db push
 
 ## 🏃‍♂️ Ejecución del Proyecto
 
-1. Inicia el servidor (desde la carpeta server):
+1. **Inicia el servidor backend** (desde la carpeta `server`):
 ```bash
-pnpm dev
+cd server
+npm run dev
+# O con pnpm: pnpm dev
 ```
+> El servidor se ejecutará en: http://localhost:3001
 
-2. En otra terminal, inicia el cliente (desde la carpeta raíz):
+2. **En otra terminal, inicia el cliente frontend** (desde la carpeta raíz):
 ```bash
-pnpm dev
+npm run dev
+# O con pnpm: pnpm dev
 ```
+> La aplicación se ejecutará en: http://localhost:3000
+
+## 🔄 Flujo de Verificación de Email (NUEVO)
+
+### Para Usuarios Nuevos:
+
+1. **Registro** → El usuario llena el formulario de registro
+2. **Mensaje de verificación** → Se muestra "¡Revisa tu correo!" con fondo blanco elegante
+3. **Email enviado** → Se envía un email con diseño profesional y botón de verificación
+4. **Verificación** → Al hacer clic en el enlace:
+   - Se muestra pantalla de "Verificando email..." 
+   - Se registra la cuenta en la base de datos
+   - Se inicia sesión automáticamente
+   - Se redirige al dashboard del usuario
+
+### Características del Sistema:
+- ✅ **Tokens seguros** con expiración de 24 horas
+- ✅ **Emails con diseño profesional** (HTML)
+- ✅ **Inicio de sesión automático** tras verificación
+- ✅ **Interfaz elegante** sin fondos celestes
+- ✅ **Validaciones de seguridad** completas
+- ✅ **Logs detallados** para debugging
 
 ## 🔧 Guía de Solución de Problemas
 
@@ -196,29 +222,76 @@ CREATE DATABASE nombre_base_datos;
 ### 🔐 Problemas de Autenticación
 
 #### Error: JWT malformado
-1. Verifica que JWT_SECRET está correctamente configurado en .env
-2. Limpia el localStorage del navegador
+1. Verifica que `JWT_SECRET` está correctamente configurado en .env
+2. Limpia el localStorage del navegador (F12 → Application → Local Storage)
 3. Cierra sesión y vuelve a iniciar
 
 #### Error: Verificación de email no llega
-1. Verifica las credenciales de EMAIL_USER y EMAIL_PASSWORD
-2. Confirma que la cuenta de Gmail tiene habilitado el acceso a apps menos seguras
-3. Revisa la carpeta de spam
+1. Verifica las credenciales de `SMTP_USER` y `SMTP_PASS` en .env
+2. Asegúrate de usar una **contraseña de aplicación** de Gmail, no tu contraseña normal
+3. Confirma que `APP_URL` está correctamente configurada
+4. Revisa la carpeta de spam del email
+5. Verifica los logs del servidor para errores SMTP
+
+#### Error: "The table `public.RegistroPendiente` does not exist"
+```bash
+cd server
+# Detener procesos que puedan estar interfiriendo
+taskkill /f /im node.exe  # En Windows
+# pkill node              # En Linux/Mac
+
+# Regenerar cliente y sincronizar BD
+pnpm prisma generate
+pnpm prisma db push
+```
 
 ## 📁 Estructura del Proyecto
 
 ```
 /
-├── app/                # Componentes y páginas de Next.js
-├── client/            # Código del cliente React
+├── client/                    # 🎨 Frontend React
 │   ├── src/
-│   ├── components/    # Componentes reutilizables
-│   └── pages/         # Páginas de la aplicación
-├── server/            # Código del servidor Express
-│   ├── routes/        # Rutas de la API
-│   └── src/           # Lógica del servidor
-└── prisma/            # Esquema y migraciones DB
+│   │   ├── components/       # Componentes reutilizables
+│   │   │   ├── AuthenticatedOnlyRoute.tsx
+│   │   │   ├── ProtectedRoute.tsx
+│   │   │   └── Layout.tsx
+│   │   ├── contexts/         # Context API (Estado global)
+│   │   │   ├── AuthContext.tsx
+│   │   │   └── NotificationContext.tsx
+│   │   ├── pages/           # Páginas de la aplicación
+│   │   │   ├── RegisterPage.tsx      # Registro con verificación
+│   │   │   ├── VerifyEmailPage.tsx   # Verificación de email
+│   │   │   ├── LoginPage.tsx
+│   │   │   ├── DashboardPage.tsx
+│   │   │   └── MapPage.tsx
+│   │   ├── services/        # Servicios de API
+│   │   │   └── api.ts
+│   │   └── App.tsx          # Router principal
+├── server/                   # 🔧 Backend Node.js
+│   ├── src/
+│   │   └── routes/          # Rutas de la API
+│   │       └── auth.js      # Autenticación y verificación
+│   ├── lib/                 # Librerías y servicios
+│   │   └── email-service.js # Servicio de emails SMTP
+│   ├── prisma/              # Configuración de base de datos
+│   │   ├── schema.prisma    # Esquema de BD
+│   │   └── migrations/      # Migraciones
+│   └── package.json
+├── app/                     # 📱 Páginas adicionales Next.js (opcional)
+├── prisma/                  # 🗄️ Esquema principal de BD
+├── package.json             # Dependencias del frontend
+└── README.md                # Este archivo
 ```
+
+## 🗃️ Modelos de Base de Datos
+
+### Principales:
+- **Usuario** - Datos del usuario con verificación de email
+- **RegistroPendiente** - Usuarios pendientes de verificación (NUEVO)
+- **TipoUsuario** - Roles y permisos
+- **Foro** - Discusiones de la comunidad
+- **Donacion** - Gestión de donaciones
+- **Ranking** - Sistema de puntuaciones
 
 ## 🤝 Contribución
 
