@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Logo y descripción */}
           <div className="lg:col-span-2">
             <div className="flex items-center mb-4">
-              <Heart className="w-8 h-8 text-red-500 mr-3" />
+              <Heart className="w-8 h-8 text-purple-500 mr-3" />
               <span className="text-2xl font-bold">Demos+</span>
             </div>
             <p className="text-gray-300 mb-6 max-w-md">
