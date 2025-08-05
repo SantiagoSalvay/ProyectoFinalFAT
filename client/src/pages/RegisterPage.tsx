@@ -21,6 +21,8 @@ export default function RegisterPage() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('person')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
   const { register: registerUser, isLoading } = useAuth()
   const navigate = useNavigate()
 
@@ -40,7 +42,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await registerUser({
+      const response = await registerUser({
         email: data.email,
         password: data.password,
         name: `${data.firstName} ${data.lastName}`,
@@ -49,11 +51,64 @@ export default function RegisterPage() {
         location: data.location,
       })
       
+      // Si requiere verificación, mostrar mensaje
+      if (response?.requiresVerification) {
+        setUserEmail(data.email)
+        setShowVerificationMessage(true)
+        return
+      }
+      
+      // Si no requiere verificación (flujo anterior)
       toast.success('¡Registro exitoso! Bienvenido a Demos+')
       navigate('/dashboard')
     } catch (error) {
       toast.error('Error al registrarse. Inténtalo de nuevo.')
     }
+  }
+
+  // Si se mostró el mensaje de verificación, renderizar esa pantalla
+  if (showVerificationMessage) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl border border-gray-200 text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">¡Revisa tu correo!</h2>
+              <p className="text-gray-600 text-sm">
+                Te hemos enviado un correo de verificación a <strong className="text-purple-600">{userEmail}</strong>
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-r from-purple-50 to-emerald-50 rounded-lg p-6 mb-6">
+              <p className="text-gray-700 text-sm leading-relaxed">
+                Haz clic en el enlace del correo para verificar tu cuenta y completar el registro. 
+                Una vez verificado, podrás iniciar sesión automáticamente.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowVerificationMessage(false)}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-lg"
+              >
+                Intentar de nuevo
+              </button>
+              <Link 
+                to="/login"
+                className="block w-full border-2 border-purple-600 text-purple-600 py-3 rounded-lg font-semibold hover:bg-purple-600 hover:text-white transition-colors text-center"
+              >
+                Ir a iniciar sesión
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

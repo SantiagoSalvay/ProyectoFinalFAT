@@ -12,6 +12,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>
   logout: () => void
   updateProfile: (profileData: UpdateProfileData) => Promise<void>
+  setUserFromVerification: (user: User, token: string) => void
 }
 
 interface RegisterData {
@@ -88,9 +89,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (userData: RegisterData) => {
     try {
-      const { user } = await api.register(userData)
-      setUser(user)
-      toast.success('¡Registro exitoso!')
+      const response = await api.register(userData)
+      
+      // Si requiere verificación, no establecer usuario aún
+      if (response.requiresVerification) {
+        // No establecer usuario ni token hasta que se verifique
+        return response // Devolver la respuesta para que el componente la maneje
+      }
+      
+      // Si no requiere verificación (flujo anterior)
+      if (response.user) {
+        setUser(response.user)
+        toast.success('¡Registro exitoso!')
+      }
+      
+      return response
     } catch (error) {
       toast.error('Error en el registro')
       throw error
@@ -114,6 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     toast.success('Sesión cerrada')
   }
 
+  const setUserFromVerification = (user: User, token: string) => {
+    console.log('Estableciendo usuario desde verificación:', user)
+    api.setToken(token)
+    setUser(user)
+    toast.success('¡Cuenta verificada e inicio de sesión automático!')
+  }
+
   const value = {
     user,
     isAuthenticated: !!user,
@@ -121,7 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
-    updateProfile
+    updateProfile,
+    setUserFromVerification
   }
 
   return (

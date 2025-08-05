@@ -124,7 +124,12 @@ class ApiService {
     }
 
     try {
-      const response = await this.request<{ message: string; user: User; token: string }>(
+      const response = await this.request<{ 
+        message: string; 
+        user?: User; 
+        token?: string; 
+        requiresVerification?: boolean 
+      }>(
         '/auth/register',
         {
           method: 'POST',
@@ -141,10 +146,15 @@ class ApiService {
 
       console.log('Registro exitoso:', {
         message: response.message,
-        user: { ...response.user, contrasena: undefined }
+        requiresVerification: response.requiresVerification,
+        user: response.user ? { ...response.user, contrasena: undefined } : undefined
       });
 
-      this.setToken(response.token);
+      // Solo guardar token si no requiere verificación
+      if (response.token && !response.requiresVerification) {
+        this.setToken(response.token);
+      }
+      
       return response;
     } catch (error) {
       console.error('Error en el registro:', error);
