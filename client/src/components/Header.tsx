@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
@@ -11,16 +11,25 @@ export default function Header() {
   const { unreadCount } = useNotifications()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const navigation = [
+  // Navegación para usuarios NO registrados
+  const unauthenticatedNavigation = [
     { name: 'Inicio', href: '/' },
     { name: 'Misión', href: '/mission' },
     { name: 'ONGs', href: '/ongs' },
+  ]
+
+  // Navegación para usuarios registrados
+  const authenticatedNavigation = [
+    { name: 'Inicio', href: '/' },
     { name: 'Donaciones', href: '/donaciones' },
     { name: 'Mapa', href: '/map' },
     { name: 'Ranking', href: '/ranking' },
-    { name: 'Foro', href: '/forum', protected: true },
-    { name: 'Dashboard', href: '/dashboard', protected: true },
+    { name: 'Foro', href: '/forum' },
+    { name: 'Dashboard', href: '/dashboard' },
   ]
+
+  // Seleccionar navegación según el estado de autenticación
+  const navigation = isAuthenticated ? authenticatedNavigation : unauthenticatedNavigation
 
   const isActive = (path: string) => location.pathname === path
 
@@ -40,23 +49,19 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => {
-              if (item.protected && !isAuthenticated) return null
-              
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`text-sm font-medium transition-colors duration-200 ${
-                    isActive(item.href)
-                      ? 'text-purple-600 border-b-2 border-purple-600'
-                      : 'text-gray-600 hover:text-purple-600'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              )
-            })}
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  isActive(item.href)
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-600 hover:text-purple-600'
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
           </nav>
 
           {/* Right side - Auth & Notifications */}
@@ -110,24 +115,20 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
             <nav className="flex flex-col space-y-4">
-              {navigation.map((item) => {
-                if (item.protected && !isAuthenticated) return null
-                
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`text-sm font-medium transition-colors duration-200 ${
-                      isActive(item.href)
-                        ? 'text-purple-600'
-                        : 'text-gray-600 hover:text-purple-600'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                )
-              })}
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`text-sm font-medium transition-colors duration-200 ${
+                    isActive(item.href)
+                      ? 'text-purple-600'
+                      : 'text-gray-600 hover:text-purple-600'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              ))}
               
               {!isAuthenticated && (
                 <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">

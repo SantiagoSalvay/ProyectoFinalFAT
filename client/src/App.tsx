@@ -18,6 +18,8 @@ import RankingPage from './pages/RankingPage'
 import ONGsPage from './pages/ONGsPage'
 import Donaciones from './pages/Donaciones'
 import ProtectedRoute from './components/ProtectedRoute'
+import UnauthenticatedOnlyRoute from './components/UnauthenticatedOnlyRoute'
+import AuthenticatedOnlyRoute from './components/AuthenticatedOnlyRoute'
 
 function App() {
   return (
@@ -29,14 +31,38 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/mission" element={<MissionPage />} />
-              <Route path="/ongs" element={<ONGsPage />} />
-              <Route path="/donaciones" element={<Donaciones />} />
-              <Route path="/map" element={<MapPage />} />
-              <Route path="/ranking" element={<RankingPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               
-              {/* Rutas protegidas */}
+              {/* Rutas solo para usuarios NO registrados */}
+              <Route path="/mission" element={
+                <UnauthenticatedOnlyRoute>
+                  <MissionPage />
+                </UnauthenticatedOnlyRoute>
+              } />
+              <Route path="/ongs" element={
+                <UnauthenticatedOnlyRoute>
+                  <ONGsPage />
+                </UnauthenticatedOnlyRoute>
+              } />
+              
+              {/* Rutas solo para usuarios registrados */}
+              <Route path="/donaciones" element={
+                <AuthenticatedOnlyRoute>
+                  <Donaciones />
+                </AuthenticatedOnlyRoute>
+              } />
+              <Route path="/map" element={
+                <AuthenticatedOnlyRoute>
+                  <MapPage />
+                </AuthenticatedOnlyRoute>
+              } />
+              <Route path="/ranking" element={
+                <AuthenticatedOnlyRoute>
+                  <RankingPage />
+                </AuthenticatedOnlyRoute>
+              } />
+              
+              {/* Rutas protegidas (requieren autenticación) */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <DashboardPage />
