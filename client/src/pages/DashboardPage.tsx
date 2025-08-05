@@ -80,10 +80,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <button className="w-full btn-primary text-sm">
-                  {isONG ? 'Historial Donaciones' : 'Administrar Mis Donaciones'}
-                </button>
-
         {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Recent Activity */}
@@ -160,6 +156,9 @@ export default function DashboardPage() {
                 <button className="w-full btn-accent text-sm">
                   {isONG ? 'Ver Reportes' : 'Ver Mi Historial'}
                 </button>
+                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors">
+                  {isONG ? 'Historial Donaciones' : 'Administrar Mis Donaciones'}
+                </button>
               </div>
             </div>
 
@@ -226,4 +225,4 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-} 
+}
