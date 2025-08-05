@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-hot-toast'
@@ -10,7 +10,8 @@ interface RegisterFormData {
   email: string
   password: string
   confirmPassword: string
-  name: string
+  firstName: string
+  lastName: string
   role: UserRole
   organization?: string
   location?: string
@@ -42,7 +43,7 @@ export default function RegisterPage() {
       await registerUser({
         email: data.email,
         password: data.password,
-        name: data.name,
+        name: `${data.firstName} ${data.lastName}`,
         role: selectedRole,
         organization: data.organization,
         location: data.location,
@@ -110,21 +111,58 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {selectedRole === 'person' ? 'Nombre completo' : 'Nombre de la organización'}
-              </label>
-              <input
-                type="text"
-                {...register('name', { required: 'Este campo es requerido' })}
-                className="input-field"
-                placeholder={selectedRole === 'person' ? 'Tu nombre completo' : 'Nombre de la ONG'}
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
+            {/* Name Fields - Only for Person */}
+            {selectedRole === 'person' ? (
+              <>
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    {...register('firstName', { required: 'El nombre es requerido' })}
+                    className="input-field"
+                    placeholder="Tu nombre"
+                  />
+                  {errors.firstName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                  )}
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Apellido
+                  </label>
+                  <input
+                    type="text"
+                    {...register('lastName', { required: 'El apellido es requerido' })}
+                    className="input-field"
+                    placeholder="Tu apellido"
+                  />
+                  {errors.lastName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Organization Name - Only for ONG */
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de la organización
+                </label>
+                <input
+                  type="text"
+                  {...register('firstName', { required: 'El nombre de la organización es requerido' })}
+                  className="input-field"
+                  placeholder="Nombre de la ONG"
+                />
+                {errors.firstName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                )}
+              </div>
+            )}
 
             {/* Organization (only for ONG) */}
             {selectedRole === 'ong' && (
