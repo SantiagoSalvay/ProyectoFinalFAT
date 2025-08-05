@@ -30,7 +30,9 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-gray-600">
                   {isONG ? 'Donaciones Recibidas' : 'Donaciones Realizadas'}
                 </p>
-                <p className="text-2xl font-bold text-gray-900">24</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {isONG ? '10' : '30'}
+                  </p>
               </div>
             </div>
           </div>
@@ -42,10 +44,10 @@ export default function DashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">
-                  {isONG ? 'Voluntarios Activos' : 'Horas de Voluntariado'}
+                  {isONG ? 'Total Recaudado' : 'Donaciones Totales'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {isONG ? '156' : '48h'}
+                  {isONG ? '15600$' : '48'}
                 </p>
               </div>
             </div>
@@ -71,12 +73,16 @@ export default function DashboardPage() {
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Impacto</p>
-                <p className="text-2xl font-bold text-gray-900">+15%</p>
+                <p className="text-sm font-medium text-gray-600">Cantidad de Punto</p>
+                <p className="text-2xl font-bold text-gray-900">1354pt</p>
               </div>
             </div>
           </div>
         </div>
+
+        <button className="w-full btn-primary text-sm">
+                  {isONG ? 'Historial Donaciones' : 'Administrar Mis Donaciones'}
+                </button>
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-8">
