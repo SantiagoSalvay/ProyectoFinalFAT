@@ -39,8 +39,8 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
-              <Heart className="w-6 h-6 text-white" />
+            <div>
+              <img src="../../../public/images/logo.png" alt="Logo" className="w-8 h-8" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
               Demos+
@@ -49,11 +49,12 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
+            
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`text-sm font-medium transition-colors duration-200 ${
+                className={`px-4 text-sm font-medium transition-colors duration-200 ${
                   isActive(item.href)
                     ? 'text-purple-600 border-b-2 border-purple-600'
                     : 'text-gray-600 hover:text-purple-600'
@@ -62,8 +63,8 @@ export default function Header() {
                 {item.name}
               </Link>
             ))}
+            
           </nav>
-
           {/* Right side - Auth & Notifications */}
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
