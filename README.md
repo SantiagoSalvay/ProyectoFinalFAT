@@ -293,6 +293,27 @@ pnpm prisma db push
 - **Donacion** - Gestión de donaciones
 - **Ranking** - Sistema de puntuaciones
 
+## 🚀 Funcionalidades Próximas
+
+- [ ] **Sistema de Notificaciones Push**
+- [ ] **Chat en tiempo real** entre usuarios y ONGs
+- [ ] **Sistema de Reviews** para ONGs
+- [ ] **Integración con Google Maps API**
+- [ ] **App móvil** (React Native)
+- [ ] **Dashboard de analytics** para ONGs
+- [ ] **Sistema de badges** y gamificación
+
+## 🧪 Testing y Calidad
+
+Para probar el sistema de verificación de email:
+
+1. **Registro un usuario** en http://localhost:3000/register
+2. **Verifica** que aparece el mensaje "¡Revisa tu correo!"
+3. **Revisa** tu email para el mensaje de verificación
+4. **Haz clic** en "Verificar mi correo electrónico"
+5. **Confirma** que se muestra la pantalla de éxito
+6. **Verifica** que se redirige automáticamente al dashboard
+
 ## 🤝 Contribución
 
 1. Haz fork del proyecto
@@ -301,6 +322,17 @@ pnpm prisma db push
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
+## 👨‍💻 Desarrolladores
+
+- **Sistema de Verificación de Email** - Implementado completamente
+- **Interfaz de Usuario** - Diseño moderno y responsive
+- **Backend API** - RESTful con validaciones de seguridad
+- **Base de Datos** - Optimizada con Prisma ORM
+
 ## 📝 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles. 
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+---
+
+**DEMOS+** - Conectando corazones, transformando vidas 💙 
