@@ -34,17 +34,33 @@ const emailTemplates = {
   resetPassword: (resetToken: string) => ({
     subject: 'Recuperación de contraseña - DEMOS+',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #2b555f; text-align: center;">Recuperación de contraseña</h1>
-        <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para crear una nueva contraseña:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/reset-password/${resetToken}" 
-             style="background-color: #2b555f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Recuperar contraseña
-          </a>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <h1 style="color: #7c3aed; text-align: center; margin-bottom: 20px;">🔐 Recuperación de contraseña</h1>
+          <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+            Hola,<br><br>
+            Has solicitado restablecer tu contraseña en <strong>DEMOS+</strong>. 
+            Haz clic en el siguiente botón para crear una nueva contraseña:
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.NEXT_PUBLIC_CLIENT_URL || 'http://localhost:5173'}/reset-password/${resetToken}" 
+               style="background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3); transition: all 0.3s ease;">
+              🔑 Recuperar contraseña
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+            Si no solicitaste este cambio, puedes ignorar este correo de forma segura.
+          </p>
+          <p style="color: #ef4444; font-size: 14px; font-weight: bold; background-color: #fef2f2; padding: 10px; border-radius: 6px; border-left: 4px solid #ef4444;">
+            ⚠️ Este enlace expirará en 1 hora por seguridad.
+          </p>
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px;">
+              Este es un email automático de DEMOS+<br>
+              Si tienes problemas, contacta nuestro soporte.
+            </p>
+          </div>
         </div>
-        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
-        <p style="color: #666; font-size: 14px;">Este enlace expirará en 1 hora.</p>
       </div>
     `
   })

@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
 import { emailService } from '../../lib/email-service.js';
+import { passwordResetService } from '../../lib/password-reset-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -237,33 +238,26 @@ router.post('/request-password-reset', async (req, res) => {
       }
     });
 
-    // Configurar el transporter de nodemailer (ajusta según tu proveedor de email)
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
+    // Enviar email usando el servicio
+    try {
+      console.log('📧 Intentando enviar email de recuperación a:', correo);
+      console.log('🔑 Token generado:', resetToken);
+      console.log('⚙️ Variables de entorno detalladas:', {
+        SMTP_HOST: process.env.SMTP_HOST || 'NO_CONFIGURADO',
+        SMTP_PORT: process.env.SMTP_PORT || 'NO_CONFIGURADO',
+        SMTP_USER: process.env.SMTP_USER || 'NO_CONFIGURADO',
+        SMTP_PASS: process.env.SMTP_PASS ? `CONFIGURADO (${process.env.SMTP_PASS.length} caracteres)` : 'NO_CONFIGURADO',
 
-    // URL de reset (ajusta según tu dominio)
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-
-    // Enviar email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: correo,
-      subject: 'Recuperación de contraseña - DEMOS+',
-      html: `
-        <h1>Recuperación de contraseña</h1>
-        <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para crear una nueva contraseña:</p>
-        <a href="${resetUrl}" style="background-color: #2b555f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0;">
-          Recuperar contraseña
-        </a>
-        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
-        <p>Este enlace expirará en 1 hora.</p>
-      `
-    });
+      });
+      
+      // Usar el servicio dedicado que funciona igual que la verificación
+      await passwordResetService.sendPasswordResetEmail(correo, resetToken);
+      console.log('✅ Email de recuperación enviado exitosamente');
+    } catch (emailError) {
+      console.error('❌ Error al enviar email de recuperación:', emailError);
+      console.error('📋 Detalles del error:', emailError.message);
+      // No retornamos error para no revelar si el email existe
+    }
 
     res.json({ message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
   } catch (error) {

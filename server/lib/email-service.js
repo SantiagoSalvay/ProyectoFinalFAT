@@ -1,8 +1,15 @@
 import nodemailer from 'nodemailer';
 
 // Configuración del transportador de email
+console.log('🔧 Configurando transporter de email con:', {
+  host: process.env.SMTP_HOST || 'NO_CONFIGURADO',
+  port: process.env.SMTP_PORT || 'NO_CONFIGURADO',
+  user: process.env.SMTP_USER ? 'CONFIGURADO' : 'NO_CONFIGURADO',
+  pass: process.env.SMTP_PASS ? 'CONFIGURADO' : 'NO_CONFIGURADO'
+});
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '465'),
   secure: true,
   auth: {
@@ -91,6 +98,9 @@ const emailTemplates = {
           <p style="font-size: 14px; color: #666;">
             Si no solicitaste este cambio, puedes ignorar este correo.
           </p>
+          <p style="font-size: 12px; color: #999; margin-top: 20px;">
+            © 2024 DEMOS+ - Plataforma de donaciones y ayuda comunitaria
+          </p>
         </div>
       </div>
     `
@@ -119,21 +129,89 @@ export const emailService = {
   },
 
   /**
-   * Envía un correo de recuperación de contraseña
+   * VERSIÓN ALTERNATIVA: Usa exactamente el mismo transporter que verification
    */
-  sendPasswordResetEmail: async (to, resetToken) => {
+  sendPasswordResetEmailAlt: async (to, resetToken) => {
     try {
+      console.log('🧪 [EMAIL SERVICE] Probando con transporter principal...');
       const template = emailTemplates.resetPassword(resetToken);
+      
+      // Usar EXACTAMENTE el mismo código que sendVerificationEmail
       await transporter.sendMail({
-        from: `"DEMOS+ 🔒" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         html: template.html
       });
-      console.log('Email de recuperación enviado a:', to);
+      console.log('✅ Email de recuperación enviado a:', to);
       return true;
     } catch (error) {
-      console.error('Error al enviar email de recuperación:', error);
+      console.error('❌ Error al enviar email de recuperación:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Envía un correo de recuperación de contraseña
+   */
+  sendPasswordResetEmail: async (to, resetToken) => {
+    try {
+      console.log('📧 [EMAIL SERVICE] Iniciando envío de email de recuperación...');
+      console.log('🔗 [EMAIL SERVICE] URL: http://localhost:3000/reset-password/' + resetToken);
+      
+      // Crear transporter específico para reset con configuración alternativa
+      const resetTransporter = nodemailer.createTransporter({
+        service: 'gmail', // Usar servicio Gmail directo
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        },
+        debug: true, // Activar debug para ver más detalles
+        logger: true,
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+
+      // Verificar conexión
+      console.log('🔌 [EMAIL SERVICE] Verificando conexión SMTP...');
+      await resetTransporter.verify();
+      console.log('✅ [EMAIL SERVICE] Conexión SMTP verificada');
+      
+      const template = emailTemplates.resetPassword(resetToken);
+      
+      // Usar exactamente el mismo formato que verification
+      const mailOptions = {
+        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`, // Cambié el emoji a ser igual
+        to,
+        subject: template.subject,
+        html: template.html
+      };
+      
+      console.log('📤 [EMAIL SERVICE] Enviando email con opciones:', {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject
+      });
+      
+      const result = await resetTransporter.sendMail(mailOptions);
+      console.log('✅ [EMAIL SERVICE] Resultado del envío:', {
+        messageId: result.messageId,
+        response: result.response,
+        accepted: result.accepted,
+        rejected: result.rejected,
+        pending: result.pending
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('❌ [EMAIL SERVICE] Error detallado:', {
+        message: error.message,
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode
+      });
       throw error;
     }
   }

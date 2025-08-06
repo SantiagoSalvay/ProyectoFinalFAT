@@ -1,20 +1,45 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setMessage('Se ha enviado un enlace de recuperación a tu email.');
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await fetch('/auth/request-password-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ correo: email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(data.message);
+        toast.success('Enlace de recuperación enviado');
+      } else {
+        setError(data.error || 'Ocurrió un error al procesar tu solicitud');
+        toast.error('Error al enviar el enlace');
+      }
+    } catch (err) {
+      setError('Error al conectar con el servidor. Por favor, intenta nuevamente.');
+      toast.error('Error de conexión');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -62,6 +87,13 @@ export default function ForgotPasswordPage() {
                   className="input-field"
                 />
               </div>
+
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isLoading}
