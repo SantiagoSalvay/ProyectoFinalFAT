@@ -13,11 +13,12 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
 
 - 👥 **Sistema de Usuarios Avanzado**
   - ✅ **Registro con verificación de email** (IMPLEMENTADO)
-  - ✅ **Flujo de activación de cuenta por email** (NUEVO)
+  - ✅ **Flujo de activación de cuenta por email** (IMPLEMENTADO)
+  - ✅ **Sistema completo de recuperación de contraseña** (NUEVO)
   - ✅ **Autenticación JWT segura** (IMPLEMENTADO)
   - ✅ **Perfiles personalizados** (IMPLEMENTADO)
   - ✅ **Sistema de roles y permisos** (IMPLEMENTADO)
-  - ✅ **Inicio de sesión automático tras verificación** (NUEVO)
+  - ✅ **Inicio de sesión automático tras verificación** (IMPLEMENTADO)
 
 - 💰 **Gestión de Donaciones**
   - Integración con MercadoPago
@@ -40,10 +41,12 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
   - Comentarios y respuestas
   - Moderación de contenido
 
-- 📧 **Sistema de Emails** (NUEVO)
+- 📧 **Sistema de Emails Completo** (ACTUALIZADO)
   - ✅ **Verificación de email con diseño personalizado** (IMPLEMENTADO)
-  - ✅ **Recuperación de contraseña** (IMPLEMENTADO)
-  - ✅ **Plantillas HTML profesionales** (IMPLEMENTADO)
+  - ✅ **Recuperación de contraseña con URLs protegidas UUID** (NUEVO)
+  - ✅ **Plantillas HTML profesionales y responsivas** (IMPLEMENTADO)
+  - ✅ **Servicio de email dedicado para cada funcionalidad** (NUEVO)
+  - ✅ **Validaciones de seguridad y expiración de tokens** (NUEVO)
 
 ## 🛠️ Especificaciones Técnicas
 
@@ -72,9 +75,12 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
 
 ### Seguridad
 - ✅ **Verificación de email obligatoria**
-- ✅ **Tokens de verificación con expiración**
+- ✅ **Sistema completo de recuperación de contraseña segura**
+- ✅ **Tokens UUID únicos con expiración (1 hora para reset, 24h para verificación)**
 - ✅ **Hashing de contraseñas con bcrypt**
 - ✅ **JWT con expiración de 7 días**
+- ✅ **Validación de contraseñas complejas (8+ caracteres, mayúscula, minúscula, número)**
+- ✅ **URLs protegidas con tokens únicos no reutilizables**
 - ✅ **Validación de datos en frontend y backend**
 
 ## 📋 Requisitos Previos
@@ -158,12 +164,13 @@ npm run dev
 ```
 > La aplicación se ejecutará en: http://localhost:3000
 
-## 🔄 Flujo de Verificación de Email (NUEVO)
+## 🔄 Sistema de Autenticación Completo
 
-### Para Usuarios Nuevos:
+### 📧 Flujo de Verificación de Email
 
+#### Para Usuarios Nuevos:
 1. **Registro** → El usuario llena el formulario de registro
-2. **Mensaje de verificación** → Se muestra "¡Revisa tu correo!" con fondo blanco elegante
+2. **Mensaje de verificación** → Se muestra "¡Revisa tu correo!" con diseño elegante
 3. **Email enviado** → Se envía un email con diseño profesional y botón de verificación
 4. **Verificación** → Al hacer clic en el enlace:
    - Se muestra pantalla de "Verificando email..." 
@@ -171,13 +178,45 @@ npm run dev
    - Se inicia sesión automáticamente
    - Se redirige al dashboard del usuario
 
-### Características del Sistema:
-- ✅ **Tokens seguros** con expiración de 24 horas
-- ✅ **Emails con diseño profesional** (HTML)
+### 🔐 Sistema de Recuperación de Contraseña (NUEVO)
+
+#### Flujo Completo de Recuperación:
+1. **"Olvidé mi contraseña"** → Usuario hace clic en el enlace desde la página de login
+2. **Página de recuperación** → Ingresa su email en un formulario dedicado
+3. **Email de recuperación** → Recibe email con:
+   - Diseño profesional y responsivo
+   - Botón destacado "🔑 Recuperar mi contraseña"
+   - URL alternativa para copiar/pegar
+   - Advertencias de seguridad claras
+4. **Página de nueva contraseña** → Al hacer clic en el enlace:
+   - Formulario con validación en tiempo real
+   - Indicadores visuales de requisitos de seguridad
+   - Confirmación de contraseña
+5. **Animación de éxito** → Al completar exitosamente:
+   - Animación con check verde ✅
+   - Mensaje de confirmación
+   - Redirección automática al login
+
+#### Características de Seguridad:
+- ✅ **URLs protegidas con UUID** únicos e irrepetibles
+- ✅ **Tokens con expiración** de 1 hora para máxima seguridad
+- ✅ **Validación de contraseñas complejas**:
+  - Mínimo 8 caracteres
+  - Al menos una mayúscula
+  - Al menos una minúscula  
+  - Al menos un número
+- ✅ **Indicadores visuales** de progreso en tiempo real
+- ✅ **Limpieza automática** de tokens después del uso
+- ✅ **No revelación** de existencia de emails (por seguridad)
+
+### 🛡️ Características del Sistema de Autenticación:
+- ✅ **Tokens seguros** con expiración variable (24h verificación, 1h reset)
+- ✅ **Emails con diseño profesional** HTML responsivo
+- ✅ **Múltiples servicios de email** especializados
 - ✅ **Inicio de sesión automático** tras verificación
-- ✅ **Interfaz elegante** sin fondos celestes
-- ✅ **Validaciones de seguridad** completas
-- ✅ **Logs detallados** para debugging
+- ✅ **Animaciones de feedback** para mejor UX
+- ✅ **Validaciones de seguridad** en frontend y backend
+- ✅ **Logs detallados** para debugging y monitoreo
 
 ## 🔧 Guía de Solución de Problemas
 
@@ -226,12 +265,19 @@ CREATE DATABASE nombre_base_datos;
 2. Limpia el localStorage del navegador (F12 → Application → Local Storage)
 3. Cierra sesión y vuelve a iniciar
 
-#### Error: Verificación de email no llega
-1. Verifica las credenciales de `SMTP_USER` y `SMTP_PASS` en .env
-2. Asegúrate de usar una **contraseña de aplicación** de Gmail, no tu contraseña normal
-3. Confirma que `APP_URL` está correctamente configurada
-4. Revisa la carpeta de spam del email
-5. Verifica los logs del servidor para errores SMTP
+#### Error: Emails no llegan (Verificación o Recuperación)
+1. **Configuración SMTP**: Verifica las credenciales de `SMTP_USER` y `SMTP_PASS` en .env
+2. **Contraseña de aplicación**: Asegúrate de usar una **contraseña de aplicación** de Gmail, no tu contraseña normal
+3. **URL de la aplicación**: Confirma que `APP_URL` está correctamente configurada
+4. **Carpeta de spam**: Revisa la carpeta de spam/correo no deseado
+5. **Logs del servidor**: Verifica los logs para errores SMTP específicos
+6. **Servicios de email**: El sistema usa servicios separados para verificación y recuperación
+
+#### Error: "ECONNRESET" en recuperación de contraseña
+1. **Servidor Express**: Asegúrate de que el servidor backend esté corriendo en puerto 3001
+2. **Proxy de Vite**: Verifica que el proxy esté configurado correctamente en `vite.config.ts`
+3. **Puertos**: Confirma que no hay conflictos de puertos (3000 frontend, 3001 backend)
+4. **Firewall**: Verifica que el firewall no esté bloqueando las conexiones locales
 
 #### Error: "The table `public.RegistroPendiente` does not exist"
 ```bash
@@ -272,7 +318,8 @@ pnpm prisma db push
 │   │   └── routes/          # Rutas de la API
 │   │       └── auth.js      # Autenticación y verificación
 │   ├── lib/                 # Librerías y servicios
-│   │   └── email-service.js # Servicio de emails SMTP
+│   │   ├── email-service.js # Servicio de emails para verificación
+│   │   └── password-reset-service.js # Servicio dedicado para recuperación
 │   ├── prisma/              # Configuración de base de datos
 │   │   ├── schema.prisma    # Esquema de BD
 │   │   └── migrations/      # Migraciones
@@ -286,12 +333,19 @@ pnpm prisma db push
 ## 🗃️ Modelos de Base de Datos
 
 ### Principales:
-- **Usuario** - Datos del usuario con verificación de email
-- **RegistroPendiente** - Usuarios pendientes de verificación (NUEVO)
+- **Usuario** - Datos del usuario con verificación de email y tokens de recuperación
+- **RegistroPendiente** - Usuarios pendientes de verificación
 - **TipoUsuario** - Roles y permisos
 - **Foro** - Discusiones de la comunidad
 - **Donacion** - Gestión de donaciones
 - **Ranking** - Sistema de puntuaciones
+
+### Campos de Seguridad en Usuario:
+- `reset_token` - Token UUID para recuperación de contraseña
+- `reset_token_expiry` - Fecha de expiración del token (1 hora)
+- `verification_token` - Token UUID para verificación de email
+- `verification_token_expiry` - Fecha de expiración del token (24 horas)
+- `email_verified` - Estado de verificación del email
 
 ## 🚀 Funcionalidades Próximas
 
@@ -305,14 +359,30 @@ pnpm prisma db push
 
 ## 🧪 Testing y Calidad
 
-Para probar el sistema de verificación de email:
-
-1. **Registro un usuario** en http://localhost:3000/register
+### Testing del Sistema de Verificación de Email:
+1. **Registra un usuario** en http://localhost:3000/register
 2. **Verifica** que aparece el mensaje "¡Revisa tu correo!"
 3. **Revisa** tu email para el mensaje de verificación
 4. **Haz clic** en "Verificar mi correo electrónico"
 5. **Confirma** que se muestra la pantalla de éxito
 6. **Verifica** que se redirige automáticamente al dashboard
+
+### Testing del Sistema de Recuperación de Contraseña:
+1. **Ve al login** en http://localhost:3000/login
+2. **Haz clic** en "¿Olvidaste tu contraseña?"
+3. **Ingresa tu email** en el formulario de recuperación
+4. **Revisa tu email** para el mensaje de recuperación
+5. **Haz clic** en "🔑 Recuperar mi contraseña"
+6. **Crea una nueva contraseña** (mínimo 8 caracteres, mayúscula, minúscula, número)
+7. **Verifica la animación** de éxito con check verde ✅
+8. **Confirma** que te redirige al login
+9. **Inicia sesión** con la nueva contraseña
+
+### Casos de Prueba de Seguridad:
+- ✅ **Token expirado**: Intentar usar un enlace después de 1 hora
+- ✅ **Token reutilizado**: Intentar usar el mismo enlace dos veces
+- ✅ **Contraseña débil**: Probar contraseñas que no cumplan los requisitos
+- ✅ **Email inexistente**: Solicitar recuperación con email no registrado
 
 ## 🤝 Contribución
 
@@ -324,10 +394,24 @@ Para probar el sistema de verificación de email:
 
 ## 👨‍💻 Desarrolladores
 
-- **Sistema de Verificación de Email** - Implementado completamente
-- **Interfaz de Usuario** - Diseño moderno y responsive
-- **Backend API** - RESTful con validaciones de seguridad
-- **Base de Datos** - Optimizada con Prisma ORM
+### Sistemas Implementados:
+- **✅ Sistema de Verificación de Email** - Implementado completamente
+- **✅ Sistema de Recuperación de Contraseña** - Implementado con máxima seguridad
+- **✅ Interfaz de Usuario** - Diseño moderno, responsivo con animaciones
+- **✅ Backend API** - RESTful con validaciones de seguridad robustas
+- **✅ Base de Datos** - Optimizada con Prisma ORM y campos de seguridad
+- **✅ Servicios de Email** - Múltiples servicios especializados y redundantes
+
+### Arquitectura del Sistema de Autenticación:
+```
+Frontend (React/Vite) ↔ Proxy (Vite) ↔ Backend (Express/Node.js)
+     ↓                                           ↓
+Context API                                 Prisma ORM
+     ↓                                           ↓
+LocalStorage                               PostgreSQL
+                                               ↓
+                                        Gmail SMTP (Nodemailer)
+```
 
 ## 📝 Licencia
 
