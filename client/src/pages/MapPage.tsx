@@ -70,45 +70,40 @@ export default function MapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Mapa de ONGs</h1>
-              <p className="text-gray-600">Explora organizaciones cerca de ti</p>
-            </div>
-            
-            {/* Filtros */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Filtrar:</span>
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value as 'all' | 'public' | 'private')}
-                  className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="all">Todas</option>
-                  <option value="public">Públicas</option>
-                  <option value="private">Privadas</option>
-                </select>
-              </div>
-              
-              <div className="flex items-center space-x-4 text-sm">
-                <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span>Públicas</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>Privadas</span>
-                </div>
-              </div>
-            </div>
+    <div className="bg-purple-600 shadow-sm border-b">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Mapa de ONGs</h1>
+        <p className="text-purple-100">Explora organizaciones cerca de ti</p>
+      </div>
+      {/* Filtros */}
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-white">Filtrar:</span>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as 'all' | 'public' | 'private')}
+            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+          >
+            <option value="all">Todas</option>
+            <option value="public">Públicas</option>
+            <option value="private">Privadas</option>
+          </select>
+        </div>
+        <div className="flex items-center space-x-4 text-sm">
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+            <span className="text-white">Públicas</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+            <span className="text-white">Privadas</span>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
       <div className="flex h-[calc(100vh-120px)]">
         {/* Mapa */}
