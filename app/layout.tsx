@@ -1,10 +1,14 @@
-import { AuthProvider } from '../client/src/contexts/AuthContext'
-import { Toaster } from 'react-hot-toast'
-import './globals.css'
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
 
-export const metadata = {
-  title: 'DEMOS+',
-  description: 'Plataforma de donaciones y ayuda comunitaria',
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "DEMOS+ - Plataforma de ONGs",
+  description: "Plataforma para ayudar y conectar ONGs",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -14,35 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>
-        <AuthProvider>
-          {children}
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#2b555f',
-                color: '#fff',
-              },
-              success: {
-                duration: 3000,
-                iconTheme: {
-                  primary: '#73e4fd',
-                  secondary: '#fff',
-                },
-              },
-              error: {
-                duration: 4000,
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#fff',
-                },
-              },
-            }}
-          />
-        </AuthProvider>
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }
