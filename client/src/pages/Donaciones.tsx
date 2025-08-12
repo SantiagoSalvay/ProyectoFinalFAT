@@ -7,6 +7,7 @@ export default function Donaciones() {
   const [selectedOng, setSelectedOng] = useState<string>('');
   // price como string para permitir coma o punto
   const [price, setPrice] = useState<string>('');
+  const [donationType, setDonationType] = useState<string>('');
   const quantity = 1;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -74,39 +75,65 @@ export default function Donaciones() {
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
             <select
               className="input-field w-full"
+              value={donationType}
+              onChange={e => setDonationType(e.target.value)}
+              required
+            >
+              <option value="" disabled>Elegir qué donar</option>
+              <option value="dinero">Dinero</option>
+              <option value="ropa">Ropa</option>
+              <option value="juguetes">Juguetes</option>
+              <option value="comida">Comida</option>
+              <option value="muebles">Muebles</option>
+              <option value="otros">Otros</option>
+            </select>
+            <select
+              className="input-field w-full"
               value={selectedOng}
               onChange={e => setSelectedOng(e.target.value)}
-              
             >
               {ongs.length === 0 && <option value="">Cargando ONGs...</option>}
               {ongs.map(ong => (
                 <option key={ong.id} value={ong.id}>{ong.name}</option>
               ))}
             </select>
-            <input
-              type="text"
-              inputMode="decimal"
-              pattern="^\d{1,}(\.|,)?\d{0,2}$"
-              className="input-field w-full"
-              value={price}
-              onChange={e => {
-                // Permitir solo números, punto o coma, y máximo 2 decimales
-                let val = e.target.value.replace(/,/g, '.');
-                if (/^\d{0,}(\.|,)?\d{0,2}$/.test(val)) setPrice(e.target.value);
-              }}
-              placeholder="Cantidad a donar"
-              required
-            />
-            <div className="text-left text-gray-500 mb-2">
-              {price === '' ? '' : `Monto: $${price.replace('.', ',')}`}
-            </div>
-            <button
-              type="submit"
-              className="btn-primary w-full"
-              disabled={loading}
-            >
-              {loading ? 'Generando link...' : 'Donar con MercadoPago'}
-            </button>
+            {donationType === 'dinero' && (
+              <>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\d{1,}(\.|,)?\d{0,2}$"
+                  className="input-field w-full"
+                  value={price}
+                  onChange={e => {
+                    // Permitir solo números, punto o coma, y máximo 2 decimales
+                    let val = e.target.value.replace(/,/g, '.');
+                    if (/^\d{0,}(\.|,)?\d{0,2}$/.test(val)) setPrice(e.target.value);
+                  }}
+                  placeholder="Cantidad a donar"
+                  required
+                />
+                <div className="text-left text-gray-500 mb-2">
+                  {price === '' ? '' : `Monto: $${price.replace('.', ',')}`}
+                </div>
+                <button
+                  type="submit"
+                  className="btn-primary w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Generando link...' : 'Donar con MercadoPago'}
+                </button>
+              </>
+            )}
+            {donationType && donationType !== 'dinero' && (
+              <button
+                type="button"
+                className="btn-primary w-full"
+                onClick={() => window.location.href = '/app/mapa'}
+              >
+                Buscar la ONG en el mapa
+              </button>
+            )}
           </form>
           {error && <div className="text-red-500 mb-4">{error}</div>}
           {initPoint && (
