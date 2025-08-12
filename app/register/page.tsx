@@ -18,6 +18,7 @@ export default function RegisterPage() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -74,6 +75,16 @@ export default function RegisterPage() {
       })
 
       console.log("Respuesta del registro:", response)
+      console.log("¿Requiere verificación?", response.requiresVerification)
+      console.log("Tipo de requiresVerification:", typeof response.requiresVerification)
+      
+      // Si el registro requiere verificación, mostrar mensaje
+      if (response.requiresVerification) {
+        console.log("Mostrando mensaje de verificación...")
+        setShowVerificationMessage(true)
+        setIsLoading(false)
+        return
+      }
       
       toast.success("¡Cuenta creada exitosamente!")
       router.push("/login")
@@ -95,6 +106,61 @@ export default function RegisterPage() {
         [e.target.name]: "",
       })
     }
+  }
+
+  // Si se mostró el mensaje de verificación, renderizar esa pantalla
+  if (showVerificationMessage) {
+    return (
+      <div className="min-h-screen bg-[#73e4fd]">
+        <header className="bg-[#73e4fd] px-6 py-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <Link href="/" className="text-4xl md:text-5xl font-bold text-[#2b555f]">
+              DEMOS+
+            </Link>
+          </div>
+        </header>
+
+        <main className="relative z-10 flex items-center justify-center min-h-[calc(100vh-100px)] px-6 py-8">
+          <div className="w-full max-w-md">
+            <div className="bg-[#73e4fd] bg-opacity-90 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-white border-opacity-30 text-center">
+              <div className="mb-6">
+                <div className="w-16 h-16 bg-[#2b555f] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-[#2b555f] mb-2">¡Revisa tu correo!</h2>
+                <p className="text-[#2b555f] text-sm">
+                  Te hemos enviado un correo de verificación a <strong>{formData.email}</strong>
+                </p>
+              </div>
+              
+              <div className="bg-white bg-opacity-50 rounded-lg p-4 mb-6">
+                <p className="text-[#2b555f] text-sm leading-relaxed">
+                  Haz clic en el enlace del correo para verificar tu cuenta y completar el registro. 
+                  Una vez verificado, podrás iniciar sesión automáticamente.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowVerificationMessage(false)}
+                  className="w-full bg-[#2b555f] text-white py-3 rounded-lg font-semibold hover:bg-[#00445d] transition-colors"
+                >
+                  Intentar de nuevo
+                </button>
+                <Link 
+                  href="/login"
+                  className="block w-full border-2 border-[#2b555f] text-[#2b555f] py-3 rounded-lg font-semibold hover:bg-[#2b555f] hover:text-white transition-colors text-center"
+                >
+                  Ir a iniciar sesión
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (

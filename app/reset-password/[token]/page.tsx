@@ -26,9 +26,15 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
       return
     }
 
-    // Validar longitud mínima
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres")
+    // Validar longitud mínima y complejidad
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres")
+      setIsLoading(false)
+      return
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      setError("La contraseña debe contener al menos una mayúscula, una minúscula y un número")
       setIsLoading(false)
       return
     }
@@ -46,10 +52,10 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
 
       if (response.ok) {
         setMessage("Contraseña actualizada exitosamente")
-        // Redirigir al login después de 2 segundos
+        // Redirigir al login después de 3 segundos
         setTimeout(() => {
           router.push('/login')
-        }, 2000)
+        }, 3000)
       } else {
         setError(data.error || 'Ocurrió un error al actualizar la contraseña')
       }
@@ -99,10 +105,18 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
 
             {message ? (
               <div className="text-center">
+                <div className="flex justify-center mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center animate-pulse">
+                    <svg className="w-10 h-10 text-white animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-[#2b555f] mb-4">¡Contraseña actualizada!</h2>
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4">
                   <p>{message}</p>
                 </div>
-                <p className="text-[#2b555f] text-sm">Redirigiendo al login...</p>
+                <p className="text-[#2b555f] text-sm">Redirigiendo al login en unos segundos...</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">

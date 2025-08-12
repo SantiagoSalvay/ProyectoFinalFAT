@@ -3,6 +3,8 @@ import React from 'react';
 import { useState } from "react"
 import Link from "next/link"
 import { MapPin, Search, Filter, Phone, Mail, Globe } from "lucide-react"
+import { useAuth } from "../../client/src/contexts/AuthContext"
+import ProtectedRoute from "../components/ProtectedRoute"
 
 const ongsEnMapa = [
   {
@@ -47,10 +49,13 @@ const ongsEnMapa = [
   },
 ]
 
-export default function MapaPage() {
+function MapaPageContent() {
+  const { user } = useAuth()
   const [selectedOng, setSelectedOng] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("todas")
+
+  console.log('Usuario autenticado en mapa:', user)
 
   const filteredOngs = ongsEnMapa.filter((ong) => {
     const matchesSearch =
@@ -66,15 +71,26 @@ export default function MapaPage() {
     <div className="min-h-screen bg-white">
       <header className="bg-[#73e4fd] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/main-dashboard" className="text-4xl md:text-5xl font-bold text-[#2b555f]">
+          <Link href="/" className="text-4xl md:text-5xl font-bold text-[#2b555f]">
             DEMOS+
           </Link>
-          <Link
-            href="/main-dashboard"
-            className="border-2 border-[#2b555f] text-[#2b555f] px-6 py-2 rounded-lg font-semibold hover:bg-[#2b555f] hover:text-white transition-colors"
-          >
-            VOLVER
-          </Link>
+          <div className="flex items-center space-x-4">
+            <span className="text-[#2b555f] font-semibold">
+              ¡Bienvenido, {user?.nombre}!
+            </span>
+            <Link href="/mi-informacion" className="border-2 border-[#2b555f] text-[#2b555f] px-4 py-2 rounded-lg font-semibold hover:bg-[#2b555f] hover:text-white transition-colors">
+              MI PERFIL
+            </Link>
+            <button 
+              onClick={() => {
+                // logout(); // Puedes agregar esta función del contexto si la necesitas
+                console.log('Logout clicked')
+              }}
+              className="bg-[#2b555f] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#00445d] transition-colors"
+            >
+              LOGOUT
+            </button>
+          </div>
         </div>
       </header>
 
@@ -191,5 +207,13 @@ export default function MapaPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function MapaPage() {
+  return (
+    <ProtectedRoute>
+      <MapaPageContent />
+    </ProtectedRoute>
   )
 }

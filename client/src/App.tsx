@@ -12,6 +12,8 @@ import ForumPage from './pages/ForumPage'
 import MissionPage from './pages/MissionPage'
 import ProfilePage from './pages/ProfilePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 
 import MapPage from './pages/MapPage'
 import RankingPage from './pages/RankingPage'
@@ -32,6 +34,8 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+              <Route path="/verificar/:token" element={<VerifyEmailPage />} />
               
               {/* Rutas solo para usuarios NO registrados */}
               <Route path="/mission" element={
