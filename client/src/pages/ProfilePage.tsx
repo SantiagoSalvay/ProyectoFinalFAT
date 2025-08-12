@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { toast } from 'react-hot-toast'
 import { 
@@ -19,14 +19,31 @@ export default function ProfilePage() {
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    location: user?.location || '',
-    bio: user?.bio || '',
-    organization: user?.organization || ''
+    name: '',
+    email: '',
+    location: ''
   })
 
-  const isONG = user?.role === 'ong'
+  // Actualizar profileData cuando el usuario cambie
+  useEffect(() => {
+    if (user) {
+      console.log('🔍 [DEBUG] Datos del usuario recibidos:', user);
+      console.log('🔍 [DEBUG] Campo createdAt:', user.createdAt);
+      console.log('🔍 [DEBUG] Tipo de createdAt:', typeof user.createdAt);
+      
+      const fullName = user.nombre && user.apellido 
+        ? `${user.nombre} ${user.apellido}`.trim()
+        : user.nombre || user.apellido || '';
+      
+      setProfileData({
+        name: fullName,
+        email: user.correo || '',
+        location: user.ubicacion || ''
+      })
+    }
+  }, [user])
+
+  const isONG = false // Por ahora todos los usuarios son de tipo 'normal', no hay ONGs implementadas aún
 
   const handleSave = () => {
     // Aquí se guardaría en el backend
@@ -35,13 +52,17 @@ export default function ProfilePage() {
   }
 
   const handleCancel = () => {
-    setProfileData({
-      name: user?.name || '',
-      email: user?.email || '',
-      location: user?.location || '',
-      bio: user?.bio || '',
-      organization: user?.organization || ''
-    })
+    if (user) {
+      const fullName = user.nombre && user.apellido 
+        ? `${user.nombre} ${user.apellido}`.trim()
+        : user.nombre || user.apellido || '';
+      
+      setProfileData({
+        name: fullName,
+        email: user.correo || '',
+        location: user.ubicacion || ''
+      })
+    }
     setIsEditing(false)
   }
 
@@ -98,32 +119,14 @@ export default function ProfilePage() {
                   ) : (
                     <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                       <User className="w-5 h-5 text-gray-400 mr-3" />
-                      <span className="text-gray-900">{profileData.name}</span>
+                      <span className="text-gray-900">
+                        {profileData.name || 'No especificado'}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                {/* Organization (only for ONG) */}
-                {isONG && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre Legal
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={profileData.organization}
-                        onChange={(e) => setProfileData(prev => ({ ...prev, organization: e.target.value }))}
-                        className="input-field"
-                      />
-                    ) : (
-                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <Building className="w-5 h-5 text-gray-400 mr-3" />
-                        <span className="text-gray-900">{profileData.organization}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+
 
                 {/* Email */}
                 <div>
@@ -132,7 +135,9 @@ export default function ProfilePage() {
                   </label>
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                     <Mail className="w-5 h-5 text-gray-400 mr-3" />
-                    <span className="text-gray-900">{profileData.email}</span>
+                    <span className="text-gray-900">
+                      {profileData.email || 'No especificado'}
+                    </span>
                   </div>
                 </div>
 
@@ -157,27 +162,7 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                {/* Bio */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Biografía
-                  </label>
-                  {isEditing ? (
-                    <textarea
-                      value={profileData.bio}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-                      className="input-field"
-                      rows={4}
-                      placeholder={isONG ? "Describe tu organización y misión..." : "Cuéntanos sobre ti..."}
-                    />
-                  ) : (
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-gray-900">
-                        {profileData.bio || 'No hay biografía disponible'}
-                      </p>
-                    </div>
-                  )}
-                </div>
+
 
                 {/* Member Since */}
                 <div>
@@ -187,7 +172,11 @@ export default function ProfilePage() {
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                     <Calendar className="w-5 h-5 text-gray-400 mr-3" />
                     <span className="text-gray-900">
-                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Fecha no disponible'}
+                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) : 'Fecha no disponible'}
                     </span>
                   </div>
                 </div>

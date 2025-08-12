@@ -59,10 +59,17 @@ router.post('/register', async (req, res) => {
 
     // Generar token de verificación
     const verificationToken = uuidv4();
-    const tokenExpiry = new Date(Date.now() + 86400000); // 24 horas
+    // Token no expira hasta que sea usado (365 días como medida de seguridad)
+    const tokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 días
+    
+    console.log('🔑 [REGISTRO] Generando registro con token:', {
+      token: verificationToken,
+      correo: correo,
+      nota: 'Token válido hasta que sea usado'
+    });
 
     // Guardar datos del registro pendiente
-    await prisma.registroPendiente.create({
+    const nuevoRegistro = await prisma.registroPendiente.create({
       data: {
         nombre,
         apellido,
@@ -75,7 +82,12 @@ router.post('/register', async (req, res) => {
       }
     });
 
-    console.log('Registro pendiente creado para:', correo);
+    console.log('✅ [REGISTRO] Registro pendiente creado:', {
+      id: nuevoRegistro.id,
+      correo: nuevoRegistro.correo,
+      token: nuevoRegistro.verification_token,
+      tokenGuardado: nuevoRegistro.verification_token === verificationToken
+    });
 
     // Enviar email de verificación
     try {
@@ -190,11 +202,14 @@ router.get('/profile', async (req, res) => {
         usuario: true,
         correo: true,
         ubicacion: true,
-        tipo_usuario: true
+        tipo_usuario: true,
+        createdAt: true
       }
     });
     
     console.log('Datos del usuario encontrados:', user);
+    console.log('🔍 [DEBUG] Campo createdAt del servidor:', user?.createdAt);
+    console.log('🔍 [DEBUG] Tipo de createdAt del servidor:', typeof user?.createdAt);
 
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -317,21 +332,59 @@ router.get('/verify-email/:token', async (req, res) => {
       return res.status(400).json({ error: 'Token de verificación requerido' });
     }
 
-    // Buscar registro pendiente con token válido
-    console.log('🔍 [VERIFICACIÓN] Buscando registro pendiente...');
+    // Primero, verificar cuántos registros hay en total
+    const totalRegistros = await prisma.registroPendiente.count();
+    console.log('📊 [VERIFICACIÓN] Total de registros pendientes:', totalRegistros);
+    
+    // Buscar si el token existe (sin importar fecha de expiración)
     const pendingRegistration = await prisma.registroPendiente.findFirst({
       where: {
-        verification_token: token,
-        token_expiry: {
-          gt: new Date()
-        }
+        verification_token: token
       }
     });
-
+    
+    if (pendingRegistration) {
+      console.log('✅ [VERIFICACIÓN] Token encontrado en BD:', {
+        correo: pendingRegistration.correo,
+        usuario: pendingRegistration.usuario
+      });
+    } else {
+      console.log('❌ [VERIFICACIÓN] Token NO existe en la base de datos');
+      
+      // Verificar si el usuario ya fue registrado previamente con este token
+      const usuarioExistente = await prisma.usuario.findFirst({
+        where: {
+          verification_token: token
+        }
+      });
+      
+      if (usuarioExistente) {
+        console.log('⚠️ [VERIFICACIÓN] Este token ya fue usado. Usuario ya registrado:', usuarioExistente.correo);
+        return res.status(400).json({ 
+          error: 'Este enlace ya fue utilizado. Tu cuenta ya está activa. Puedes iniciar sesión.',
+          alreadyVerified: true
+        });
+      }
+      
+      // Mostrar los últimos 5 tokens para debugging
+      const ultimosRegistros = await prisma.registroPendiente.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          correo: true,
+          verification_token: true,
+          createdAt: true
+        }
+      });
+      
+      console.log('📋 [VERIFICACIÓN] Últimos 5 registros pendientes:', ultimosRegistros);
+    }
+    
+    // Si no encontramos el registro pendiente, ya retornamos error
     if (!pendingRegistration) {
-      console.log('❌ [VERIFICACIÓN] Token inválido o expirado');
+      // El error ya se maneja arriba cuando verificamos si existe
       return res.status(400).json({ 
-        error: 'Token inválido o expirado. Por favor, solicita un nuevo registro.' 
+        error: 'Token de verificación inválido. Por favor, verifica que el enlace sea correcto.' 
       });
     }
 
@@ -433,6 +486,74 @@ router.get('/verify-email/:token', async (req, res) => {
     res.status(200).json(successResponse);
   } catch (error) {
     console.error('💥 [VERIFICACIÓN] Error al verificar email:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Reenviar email de verificación
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { correo } = req.body;
+    console.log('📧 [REENVÍO] Solicitud de reenvío de verificación para:', correo);
+
+    if (!correo) {
+      return res.status(400).json({ error: 'El correo es requerido' });
+    }
+
+    // Buscar registro pendiente
+    const pendingRegistration = await prisma.registroPendiente.findFirst({
+      where: { correo }
+    });
+
+    if (!pendingRegistration) {
+      // Verificar si el usuario ya está registrado
+      const existingUser = await prisma.usuario.findFirst({
+        where: { correo }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ 
+          error: 'Este correo ya está verificado. Puedes iniciar sesión.' 
+        });
+      }
+
+      return res.status(404).json({ 
+        error: 'No se encontró ningún registro pendiente para este correo.' 
+      });
+    }
+
+    // Generar nuevo token de verificación
+    const newVerificationToken = uuidv4();
+    const newTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 días
+
+    // Actualizar el registro pendiente con el nuevo token
+    await prisma.registroPendiente.update({
+      where: { id: pendingRegistration.id },
+      data: {
+        verification_token: newVerificationToken,
+        token_expiry: newTokenExpiry
+      }
+    });
+
+    console.log('🔄 [REENVÍO] Token actualizado para:', correo);
+
+    // Reenviar email de verificación
+    try {
+      await emailService.sendVerificationEmail(correo, newVerificationToken);
+      console.log('✅ [REENVÍO] Email de verificación reenviado exitosamente');
+      
+      res.status(200).json({
+        message: 'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.',
+        success: true
+      });
+    } catch (emailError) {
+      console.error('❌ [REENVÍO] Error al reenviar email:', emailError);
+      res.status(500).json({ 
+        error: 'Error al enviar el correo de verificación. Por favor, intenta nuevamente más tarde.' 
+      });
+    }
+  } catch (error) {
+    console.error('💥 [REENVÍO] Error al procesar reenvío:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
