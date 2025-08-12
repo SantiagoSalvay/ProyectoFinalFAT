@@ -59,10 +59,17 @@ router.post('/register', async (req, res) => {
 
     // Generar token de verificación
     const verificationToken = uuidv4();
-    const tokenExpiry = new Date(Date.now() + 86400000); // 24 horas
+    // Token no expira hasta que sea usado (365 días como medida de seguridad)
+    const tokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 días
+    
+    console.log('🔑 [REGISTRO] Generando registro con token:', {
+      token: verificationToken,
+      correo: correo,
+      nota: 'Token válido hasta que sea usado'
+    });
 
     // Guardar datos del registro pendiente
-    await prisma.registroPendiente.create({
+    const nuevoRegistro = await prisma.registroPendiente.create({
       data: {
         nombre,
         apellido,
@@ -75,7 +82,12 @@ router.post('/register', async (req, res) => {
       }
     });
 
-    console.log('Registro pendiente creado para:', correo);
+    console.log('✅ [REGISTRO] Registro pendiente creado:', {
+      id: nuevoRegistro.id,
+      correo: nuevoRegistro.correo,
+      token: nuevoRegistro.verification_token,
+      tokenGuardado: nuevoRegistro.verification_token === verificationToken
+    });
 
     // Enviar email de verificación
     try {
@@ -317,35 +329,57 @@ router.get('/verify-email/:token', async (req, res) => {
       return res.status(400).json({ error: 'Token de verificación requerido' });
     }
 
-    // Buscar registro pendiente con token válido
-    console.log('🔍 [VERIFICACIÓN] Buscando registro pendiente...');
+    // Primero, verificar cuántos registros hay en total
+    const totalRegistros = await prisma.registroPendiente.count();
+    console.log('📊 [VERIFICACIÓN] Total de registros pendientes:', totalRegistros);
+    
+    // Buscar si el token existe (sin importar fecha de expiración)
     const pendingRegistration = await prisma.registroPendiente.findFirst({
       where: {
-        verification_token: token,
-        token_expiry: {
-          gt: new Date()
-        }
+        verification_token: token
       }
     });
-
-    if (!pendingRegistration) {
-      console.log('❌ [VERIFICACIÓN] Token inválido o expirado');
+    
+    if (pendingRegistration) {
+      console.log('✅ [VERIFICACIÓN] Token encontrado en BD:', {
+        correo: pendingRegistration.correo,
+        usuario: pendingRegistration.usuario
+      });
+    } else {
+      console.log('❌ [VERIFICACIÓN] Token NO existe en la base de datos');
       
-      // Verificar si el token existe pero está expirado
-      const expiredToken = await prisma.registroPendiente.findFirst({
+      // Verificar si el usuario ya fue registrado previamente con este token
+      const usuarioExistente = await prisma.usuario.findFirst({
         where: {
           verification_token: token
         }
       });
       
-      if (expiredToken) {
+      if (usuarioExistente) {
+        console.log('⚠️ [VERIFICACIÓN] Este token ya fue usado. Usuario ya registrado:', usuarioExistente.correo);
         return res.status(400).json({ 
-          error: 'El enlace de verificación ha expirado. Los enlaces son válidos por 24 horas.',
-          tokenExpired: true,
-          email: expiredToken.correo
+          error: 'Este enlace ya fue utilizado. Tu cuenta ya está activa. Puedes iniciar sesión.',
+          alreadyVerified: true
         });
       }
       
+      // Mostrar los últimos 5 tokens para debugging
+      const ultimosRegistros = await prisma.registroPendiente.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          correo: true,
+          verification_token: true,
+          createdAt: true
+        }
+      });
+      
+      console.log('📋 [VERIFICACIÓN] Últimos 5 registros pendientes:', ultimosRegistros);
+    }
+    
+    // Si no encontramos el registro pendiente, ya retornamos error
+    if (!pendingRegistration) {
+      // El error ya se maneja arriba cuando verificamos si existe
       return res.status(400).json({ 
         error: 'Token de verificación inválido. Por favor, verifica que el enlace sea correcto.' 
       });
@@ -487,7 +521,7 @@ router.post('/resend-verification', async (req, res) => {
 
     // Generar nuevo token de verificación
     const newVerificationToken = uuidv4();
-    const newTokenExpiry = new Date(Date.now() + 86400000); // 24 horas
+    const newTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 días
 
     // Actualizar el registro pendiente con el nuevo token
     await prisma.registroPendiente.update({

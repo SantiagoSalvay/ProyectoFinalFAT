@@ -70,6 +70,11 @@ export default function VerifyEmailPage() {
             setUserEmail(data.email || '')
           }
           
+          // Verificar si el usuario ya fue verificado
+          if (data.alreadyVerified) {
+            setErrorMessage('Este enlace ya fue utilizado. Tu cuenta ya está activa.')
+          }
+          
           toast.error(data.error || 'Error al verificar el email')
         }
       } catch (error) {
@@ -164,8 +169,8 @@ export default function VerifyEmailPage() {
               <div className="bg-red-50 rounded-lg p-4 mb-6">
                 <p className="text-gray-700 text-sm leading-relaxed">
                   {isTokenExpired 
-                    ? 'El enlace de verificación ha expirado. Los enlaces son válidos por 24 horas.'
-                    : 'Es posible que el enlace haya expirado o ya haya sido utilizado.'}
+                    ? 'Este enlace de verificación no es válido.'
+                    : 'Es posible que el enlace sea incorrecto o ya haya sido utilizado.'}
                 </p>
                 {isTokenExpired && userEmail && (
                   <p className="text-gray-700 text-sm mt-2">
@@ -248,7 +253,7 @@ export default function VerifyEmailPage() {
             {userData?.reenvio ? (
               <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-6 mb-6">
                 <p className="text-gray-700 text-sm leading-relaxed">
-                  Por favor, revisa tu bandeja de entrada. El enlace de verificación será válido por 24 horas.
+                  Por favor, revisa tu bandeja de entrada. El enlace de verificación permanecerá válido hasta que lo uses.
                 </p>
                 <p className="text-gray-700 text-sm leading-relaxed mt-2">
                   Si no recibes el correo, revisa tu carpeta de spam o correo no deseado.

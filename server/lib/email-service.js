@@ -51,7 +51,7 @@ const emailTemplates = {
           </p>
           
           <p style="font-size: 14px; color: #666; margin-top: 30px;">
-            <strong>Importante:</strong> Este enlace expirará en 24 horas por motivos de seguridad.
+            <strong>Importante:</strong> Este enlace es válido hasta que completes la verificación.
           </p>
         </div>
         
