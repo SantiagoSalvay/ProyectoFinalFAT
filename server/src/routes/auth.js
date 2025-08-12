@@ -202,11 +202,14 @@ router.get('/profile', async (req, res) => {
         usuario: true,
         correo: true,
         ubicacion: true,
-        tipo_usuario: true
+        tipo_usuario: true,
+        createdAt: true
       }
     });
     
     console.log('Datos del usuario encontrados:', user);
+    console.log('🔍 [DEBUG] Campo createdAt del servidor:', user?.createdAt);
+    console.log('🔍 [DEBUG] Tipo de createdAt del servidor:', typeof user?.createdAt);
 
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });

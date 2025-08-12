@@ -10,7 +10,6 @@ export interface User {
   nombre?: string;
   apellido?: string;
   ubicacion?: string;
-  bio?: string;
   createdAt?: Date;
 }
 
