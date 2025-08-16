@@ -15,10 +15,10 @@ router.post('/register', async (req, res) => {
   try {
     console.log('Datos recibidos para registro:', req.body);
 
-    const { nombre, apellido, correo, contrasena, usuario, ubicacion } = req.body;
+  const { nombre, apellido, correo, contrasena, usuario, ubicacion, tipo_usuario } = req.body;
 
     // Validar que todos los campos requeridos estén presentes
-    if (!nombre || !apellido || !correo || !contrasena) {
+  if (!nombre || !apellido || !correo || !contrasena || !tipo_usuario) {
       return res.status(400).json({ 
         error: 'Todos los campos son requeridos' 
       });
@@ -77,6 +77,7 @@ router.post('/register', async (req, res) => {
         correo,
         contrasena: hashedPassword,
         ubicacion: ubicacion || "",
+        tipo_usuario: parseInt(tipo_usuario, 10),
         verification_token: verificationToken,
         token_expiry: tokenExpiry
       }
@@ -419,21 +420,9 @@ router.get('/verify-email/:token', async (req, res) => {
 
     console.log('✅ [VERIFICACIÓN] Usuario no existe, procediendo con el registro...');
 
-    // Obtener o crear el tipo de usuario normal
-    let tipoUsuario = await prisma.tipoUsuario.findFirst({
-      where: { nombre_tipo_usuario: 'normal' }
-    });
-
-    if (!tipoUsuario) {
-      tipoUsuario = await prisma.tipoUsuario.create({
-        data: {
-          nombre_tipo_usuario: 'normal'
-        }
-      });
-    }
-
-    // Crear el usuario definitivo
-    console.log('👤 [VERIFICACIÓN] Creando usuario definitivo...');
+    // Usar el tipo_usuario guardado en RegistroPendiente
+    const tipoUsuarioId = pendingRegistration.tipo_usuario;
+    console.log('👤 [VERIFICACIÓN] Creando usuario definitivo con tipo_usuario:', tipoUsuarioId);
     const newUser = await prisma.usuario.create({
       data: {
         nombre: pendingRegistration.nombre,
@@ -441,7 +430,7 @@ router.get('/verify-email/:token', async (req, res) => {
         usuario: pendingRegistration.usuario,
         correo: pendingRegistration.correo,
         contrasena: pendingRegistration.contrasena,
-        tipo_usuario: tipoUsuario.tipo_usuario,
+        tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
         email_verified: true
       }

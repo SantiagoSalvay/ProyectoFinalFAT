@@ -9,7 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (userData: RegisterData) => Promise<void>
+  register: (userData: RegisterData) => Promise<any>
   logout: () => void
   updateProfile: (profileData: UpdateProfileData) => Promise<void>
   setUserFromVerification: (user: User, token: string) => void
@@ -21,14 +21,15 @@ interface RegisterData {
   name: string
   role: UserRole
   organization?: string
-  location?: string
+  location: string
   bio?: string
+  tipo_usuario?: number
 }
 
 interface UpdateProfileData {
   name: string
   organization?: string
-  location?: string
+  location: string
   bio?: string
 }
 

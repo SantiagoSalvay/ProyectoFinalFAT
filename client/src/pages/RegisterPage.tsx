@@ -14,7 +14,7 @@ interface RegisterFormData {
   lastName: string
   role: UserRole
   organization?: string
-  location?: string
+  location: string
 }
 
 export default function RegisterPage() {
@@ -42,27 +42,40 @@ export default function RegisterPage() {
     }
 
     try {
+      // Determinar tipo_usuario y datos según el tipo seleccionado
+      let tipo_usuario = 1;
+      let name = `${data.firstName} ${data.lastName}`;
+      let organization = data.organization;
+      let firstName = data.firstName;
+      let lastName = data.lastName;
+      if (selectedRole === 'ong') {
+        tipo_usuario = 2;
+        // Para ONG, el nombre de la organización va en firstName y el nombre legal en organization
+        name = data.firstName;
+        organization = data.organization || '';
+        firstName = data.firstName;
+        lastName = '';
+      }
       const response = await registerUser({
         email: data.email,
         password: data.password,
-        name: `${data.firstName} ${data.lastName}`,
+        name,
         role: selectedRole,
-        organization: data.organization,
+        organization,
         location: data.location,
-      })
-      
+        tipo_usuario,
+      });
       // Si requiere verificación, mostrar mensaje
       if (response?.requiresVerification) {
-        setUserEmail(data.email)
-        setShowVerificationMessage(true)
-        return
+        setUserEmail(data.email);
+        setShowVerificationMessage(true);
+        return;
       }
-      
       // Si no requiere verificación (flujo anterior)
       toast.success('¡Registro exitoso! Bienvenido a Demos+')
-      navigate('/dashboard')
+      navigate('/dashboard');
     } catch (error) {
-      toast.error('Error al registrarse. Inténtalo de nuevo.')
+      toast.error('Error al registrarse. Inténtalo de nuevo.');
     }
   }
 

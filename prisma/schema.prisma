@@ -1,3 +1,16 @@
+model RegistroPendiente {
+  id                 Int      @id @default(autoincrement())
+  nombre             String
+  apellido           String
+  usuario            String
+  correo             String   @unique
+  contrasena         String
+  ubicacion          String?
+  tipo_usuario       Int
+  verification_token String   @unique
+  token_expiry       DateTime
+  createdAt          DateTime @default(now())
+}
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
