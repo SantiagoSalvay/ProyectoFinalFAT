@@ -24,26 +24,37 @@ export default function ProfilePage() {
     location: ''
   })
 
+  // Detectar si el usuario es ONG (tipo_usuario === 2)
+  const isONG = user?.tipo_usuario === 2;
+
   // Actualizar profileData cuando el usuario cambie
   useEffect(() => {
     if (user) {
       console.log('🔍 [DEBUG] Datos del usuario recibidos:', user);
       console.log('🔍 [DEBUG] Campo createdAt:', user.createdAt);
       console.log('🔍 [DEBUG] Tipo de createdAt:', typeof user.createdAt);
-      
-      const fullName = user.nombre && user.apellido 
-        ? `${user.nombre} ${user.apellido}`.trim()
-        : user.nombre || user.apellido || '';
-      
+
+      let fullName = '';
+      if (isONG) {
+        // Para ONG, mostrar nombre completo si hay nombre y apellido
+        if (user.nombre && user.apellido) {
+          fullName = `${user.nombre} ${user.apellido}`.trim();
+        } else {
+          fullName = user.nombre || user.apellido || '';
+        }
+      } else {
+        fullName = user.nombre && user.apellido
+          ? `${user.nombre} ${user.apellido}`.trim()
+          : user.nombre || user.apellido || '';
+      }
+
       setProfileData({
         name: fullName,
         email: user.correo || '',
         location: user.ubicacion || ''
       })
     }
-  }, [user])
-
-  const isONG = false // Por ahora todos los usuarios son de tipo 'normal', no hay ONGs implementadas aún
+  }, [user, isONG])
 
   const handleSave = () => {
     // Aquí se guardaría en el backend

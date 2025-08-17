@@ -2,18 +2,16 @@ import Header from '../components/Header';
 import { useState, useEffect } from 'react';
 
 export default function Donaciones() {
-  // Lista de ONGs y ONG seleccionada
   const [ongs, setOngs] = useState<{ id: string; name: string }[]>([]);
-  const [selectedOng, setSelectedOng] = useState<string>('');
-  // price como string para permitir coma o punto
-  const [price, setPrice] = useState<string>('');
-  const [donationType, setDonationType] = useState<string>('');
-  const quantity = 1;
+  const [selectedOng, setSelectedOng] = useState('');
+  const [price, setPrice] = useState('');
+  const [donationType, setDonationType] = useState('');
+  const [otherDescription, setOtherDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [initPoint, setInitPoint] = useState('');
+  const quantity = 1;
 
-  // Obtener ONGs al montar
   useEffect(() => {
     fetch('http://localhost:3001/ongs')
       .then(res => res.json())
@@ -29,39 +27,47 @@ export default function Donaciones() {
     setLoading(true);
     setError('');
     setInitPoint('');
-    // Limpiar y validar el valor antes de enviar
-    const cleanedPrice = price.replace(',', '.').replace(/[^\d.]/g, '');
-    const parsedPrice = Number(cleanedPrice);
-    // Permitir solo números positivos con hasta 2 decimales
-    if (
-      isNaN(parsedPrice) ||
-      parsedPrice <= 0 ||
-      !/^\d{1,}(\.|,)?\d{0,2}$/.test(price)
-    ) {
-      setError('Ingrese un monto válido.');
-      setLoading(false);
-      return;
-    }
-    if (!selectedOng) {
-      setError('Seleccione una ONG.');
-      setLoading(false);
-      return;
-    }
-    try {
-      const res = await fetch('http://localhost:3001/mercadopago/create-preference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: `Donación a ${ongs.find(o => o.id === selectedOng)?.name || ''}`, price: parsedPrice, quantity, ongId: selectedOng })
-      });
-      const data = await res.json();
-      if (data.init_point) {
-        setInitPoint(data.init_point);
-      } else {
-        setError('No se pudo generar el link de pago.');
+    if (donationType === 'dinero') {
+      const cleanedPrice = price.replace(',', '.').replace(/[^\\d.]/g, '');
+      const parsedPrice = Number(cleanedPrice);
+      if (
+        isNaN(parsedPrice) ||
+        parsedPrice <= 0 ||
+        !/^\\d{1,}(\\.|,)?\\d{0,2}$/.test(price)
+      ) {
+        setError('Ingrese un monto válido.');
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      setError('Error al conectar con el servidor.');
-    } finally {
+      if (!selectedOng) {
+        setError('Seleccione una ONG.');
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch('http://localhost:3001/mercadopago/create-preference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: `Donación a ${ongs.find(o => o.id === selectedOng)?.name || ''}`, price: parsedPrice, quantity, ongId: selectedOng })
+        });
+        const data = await res.json();
+        if (data.init_point) {
+          setInitPoint(data.init_point);
+        } else {
+          setError('No se pudo generar el link de pago.');
+        }
+      } catch (err) {
+        setError('Error al conectar con el servidor.');
+      } finally {
+        setLoading(false);
+      }
+    } else if (donationType === 'otros') {
+      if (!otherDescription.trim()) {
+        setError('Por favor ingresa una descripción para tu donación.');
+        setLoading(false);
+        return;
+      }
+      alert('¡Gracias por tu donación! Descripción: ' + otherDescription);
       setLoading(false);
     }
   };
@@ -69,7 +75,7 @@ export default function Donaciones() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-white to-emerald-50">
       <Header />
-      <main className="flex-1 flex flex-col items-center justify-center py-16 px-4">
+      <main className="flex flex-col items-center justify-center py-16 px-4 flex-1">
         <div className="max-w-xl w-full bg-white rounded-lg shadow-lg p-8 text-center">
           <h1 className="text-3xl font-bold text-purple-700 mb-4">Donaciones</h1>
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
@@ -102,13 +108,12 @@ export default function Donaciones() {
                 <input
                   type="text"
                   inputMode="decimal"
-                  pattern="^\d{1,}(\.|,)?\d{0,2}$"
+                  pattern="^\\d{1,}(\\.|,)?\\d{0,2}$"
                   className="input-field w-full"
                   value={price}
                   onChange={e => {
-                    // Permitir solo números, punto o coma, y máximo 2 decimales
                     let val = e.target.value.replace(/,/g, '.');
-                    if (/^\d{0,}(\.|,)?\d{0,2}$/.test(val)) setPrice(e.target.value);
+                    if (/^\\d{0,}(\\.|,)?\\d{0,2}$/.test(val)) setPrice(e.target.value);
                   }}
                   placeholder="Cantidad a donar"
                   required
@@ -125,7 +130,7 @@ export default function Donaciones() {
                 </button>
               </>
             )}
-            {donationType && donationType !== 'dinero' && (
+            {donationType && donationType !== 'dinero' && donationType !== 'otros' && (
               <button
                 type="button"
                 className="btn-primary w-full"
@@ -133,6 +138,25 @@ export default function Donaciones() {
               >
                 Buscar la ONG en el mapa
               </button>
+            )}
+            {donationType === 'otros' && (
+              <>
+                <textarea
+                  className="input-field w-full"
+                  placeholder="Describe lo que deseas donar"
+                  value={otherDescription}
+                  onChange={e => setOtherDescription(e.target.value)}
+                  rows={3}
+                  required
+                />
+                <button
+                  type="submit"
+                  className="btn-primary w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Enviando...' : 'Enviar descripción'}
+                </button>
+              </>
             )}
           </form>
           {error && <div className="text-red-500 mb-4">{error}</div>}
