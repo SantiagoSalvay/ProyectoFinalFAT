@@ -26,19 +26,26 @@ export default function MapPage() {
   const [ongs, setOngs] = useState<ONG[]>([])
   const [selectedONG, setSelectedONG] = useState<ONG | null>(null)
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'public' | 'private'>('all')
+  // (Eliminado filtro de tipo de ONG)
+  // Filtro por necesidad
+  const [needFilter, setNeedFilter] = useState('')
+  // Filtro por grupo social
+  const [groupFilter, setGroupFilter] = useState('')
 
   // Centro del mapa (Argentina)
   const mapCenter: [number, number] = [-34.6037, -58.3816]
 
   useEffect(() => {
     loadONGs()
-  }, [filter])
+  }, [needFilter, groupFilter])
 
   const loadONGs = async () => {
     try {
       setLoading(true)
-      const filters = filter !== 'all' ? { type: filter } : undefined
+      // Construir filtros
+      const filters: any = {}
+      if (needFilter) filters.need = needFilter
+      if (groupFilter) filters.group = groupFilter
       const { ongs } = await api.getONGs(filters)
       setOngs(ongs)
     } catch (error) {
@@ -78,19 +85,44 @@ export default function MapPage() {
         <p className="text-purple-100">Explora organizaciones cerca de ti</p>
       </div>
       {/* Filtros */}
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-wrap items-center gap-4">
+  {/* (Eliminado filtro tipo ONG) */}
+        {/* Filtro por necesidad */}
         <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-white">Filtrar:</span>
+          <span className="text-sm font-medium text-white">Necesidad:</span>
           <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as 'all' | 'public' | 'private')}
+            value={needFilter}
+            onChange={e => setNeedFilter(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
           >
-            <option value="all">Todas</option>
-            <option value="public">Públicas</option>
-            <option value="private">Privadas</option>
+            <option value="">Todas</option>
+            <option value="dinero">Dinero</option>
+            <option value="ropa">Ropa</option>
+            <option value="juguetes">Juguetes</option>
+            <option value="comida">Comida</option>
+            <option value="muebles">Muebles</option>
+            <option value="otros">Otros</option>
           </select>
         </div>
+        {/* Filtro por grupo social */}
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-white">Grupo:</span>
+          <select
+            value={groupFilter}
+            onChange={e => setGroupFilter(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+          >
+            <option value="">Todos</option>
+            <option value="niños">Niños</option>
+            <option value="ancianos">Ancianos</option>
+            <option value="mujeres">Mujeres</option>
+            <option value="animales">Animales</option>
+            <option value="personas con discapacidad">Personas con discapacidad</option>
+            <option value="familias">Familias</option>
+            <option value="otros">Otros</option>
+          </select>
+        </div>
+        {/* Leyenda */}
         <div className="flex items-center space-x-4 text-sm">
           <div className="flex items-center space-x-1">
             <div className="w-3 h-3 bg-green-400 rounded-full"></div>

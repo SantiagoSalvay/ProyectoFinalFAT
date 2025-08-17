@@ -8,26 +8,25 @@ export default function RankingPage() {
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<'impact' | 'rating' | 'projects' | 'volunteers' | 'donations'>('impact')
   const [location, setLocation] = useState('')
-  const [type, setType] = useState<'all' | 'public' | 'private'>('all')
+  // Filtro por grupo social
+  const [groupFilter, setGroupFilter] = useState('')
 
   useEffect(() => {
     loadRanking()
     loadStats()
-  }, [sortBy, location, type])
+  }, [sortBy, location, groupFilter])
 
   const loadRanking = async () => {
     try {
       setLoading(true)
       let response
-      
       if (location) {
         response = await api.getRankingByLocation(location, sortBy)
-      } else if (type !== 'all') {
-        response = await api.getRankingByType(type, sortBy)
+      } else if (groupFilter) {
+        response = await api.getRankingByGroup(groupFilter, sortBy)
       } else {
         response = await api.getRanking(sortBy, 20)
       }
-      
       setRanking(response.ranking)
     } catch (error) {
       console.error('Error loading ranking:', error)
@@ -169,13 +168,18 @@ export default function RankingPage() {
               </div>
               
               <select
-                value={type}
-                onChange={(e) => setType(e.target.value as any)}
+                value={groupFilter}
+                onChange={e => setGroupFilter(e.target.value)}
                 className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="all">Todos los tipos</option>
-                <option value="public">Públicas</option>
-                <option value="private">Privadas</option>
+                <option value="">Todos los grupos</option>
+                <option value="niños">Niños</option>
+                <option value="ancianos">Ancianos</option>
+                <option value="mujeres">Mujeres</option>
+                <option value="animales">Animales</option>
+                <option value="personas con discapacidad">Personas con discapacidad</option>
+                <option value="familias">Familias</option>
+                <option value="otros">Otros</option>
               </select>
             </div>
           </div>
