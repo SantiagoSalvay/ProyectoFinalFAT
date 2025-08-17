@@ -86,7 +86,8 @@ export default function ForumPage() {
     location: ''
   })
 
-  const isONG = user?.role === 'ong'
+  // Considera ONG si tipo_usuario === 2 (igual que en ProfilePage y DashboardPage)
+  const isONG = user?.tipo_usuario === 2
 
   const handleLike = (postId: string) => {
     if (!user) {

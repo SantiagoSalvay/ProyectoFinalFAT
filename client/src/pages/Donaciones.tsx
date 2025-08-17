@@ -15,16 +15,15 @@ export default function Donaciones() {
   // Estado para error de carga de ONGs solo al intentar buscar en el mapa
   const [ongsError, setOngsError] = useState(false);
   useEffect(() => {
+    setOngsError(false); // Limpiar error al entrar a la página
     fetch('http://localhost:3001/ongs')
       .then(res => res.json())
       .then(data => {
         setOngs(data);
         if (data.length > 0) setSelectedOng(data[0].id);
-        else setOngsError(true);
       })
       .catch(() => {
         setOngs([]);
-        setOngsError(true);
       });
   }, []);
 
@@ -87,7 +86,9 @@ export default function Donaciones() {
           <div className="max-w-xl w-full bg-white rounded-lg shadow-lg p-8 text-center">
             <h1 className="text-3xl font-bold text-red-700 mb-4">Ha ocurrido un error</h1>
             <p className="text-gray-700 mb-6">No se pudieron cargar las ONGs. Por favor, vuelva a intentarlo más tarde.</p>
-            <button className="btn-primary mt-4" onClick={() => setOngsError(false)}>Volver a donaciones</button>
+            <button className="btn-primary mt-4" onClick={() => {
+              setOngsError(false);
+            }}>Volver a donaciones</button>
           </div>
         </main>
       </div>
