@@ -4,7 +4,8 @@ import { Heart, Users, DollarSign, Calendar, TrendingUp, Award, MapPin, Building
 export default function DashboardPage() {
   const { user } = useAuth()
 
-  const isONG = user?.role === 'ong'
+  // Considera ONG si tipo_usuario === 2 (igual que ProfilePage)
+  const isONG = user?.tipo_usuario === 2
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -12,7 +13,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Bienvenido, {user?.name}
+            Bienvenido
           </h1>
           <p className="text-gray-600">
             {isONG ? 'Panel de control de tu organización' : 'Tu centro de actividades'}
@@ -60,7 +61,7 @@ export default function DashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">
-                  {isONG ? 'Total Recaudado' : 'Total Donado'}
+                  {isONG ? 'no se me ocurre otra mentira para datos de interes' : 'Total Donado'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">$12,450</p>
               </div>
@@ -73,7 +74,9 @@ export default function DashboardPage() {
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Cantidad de Punto</p>
+                <p className="text-sm font-medium text-gray-600">
+                  {isONG ? 'menos se me va a ocurrir' : 'Total Donado'}
+                </p>
                 <p className="text-2xl font-bold text-gray-900">1354pt</p>
               </div>
             </div>
@@ -180,18 +183,25 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                
                 {user?.location && (
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="w-4 h-4 mr-2" />
                     {user.location}
                   </div>
                 )}
-                
-                {isONG && user?.organization && (
-                  <div className="text-sm text-gray-600">
-                    <strong>Organización:</strong> {user.organization}
-                  </div>
+                {isONG && (
+                  <>
+                    {user?.organization && (
+                      <div className="text-sm text-gray-600">
+                        <strong>Organización:</strong> {user.organization}
+                      </div>
+                    )}
+                    {user?.cuit && (
+                      <div className="text-sm text-gray-600">
+                        <strong>CUIT:</strong> {user.cuit}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

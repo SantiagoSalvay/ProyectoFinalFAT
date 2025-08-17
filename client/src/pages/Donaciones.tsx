@@ -12,14 +12,20 @@ export default function Donaciones() {
   const [initPoint, setInitPoint] = useState('');
   const quantity = 1;
 
+  // Estado para error de carga de ONGs solo al intentar buscar en el mapa
+  const [ongsError, setOngsError] = useState(false);
   useEffect(() => {
     fetch('http://localhost:3001/ongs')
       .then(res => res.json())
       .then(data => {
         setOngs(data);
         if (data.length > 0) setSelectedOng(data[0].id);
+        else setOngsError(true);
       })
-      .catch(() => setOngs([]));
+      .catch(() => {
+        setOngs([]);
+        setOngsError(true);
+      });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,6 +78,21 @@ export default function Donaciones() {
     }
   };
 
+  // Mostrar pantalla de error solo si el usuario intenta buscar en el mapa y no hay ONGs
+  if (ongsError) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-white to-emerald-50">
+        <Header />
+        <main className="flex flex-col items-center justify-center py-16 px-4 flex-1">
+          <div className="max-w-xl w-full bg-white rounded-lg shadow-lg p-8 text-center">
+            <h1 className="text-3xl font-bold text-red-700 mb-4">Ha ocurrido un error</h1>
+            <p className="text-gray-700 mb-6">No se pudieron cargar las ONGs. Por favor, vuelva a intentarlo más tarde.</p>
+            <button className="btn-primary mt-4" onClick={() => setOngsError(false)}>Volver a donaciones</button>
+          </div>
+        </main>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-white to-emerald-50">
       <Header />
@@ -108,12 +129,13 @@ export default function Donaciones() {
                 <input
                   type="text"
                   inputMode="decimal"
-                  pattern="^\\d{1,}(\\.|,)?\\d{0,2}$"
+                  pattern="^\d{1,}(\.|,)?\d{0,2}$"
                   className="input-field w-full"
                   value={price}
                   onChange={e => {
+                    // Permitir solo números y hasta dos decimales
                     let val = e.target.value.replace(/,/g, '.');
-                    if (/^\\d{0,}(\\.|,)?\\d{0,2}$/.test(val)) setPrice(e.target.value);
+                    if (/^\d*(\.?\d{0,2})?$/.test(val)) setPrice(val);
                   }}
                   placeholder="Cantidad a donar"
                   required
@@ -134,7 +156,13 @@ export default function Donaciones() {
               <button
                 type="button"
                 className="btn-primary w-full"
-                onClick={() => window.location.href = '/app/mapa'}
+                onClick={() => {
+                  if (ongs.length === 0) {
+                    setOngsError(true);
+                  } else {
+                    window.location.href = '/app/mapa';
+                  }
+                }}
               >
                 Buscar la ONG en el mapa
               </button>
