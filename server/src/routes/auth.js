@@ -68,6 +68,35 @@ router.post('/register', async (req, res) => {
       nota: 'Token válido hasta que sea usado'
     });
 
+    // Verificar que el tipo_usuario existe, si no, usar uno por defecto
+    let tipoUsuarioFinal = parseInt(tipo_usuario, 10);
+    
+    const tipoUsuarioExiste = await prisma.tipoUsuario.findUnique({
+      where: { tipo_usuario: tipoUsuarioFinal }
+    });
+    
+    if (!tipoUsuarioExiste) {
+      console.log('⚠️ [REGISTRO] Tipo de usuario no existe:', tipoUsuarioFinal);
+      
+      // Buscar el primer tipo de usuario disponible
+      let tipoUsuarioDefault = await prisma.tipoUsuario.findFirst();
+      
+      if (!tipoUsuarioDefault) {
+        console.log('📝 [REGISTRO] No hay tipos de usuario, creando uno por defecto...');
+        
+        // Crear un tipo de usuario por defecto
+        tipoUsuarioDefault = await prisma.tipoUsuario.create({
+          data: {
+            nombre_tipo_usuario: 'Usuario Regular'
+          }
+        });
+        console.log('✅ [REGISTRO] Tipo de usuario por defecto creado:', tipoUsuarioDefault);
+      }
+      
+      tipoUsuarioFinal = tipoUsuarioDefault.tipo_usuario;
+      console.log('🔄 [REGISTRO] Usando tipo de usuario:', tipoUsuarioFinal);
+    }
+    
     // Guardar datos del registro pendiente
     const nuevoRegistro = await prisma.registroPendiente.create({
       data: {
@@ -77,7 +106,7 @@ router.post('/register', async (req, res) => {
         correo,
         contrasena: hashedPassword,
         ubicacion: ubicacion || "",
-        tipo_usuario: parseInt(tipo_usuario, 10),
+        tipo_usuario: tipoUsuarioFinal,
         verification_token: verificationToken,
         token_expiry: tokenExpiry
       }
@@ -421,7 +450,36 @@ router.get('/verify-email/:token', async (req, res) => {
     console.log('✅ [VERIFICACIÓN] Usuario no existe, procediendo con el registro...');
 
     // Usar el tipo_usuario guardado en RegistroPendiente
-    const tipoUsuarioId = pendingRegistration.tipo_usuario;
+    let tipoUsuarioId = pendingRegistration.tipo_usuario;
+    console.log('👤 [VERIFICACIÓN] Verificando tipo_usuario:', tipoUsuarioId);
+    
+    // Verificar que el tipo_usuario existe en la tabla TipoUsuario
+    const tipoUsuarioExiste = await prisma.tipoUsuario.findUnique({
+      where: { tipo_usuario: tipoUsuarioId }
+    });
+    
+    if (!tipoUsuarioExiste) {
+      console.log('❌ [VERIFICACIÓN] Tipo de usuario no existe:', tipoUsuarioId);
+      
+      // Buscar o crear un tipo de usuario por defecto
+      let tipoUsuarioDefault = await prisma.tipoUsuario.findFirst();
+      
+      if (!tipoUsuarioDefault) {
+        console.log('📝 [VERIFICACIÓN] No hay tipos de usuario, creando uno por defecto...');
+        
+        // Crear un tipo de usuario por defecto
+        tipoUsuarioDefault = await prisma.tipoUsuario.create({
+          data: {
+            nombre_tipo_usuario: 'Usuario Regular'
+          }
+        });
+        console.log('✅ [VERIFICACIÓN] Tipo de usuario por defecto creado:', tipoUsuarioDefault);
+      }
+      
+      console.log('🔄 [VERIFICACIÓN] Usando tipo de usuario por defecto:', tipoUsuarioDefault.tipo_usuario);
+      tipoUsuarioId = tipoUsuarioDefault.tipo_usuario;
+    }
+    
     console.log('👤 [VERIFICACIÓN] Creando usuario definitivo con tipo_usuario:', tipoUsuarioId);
     const newUser = await prisma.usuario.create({
       data: {
