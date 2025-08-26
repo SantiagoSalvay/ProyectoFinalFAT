@@ -140,9 +140,7 @@ export default function ONGsPage() {
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Building className="w-5 h-5 text-green-600" />
-              </div>
+                <Building className="w-8 h-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Públicas</p>
                 <p className="text-2xl font-bold text-gray-900">
@@ -154,9 +152,7 @@ export default function ONGsPage() {
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                <Building className="w-5 h-5 text-red-600" />
-              </div>
+                <Building className="w-8 h-8 text-red-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Privadas</p>
                 <p className="text-2xl font-bold text-gray-900">
