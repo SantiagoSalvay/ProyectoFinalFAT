@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { Heart, Facebook, Instagram, Linkedin, Twitter, Mail, Phone, MapPin } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
+  const { isAuthenticated } = useAuth()
 
   return (
     <footer className="bg-gray-900 text-white">
@@ -82,21 +84,25 @@ export default function Footer() {
                   ONGs
                 </Link>
               </li>
-              <li>
-                <Link to="/map" className="text-gray-300 hover:text-white transition-colors">
-                  Mapa
-                </Link>
-              </li>
-              <li>
-                <Link to="/ranking" className="text-gray-300 hover:text-white transition-colors">
-                  Ranking
-                </Link>
-              </li>
-              <li>
-                <Link to="/forum" className="text-gray-300 hover:text-white transition-colors">
-                  Foro
-                </Link>
-              </li>
+              {isAuthenticated && (
+                <>
+                  <li>
+                    <Link to="/map" className="text-gray-300 hover:text-white transition-colors">
+                      Mapa
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/ranking" className="text-gray-300 hover:text-white transition-colors">
+                      Ranking
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/forum" className="text-gray-300 hover:text-white transition-colors">
+                      Foro
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
@@ -144,27 +150,6 @@ export default function Footer() {
               <Link to="/cookies" className="text-gray-400 hover:text-white text-sm transition-colors">
                 Política de Cookies
               </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Newsletter */}
-        <div className="border-t border-gray-800 mt-8 pt-8">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-2">¡Mantente informado!</h3>
-            <p className="text-gray-300 mb-4">
-              Suscríbete a nuestro newsletter para recibir las últimas noticias y oportunidades de voluntariado.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row max-w-md mx-auto space-y-2 sm:space-y-0 sm:space-x-2">
-              <input
-                type="email"
-                placeholder="Tu email"
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <button className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                Suscribirse
-              </button>
             </div>
           </div>
         </div>
