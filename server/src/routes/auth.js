@@ -122,14 +122,12 @@ router.post('/register', async (req, res) => {
     // Enviar email de verificación
     try {
       await emailService.sendVerificationEmail(correo, verificationToken);
-      console.log('Email de verificación enviado exitosamente');
       
       const successResponse = {
         message: 'Te hemos enviado un correo de verificación. Por favor, revisa tu bandeja de entrada y haz clic en el enlace para activar tu cuenta.',
         requiresVerification: true
       };
       
-      console.log('Enviando respuesta de verificación:', successResponse);
       res.status(200).json(successResponse);
     } catch (emailError) {
       console.error('Error al enviar email de verificación:', emailError);
@@ -152,7 +150,6 @@ router.post('/register', async (req, res) => {
 // Login de usuario
 router.post('/login', async (req, res) => {
   try {
-    console.log('Datos de login recibidos:', { ...req.body, contrasena: '[PROTECTED]' });
     const { correo, contrasena } = req.body;
 
     if (!correo || !contrasena) {
@@ -174,8 +171,6 @@ router.post('/login', async (req, res) => {
       }
     });
 
-    console.log('Usuario encontrado:', user ? { ...user, contrasena: '[PROTECTED]' } : null);
-
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -196,8 +191,6 @@ router.post('/login', async (req, res) => {
     // Omitir contraseña de la respuesta
     const { contrasena: _, ...userWithoutPassword } = user;
 
-    console.log('Datos a enviar en respuesta:', { user: userWithoutPassword, token: token.substring(0, 20) + '...' });
-
     res.json({
       message: 'Login exitoso',
       user: userWithoutPassword,
@@ -212,7 +205,6 @@ router.post('/login', async (req, res) => {
 // Obtener perfil del usuario
 router.get('/profile', async (req, res) => {
   try {
-    console.log('Headers recibidos:', req.headers);
     const token = req.headers.authorization?.split(' ')[1];
     
     if (!token) {

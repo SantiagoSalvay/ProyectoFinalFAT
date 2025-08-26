@@ -7,15 +7,6 @@ import mercadopagoRoutes from '../routes/mercadopago.js';
 // Cargar variables de entorno
 dotenv.config();
 
-// Debug: Mostrar variables de entorno cargadas
-console.log('🔍 [DEBUG] Variables de entorno cargadas:');
-console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'CONFIGURADO' : 'NO_CONFIGURADO');
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'CONFIGURADO' : 'NO_CONFIGURADO');
-console.log('SMTP_HOST:', process.env.SMTP_HOST || 'NO_CONFIGURADO');
-console.log('SMTP_PORT:', process.env.SMTP_PORT || 'NO_CONFIGURADO');
-console.log('SMTP_USER:', process.env.SMTP_USER ? 'CONFIGURADO' : 'NO_CONFIGURADO');
-console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'CONFIGURADO' : 'NO_CONFIGURADO');
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -47,5 +38,5 @@ app.use((err, req, res, next) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  // Server started successfully
 }); 
