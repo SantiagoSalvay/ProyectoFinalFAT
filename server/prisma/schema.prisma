@@ -8,57 +8,57 @@ datasource db {
 }
 
 model TipoUsuario {
-  tipo_usuario      Int      @id @default(autoincrement())
+  tipo_usuario        Int       @id @default(autoincrement())
   nombre_tipo_usuario String
-  usuarios          Usuario[]
+  usuarios            Usuario[]
 }
 
 model Usuario {
-  id_usuario              Int      @id @default(autoincrement())
-  nombre                  String
-  apellido                String
-  usuario                 String   @unique
-  correo                  String   @unique
-  contrasena              String
-  tipo_usuario            Int
-  ubicacion               String?
-  reset_token             String?
-  reset_token_expiry      DateTime?
-  verification_token      String?
+  id_usuario                Int              @id @default(autoincrement())
+  nombre                    String
+  apellido                  String
+  usuario                   String           @unique
+  correo                    String           @unique
+  contrasena                String
+  tipo_usuario              Int
+  ubicacion                 String?
+  createdAt                 DateTime         @default(now())
+  email_verified            Boolean          @default(false)
+  reset_token               String?
+  reset_token_expiry        DateTime?
+  verification_token        String?
   verification_token_expiry DateTime?
-  email_verified          Boolean  @default(false)
-  createdAt               DateTime @default(now())
-  tipo                TipoUsuario @relation(fields: [tipo_usuario], references: [tipo_usuario])
-  foros               Foro[]
-  respuestas          RespuestaForo[]
-  pedidos             PedidoDonacion[]
-  rankings            Ranking[]
+  foros                     Foro[]
+  pedidos                   PedidoDonacion[]
+  rankings                  Ranking[]
+  respuestas                RespuestaForo[]
+  tipo                      TipoUsuario      @relation(fields: [tipo_usuario], references: [tipo_usuario])
 }
 
 model Foro {
-  id_foro       Int    @id @default(autoincrement())
-  id_usuario    Int
-  titulo        String
-  descripcion   String
-  fecha         DateTime
-  usuario       Usuario  @relation(fields: [id_usuario], references: [id_usuario])
-  foroCategorias ForoCategoria[]
-  respuestas    RespuestaForo[]
+  id_foro         Int              @id @default(autoincrement())
+  id_usuario      Int
+  titulo          String
+  descripcion     String
+  fecha           DateTime
+  usuario         Usuario          @relation(fields: [id_usuario], references: [id_usuario])
+  foroCategorias  ForoCategoria[]
   pedidosDonacion PedidoDonacion[]
+  respuestas      RespuestaForo[]
 }
 
 model Categoria {
-  id_categoria   Int    @id @default(autoincrement())
+  id_categoria   Int             @id @default(autoincrement())
   etiqueta       String
   foroCategorias ForoCategoria[]
 }
 
 model ForoCategoria {
-  id_foro_categoria Int @id @default(autoincrement())
+  id_foro_categoria Int              @id @default(autoincrement())
   id_foro           Int
   id_categoria      Int
-  foro              Foro      @relation(fields: [id_foro], references: [id_foro])
-  categoria         Categoria @relation(fields: [id_categoria], references: [id_categoria])
+  categoria         Categoria        @relation(fields: [id_categoria], references: [id_categoria])
+  foro              Foro             @relation(fields: [id_foro], references: [id_foro])
   pedidos           PedidoDonacion[]
 }
 
@@ -73,7 +73,7 @@ model RespuestaForo {
 }
 
 model Donacion {
-  id_donacion   Int    @id @default(autoincrement())
+  id_donacion   Int              @id @default(autoincrement())
   tipo_donacion String
   descripcion   String
   puntos        Int
@@ -81,49 +81,49 @@ model Donacion {
 }
 
 model PedidoDonacion {
-  id_pedido    Int    @id @default(autoincrement())
+  id_pedido         Int           @id @default(autoincrement())
   id_foro_categoria Int
-  id_usuario   Int
-  id_donacion  Int
-  id_foro      Int
-  descripcion  String
-  cantidad     Int
-  fecha        DateTime
-  foroCategoria ForoCategoria @relation(fields: [id_foro_categoria], references: [id_foro_categoria], map: "PedidoDonacion_foroCategoria")
-  usuario      Usuario  @relation(fields: [id_usuario], references: [id_usuario])
-  donacion     Donacion @relation(fields: [id_donacion], references: [id_donacion])
-  rankings     Ranking[]
-  foro         Foro     @relation(fields: [id_foro], references: [id_foro], map: "PedidoDonacion_foro")
+  id_usuario        Int
+  id_donacion       Int
+  id_foro           Int
+  descripcion       String
+  cantidad          Int
+  fecha             DateTime
+  foro              Foro          @relation(fields: [id_foro], references: [id_foro], map: "PedidoDonacion_foro")
+  foroCategoria     ForoCategoria @relation(fields: [id_foro_categoria], references: [id_foro_categoria], map: "PedidoDonacion_foroCategoria")
+  donacion          Donacion      @relation(fields: [id_donacion], references: [id_donacion])
+  usuario           Usuario       @relation(fields: [id_usuario], references: [id_usuario])
+  rankings          Ranking[]
 }
 
 model Ranking {
-  id_ranking      Int    @id @default(autoincrement())
+  id_ranking      Int            @id @default(autoincrement())
   id_tipo_ranking Int
   id_pedido       Int
   id_usuario      Int
   puesto          Int
   puntos          Int
-  tipoRanking     TipoRanking @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
   pedido          PedidoDonacion @relation(fields: [id_pedido], references: [id_pedido])
-  usuario         Usuario @relation(fields: [id_usuario], references: [id_usuario])
+  tipoRanking     TipoRanking    @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
+  usuario         Usuario        @relation(fields: [id_usuario], references: [id_usuario])
 }
 
 model TipoRanking {
-  id_tipo_ranking Int    @id @default(autoincrement())
+  id_tipo_ranking Int       @id @default(autoincrement())
   tipo_ranking    String
   rankings        Ranking[]
 }
 
 model RegistroPendiente {
-  id                    Int      @id @default(autoincrement())
-  nombre                String
-  apellido              String
-  usuario               String
-  correo                String   @unique
-  contrasena            String
-  ubicacion             String?
-  tipo_usuario          Int
-  verification_token    String   @unique
-  token_expiry          DateTime
-  createdAt             DateTime @default(now())
+  id                 Int      @id @default(autoincrement())
+  nombre             String
+  apellido           String
+  usuario            String
+  correo             String   @unique
+  contrasena         String
+  ubicacion          String?
+  verification_token String   @unique
+  token_expiry       DateTime
+  createdAt          DateTime @default(now())
+  tipo_usuario       Int
 }

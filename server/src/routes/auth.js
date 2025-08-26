@@ -48,10 +48,17 @@ router.post('/register', async (req, res) => {
     });
 
     if (existingPendingRegistration) {
+      console.log('🔄 [REGISTRO] Eliminando registro pendiente anterior para:', correo);
       // Eliminar el registro pendiente anterior
-      await prisma.registroPendiente.delete({
-        where: { id: existingPendingRegistration.id }
-      });
+      try {
+        await prisma.registroPendiente.delete({
+          where: { id: existingPendingRegistration.id }
+        });
+        console.log('✅ [REGISTRO] Registro pendiente anterior eliminado');
+      } catch (deleteError) {
+        console.error('❌ [REGISTRO] Error al eliminar registro pendiente anterior:', deleteError);
+        // Continuar de todas formas
+      }
     }
 
     // Encriptar contraseña
@@ -98,19 +105,61 @@ router.post('/register', async (req, res) => {
     }
     
     // Guardar datos del registro pendiente
-    const nuevoRegistro = await prisma.registroPendiente.create({
-      data: {
-        nombre,
-        apellido,
-        usuario,
-        correo,
-        contrasena: hashedPassword,
-        ubicacion: ubicacion || "",
-        tipo_usuario: tipoUsuarioFinal,
-        verification_token: verificationToken,
-        token_expiry: tokenExpiry
+    let nuevoRegistro;
+    try {
+      nuevoRegistro = await prisma.registroPendiente.create({
+        data: {
+          nombre,
+          apellido,
+          usuario,
+          correo,
+          contrasena: hashedPassword,
+          ubicacion: ubicacion || "",
+          tipo_usuario: tipoUsuarioFinal,
+          verification_token: verificationToken,
+          token_expiry: tokenExpiry
+        }
+      });
+    } catch (createError) {
+      console.error('❌ [REGISTRO] Error al crear registro pendiente:', createError);
+      
+      // Si es un error de correo duplicado, intentar limpiar y recrear
+      if (createError.code === 'P2002' && createError.meta?.target?.includes('correo')) {
+        console.log('🔄 [REGISTRO] Intentando limpiar registros duplicados...');
+        
+        try {
+          // Eliminar todos los registros pendientes con este correo
+          await prisma.registroPendiente.deleteMany({
+            where: { correo }
+          });
+          
+          // Intentar crear nuevamente
+          nuevoRegistro = await prisma.registroPendiente.create({
+            data: {
+              nombre,
+              apellido,
+              usuario,
+              correo,
+              contrasena: hashedPassword,
+              ubicacion: ubicacion || "",
+              tipo_usuario: tipoUsuarioFinal,
+              verification_token: verificationToken,
+              token_expiry: tokenExpiry
+            }
+          });
+          console.log('✅ [REGISTRO] Registro recreado exitosamente después de limpieza');
+        } catch (retryError) {
+          console.error('❌ [REGISTRO] Error en segundo intento:', retryError);
+          return res.status(500).json({ 
+            error: 'Error al procesar el registro. Por favor, intenta nuevamente.' 
+          });
+        }
+      } else {
+        return res.status(500).json({ 
+          error: 'Error interno del servidor: ' + createError.message 
+        });
       }
-    });
+    }
 
     console.log('✅ [REGISTRO] Registro pendiente creado:', {
       id: nuevoRegistro.id,
