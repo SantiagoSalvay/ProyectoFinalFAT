@@ -14,9 +14,10 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
 - 👥 **Sistema de Usuarios Avanzado**
   - ✅ **Registro con verificación de email** (IMPLEMENTADO)
   - ✅ **Flujo de activación de cuenta por email** (IMPLEMENTADO)
-  - ✅ **Sistema completo de recuperación de contraseña** (NUEVO)
+  - ✅ **Sistema completo de recuperación de contraseña** (IMPLEMENTADO)
   - ✅ **Autenticación JWT segura** (IMPLEMENTADO)
-  - ✅ **Perfiles personalizados** (IMPLEMENTADO)
+  - ✅ **Perfiles personalizados con edición en tiempo real** (ACTUALIZADO)
+  - ✅ **Edición de información personal (nombre, ubicación)** (NUEVO)
   - ✅ **Sistema de roles y permisos** (IMPLEMENTADO)
   - ✅ **Inicio de sesión automático tras verificación** (IMPLEMENTADO)
 
@@ -164,7 +165,7 @@ npm run dev
 ```
 > La aplicación se ejecutará en: http://localhost:3000
 
-## 🔄 Sistema de Autenticación Completo
+## 🔄 Sistema de Autenticación y Perfiles Completo
 
 ### 📧 Flujo de Verificación de Email
 
@@ -177,6 +178,30 @@ npm run dev
    - Se registra la cuenta en la base de datos
    - Se inicia sesión automáticamente
    - Se redirige al dashboard del usuario
+
+### 👤 Sistema de Gestión de Perfiles (NUEVO)
+
+#### Funcionalidades de Edición de Perfil:
+1. **Visualización de Información** → Página de perfil con datos del usuario
+2. **Modo de Edición** → Al hacer clic en "Editar":
+   - Campos editables para nombre completo y ubicación
+   - Interfaz intuitiva con botones "Guardar" y "Cancelar"
+3. **Guardado en Tiempo Real** → Al presionar "Guardar":
+   - Validación de datos en frontend
+   - Separación automática de nombre y apellido
+   - Actualización segura en base de datos
+   - Feedback inmediato al usuario
+4. **Persistencia de Datos** → Los cambios se guardan permanentemente
+   - Actualización automática de la interfaz
+   - Sincronización con el contexto de autenticación
+
+#### Características Técnicas del Sistema de Perfiles:
+- ✅ **Validación de Campos**: Nombre obligatorio, validaciones en tiempo real
+- ✅ **Separación Inteligente**: Nombre completo se divide automáticamente en nombre y apellido
+- ✅ **Autenticación Segura**: Verificación JWT en cada actualización
+- ✅ **Manejo de Errores**: Mensajes informativos para el usuario
+- ✅ **Logging Detallado**: Para debugging y monitoreo de cambios
+- ✅ **Interfaz Responsiva**: Funciona en dispositivos móviles y desktop
 
 ### 🔐 Sistema de Recuperación de Contraseña (NUEVO)
 
@@ -279,6 +304,18 @@ CREATE DATABASE nombre_base_datos;
 3. **Puertos**: Confirma que no hay conflictos de puertos (3000 frontend, 3001 backend)
 4. **Firewall**: Verifica que el firewall no esté bloqueando las conexiones locales
 
+#### Error: "HTTP error! status: 404" en edición de perfil
+1. **Ruta faltante**: Asegúrate de que la ruta PUT `/auth/profile` esté implementada
+2. **Archivo de rutas**: Verifica que `server/src/routes/auth.js` contenga la ruta de actualización
+3. **Reinicio del servidor**: Reinicia el servidor backend después de cambios en las rutas
+4. **Campo bio**: El campo `bio` no existe en el modelo Usuario, solo usar `nombre`, `apellido`, `ubicacion`
+
+#### Error: "Unknown field `bio` for select statement on model Usuario"
+1. **Esquema de BD**: El modelo Usuario no incluye el campo `bio`
+2. **Campos válidos**: Usar solo `nombre`, `apellido`, `ubicacion`, `correo`, `usuario`
+3. **Prisma generate**: Ejecutar `pnpm prisma generate` después de cambios en el esquema
+4. **Validación de datos**: Asegurarse de no enviar campos inexistentes al backend
+
 #### Error: "The table `public.RegistroPendiente` does not exist"
 ```bash
 cd server
@@ -308,6 +345,7 @@ pnpm prisma db push
 │   │   │   ├── RegisterPage.tsx      # Registro con verificación
 │   │   │   ├── VerifyEmailPage.tsx   # Verificación de email
 │   │   │   ├── LoginPage.tsx
+│   │   │   ├── ProfilePage.tsx       # Gestión de perfiles (NUEVO)
 │   │   │   ├── DashboardPage.tsx
 │   │   │   └── MapPage.tsx
 │   │   ├── services/        # Servicios de API
@@ -347,6 +385,23 @@ pnpm prisma db push
 - `verification_token_expiry` - Fecha de expiración del token (24 horas)
 - `email_verified` - Estado de verificación del email
 
+## 🆕 Actualizaciones Recientes
+
+### Version 2.1.0 - Sistema de Gestión de Perfiles (Diciembre 2024)
+- ✅ **Edición de Perfiles en Tiempo Real** - Los usuarios pueden editar su información personal
+- ✅ **Validaciones Avanzadas** - Validación de campos obligatorios y formatos
+- ✅ **Separación Inteligente de Nombres** - División automática de nombre completo
+- ✅ **Sincronización de Estado** - Actualización automática del contexto de autenticación
+- ✅ **Manejo de Errores Robusto** - Mensajes informativos y logging detallado
+- ✅ **Corrección de Arquitectura** - Unificación de rutas de API en archivo correcto
+- ✅ **Compatibilidad con Esquema** - Eliminación de campos inexistentes (bio) del modelo
+
+### Correcciones Técnicas Importantes:
+- 🔧 **Ruta PUT /auth/profile** - Implementada correctamente en `server/src/routes/auth.js`
+- 🔧 **Validación de Esquema** - Eliminados campos `bio` que no existen en la BD
+- 🔧 **Filtrado de Datos** - Solo se envían campos válidos al backend
+- 🔧 **Logging Mejorado** - Debugging detallado para monitoreo y solución de problemas
+
 ## 🚀 Funcionalidades Próximas
 
 - [ ] **Sistema de Notificaciones Push**
@@ -356,6 +411,8 @@ pnpm prisma db push
 - [ ] **App móvil** (React Native)
 - [ ] **Dashboard de analytics** para ONGs
 - [ ] **Sistema de badges** y gamificación
+- [ ] **Edición de Biografía** - Agregar campo bio al modelo Usuario
+- [ ] **Foto de Perfil** - Sistema de carga y gestión de imágenes
 
 ## 🧪 Testing y Calidad
 
@@ -378,11 +435,27 @@ pnpm prisma db push
 8. **Confirma** que te redirige al login
 9. **Inicia sesión** con la nueva contraseña
 
+### Testing del Sistema de Edición de Perfil (NUEVO):
+1. **Inicia sesión** en tu cuenta verificada
+2. **Ve a tu perfil** desde el menú de usuario
+3. **Verifica** que se muestran tus datos actuales (nombre, email, ubicación)
+4. **Haz clic en "Editar"** para activar el modo de edición
+5. **Modifica** tu nombre completo y/o ubicación
+6. **Haz clic en "Guardar"** para aplicar los cambios
+7. **Verifica** que aparece el mensaje "Perfil actualizado exitosamente"
+8. **Confirma** que los datos se actualizaron en la interfaz
+9. **Recarga la página** para verificar que los cambios persisten
+10. **Prueba "Cancelar"** para verificar que revierte los cambios no guardados
+
 ### Casos de Prueba de Seguridad:
 - ✅ **Token expirado**: Intentar usar un enlace después de 1 hora
 - ✅ **Token reutilizado**: Intentar usar el mismo enlace dos veces
 - ✅ **Contraseña débil**: Probar contraseñas que no cumplan los requisitos
 - ✅ **Email inexistente**: Solicitar recuperación con email no registrado
+- ✅ **Edición sin autenticación**: Intentar editar perfil sin estar logueado
+- ✅ **Token JWT inválido**: Probar con token manipulado o expirado
+- ✅ **Campos vacíos**: Intentar guardar perfil con nombre vacío
+- ✅ **Datos maliciosos**: Probar con caracteres especiales y scripts
 
 ## 🤝 Contribución
 
@@ -397,6 +470,7 @@ pnpm prisma db push
 ### Sistemas Implementados:
 - **✅ Sistema de Verificación de Email** - Implementado completamente
 - **✅ Sistema de Recuperación de Contraseña** - Implementado con máxima seguridad
+- **✅ Sistema de Gestión de Perfiles** - Edición en tiempo real con validaciones (NUEVO)
 - **✅ Interfaz de Usuario** - Diseño moderno, responsivo con animaciones
 - **✅ Backend API** - RESTful con validaciones de seguridad robustas
 - **✅ Base de Datos** - Optimizada con Prisma ORM y campos de seguridad
