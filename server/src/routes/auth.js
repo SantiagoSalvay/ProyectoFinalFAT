@@ -646,4 +646,50 @@ router.post('/resend-verification', async (req, res) => {
   }
 });
 
+// Actualizar perfil del usuario
+router.put('/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Token no proporcionado' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    
+    const { nombre, apellido, ubicacion } = req.body;
+
+    // Filtrar campos undefined para evitar errores
+    const updateData = {};
+    if (nombre !== undefined) updateData.nombre = nombre;
+    if (apellido !== undefined) updateData.apellido = apellido;
+    if (ubicacion !== undefined) updateData.ubicacion = ubicacion;
+
+    console.log('Datos a actualizar:', updateData);
+
+    const user = await prisma.usuario.update({
+      where: { id_usuario: decoded.userId },
+      data: updateData,
+      select: {
+        id_usuario: true,
+        usuario: true,
+        nombre: true,
+        apellido: true,
+        correo: true,
+        ubicacion: true,
+        tipo_usuario: true,
+        createdAt: true
+      }
+    });
+
+    res.json({ message: 'Perfil actualizado exitosamente', user });
+  } catch (error) {
+    console.error('Error al actualizar perfil:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    res.status(500).json({ error: 'Error al actualizar perfil' });
+  }
+});
+
 export default router; 

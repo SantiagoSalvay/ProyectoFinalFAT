@@ -213,7 +213,6 @@ class ApiService {
     nombre?: string;
     apellido?: string;
     ubicacion?: string;
-    bio?: string;
   }) {
     try {
       console.log('Actualizando perfil con datos:', profileData);

@@ -27,10 +27,9 @@ interface RegisterData {
 }
 
 interface UpdateProfileData {
-  name: string
-  organization?: string
-  location: string
-  bio?: string
+  nombre?: string
+  apellido?: string
+  ubicacion?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)

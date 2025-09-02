@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, updateProfile } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     name: '',
@@ -56,10 +56,51 @@ export default function ProfilePage() {
     }
   }, [user, isONG])
 
-  const handleSave = () => {
-    // Aquí se guardaría en el backend
-    toast.success('Perfil actualizado exitosamente')
-    setIsEditing(false)
+  const handleSave = async () => {
+    try {
+      console.log('🔄 Iniciando guardado de perfil...')
+      console.log('📋 Datos actuales del perfil:', profileData)
+      
+      // Validar que hay datos para guardar
+      if (!profileData.name.trim()) {
+        toast.error('El nombre no puede estar vacío')
+        return
+      }
+
+      // Separar el nombre completo en nombre y apellido
+      const nameParts = profileData.name.trim().split(' ')
+      const nombre = nameParts[0] || ''
+      const apellido = nameParts.slice(1).join(' ') || ''
+
+      // Preparar los datos para enviar al backend
+      const updateData = {
+        nombre,
+        apellido,
+        ubicacion: profileData.location || ''
+      }
+
+      console.log('📤 Datos a enviar al backend:', updateData)
+      console.log('👤 Usuario actual:', user)
+      
+      // Llamar a la función updateProfile del contexto
+      await updateProfile(updateData)
+      
+      console.log('✅ Perfil guardado exitosamente')
+      setIsEditing(false)
+    } catch (error) {
+      console.error('❌ Error detallado al guardar perfil:', error)
+      console.error('❌ Tipo de error:', typeof error)
+      console.error('❌ Error objeto:', error)
+      
+      // Mostrar error más específico si está disponible
+      if (error?.response?.data?.error) {
+        toast.error(`Error: ${error.response.data.error}`)
+      } else if (error?.message) {
+        toast.error(`Error: ${error.message}`)
+      } else {
+        toast.error('Error al guardar los cambios')
+      }
+    }
   }
 
   const handleCancel = () => {
