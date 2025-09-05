@@ -1,5 +1,7 @@
+
 import Header from '../components/Header';
 import { useState, useEffect } from 'react';
+import { api, User } from '../services/api';
 
 export default function Donaciones() {
   const [ongs, setOngs] = useState<{ id: string; name: string }[]>([]);
@@ -15,12 +17,15 @@ export default function Donaciones() {
   // Estado para error de carga de ONGs solo al intentar buscar en el mapa
   const [ongsError, setOngsError] = useState(false);
   useEffect(() => {
-    setOngsError(false); // Limpiar error al entrar a la página
-    fetch('http://localhost:3001/ongs')
-      .then(res => res.json())
-      .then(data => {
-        setOngs(data);
-        if (data.length > 0) setSelectedOng(data[0].id);
+    setOngsError(false);
+    api.getONGs()
+      .then((data: User[]) => {
+        const mapped = data.map(ong => ({
+          id: String(ong.id_usuario),
+          name: ong.nombre || ong.usuario || ong.correo
+        }));
+        setOngs(mapped);
+        if (mapped.length > 0) setSelectedOng(mapped[0].id);
       })
       .catch(() => {
         setOngs([]);
