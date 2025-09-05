@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",
+    "@react-google-maps/api": "^2.20.7",
     "@types/bcryptjs": "^2.4.6",
     "@types/nodemailer": "^6.4.14",
     "axios": "^1.6.7",

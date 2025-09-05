@@ -1,3 +1,4 @@
+
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -9,6 +10,26 @@ import { passwordResetService } from '../../lib/password-reset-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Obtener todos los usuarios tipo 2 (ONGs)
+router.get('/ongs', async (req, res) => {
+  try {
+    const ongs = await prisma.usuario.findMany({
+      where: { tipo_usuario: 2 },
+      select: {
+        id_usuario: true,
+        nombre: true,
+        correo: true,
+        ubicacion: true,
+        usuario: true
+      }
+    });
+    res.json({ ongs });
+  } catch (error) {
+    console.error('Error al obtener ONGs:', error);
+    res.status(500).json({ error: 'Error al obtener ONGs' });
+  }
+});
 
 // Registro de usuario (ahora con verificación de email)
 router.post('/register', async (req, res) => {

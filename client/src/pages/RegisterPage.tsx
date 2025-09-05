@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+// ...sin integración Google Maps...
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-hot-toast'
@@ -23,6 +24,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [showVerificationMessage, setShowVerificationMessage] = useState(false)
   const [userEmail, setUserEmail] = useState('')
+  // ...sin integración Google Maps...
   const { register: registerUser, isLoading } = useAuth()
   const navigate = useNavigate()
 
@@ -30,6 +32,7 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<RegisterFormData>()
 

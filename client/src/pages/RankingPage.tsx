@@ -1,48 +1,36 @@
 import { useState, useEffect } from 'react'
-import { api, ONG, RankingStats } from '../services/api'
+import { api, User } from '../services/api'
 import { Trophy, Star, Users, Heart, TrendingUp, Award, Filter, Search, Building } from 'lucide-react'
 
 export default function RankingPage() {
-  const [ranking, setRanking] = useState<ONG[]>([])
-  const [stats, setStats] = useState<RankingStats | null>(null)
+  const [ongs, setOngs] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [sortBy, setSortBy] = useState<'impact' | 'rating' | 'projects' | 'volunteers' | 'donations'>('impact')
+  const [stats, setStats] = useState<any>(null)
+  const [sortBy, setSortBy] = useState('impact')
   const [location, setLocation] = useState('')
-  // Filtro por grupo social
   const [groupFilter, setGroupFilter] = useState('')
 
   useEffect(() => {
-    loadRanking()
-    loadStats()
-  }, [sortBy, location, groupFilter])
-
-  const loadRanking = async () => {
-    try {
-      setLoading(true)
-      let response
-      if (location) {
-        response = await api.getRankingByLocation(location, sortBy)
-      } else if (groupFilter) {
-        response = await api.getRankingByGroup(groupFilter, sortBy)
-      } else {
-        response = await api.getRanking(sortBy, 20)
+    const fetchOngs = async () => {
+      try {
+        setLoading(true)
+        const data = await api.getONGs()
+        setOngs(data)
+        // Simulación de estadísticas
+        setStats({
+          total_ongs: data.length,
+          avg_impact: 4.2,
+          total_volunteers: 120,
+          total_projects: 35
+        })
+      } catch (error) {
+        console.error('Error al cargar ONGs:', error)
+      } finally {
+        setLoading(false)
       }
-      setRanking(response.ranking)
-    } catch (error) {
-      console.error('Error loading ranking:', error)
-    } finally {
-      setLoading(false)
     }
-  }
-
-  const loadStats = async () => {
-    try {
-      const response = await api.getRankingStats()
-      setStats(response.stats)
-    } catch (error) {
-      console.error('Error loading stats:', error)
-    }
-  }
+    fetchOngs()
+  }, [])
 
   const getSortLabel = (sort: string) => {
     switch (sort) {
@@ -99,7 +87,6 @@ export default function RankingPage() {
                 </div>
               </div>
             </div>
-            
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center">
                 <TrendingUp className="w-8 h-8 text-green-600" />
@@ -109,7 +96,6 @@ export default function RankingPage() {
                 </div>
               </div>
             </div>
-            
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center">
                 <Users className="w-8 h-8 text-blue-600" />
@@ -119,7 +105,6 @@ export default function RankingPage() {
                 </div>
               </div>
             </div>
-            
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center">
                 <Heart className="w-8 h-8 text-red-600" />
@@ -154,7 +139,6 @@ export default function RankingPage() {
                 </select>
               </div>
             </div>
-            
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Search className="w-5 h-5 text-gray-400" />
@@ -166,7 +150,6 @@ export default function RankingPage() {
                   className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              
               <select
                 value={groupFilter}
                 onChange={e => setGroupFilter(e.target.value)}
@@ -185,90 +168,32 @@ export default function RankingPage() {
           </div>
         </div>
 
-        {/* Ranking */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Lista de ONGs (usuarios tipo 2) */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mt-8">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">
-              Top {ranking.length} - {getSortLabel(sortBy)}
+              Lista de ONGs registradas
             </h2>
           </div>
-          
           <div className="divide-y divide-gray-200">
-            {ranking.map((ong, index) => (
-              <div key={ong.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    {getRankIcon(index + 1)}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{ong.name}</h3>
-                        <p className="text-sm text-gray-600">{ong.location}</p>
-                      </div>
-                      
-                      <div className="flex items-center space-x-6">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center">
-                            <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                            <span className="ml-1 font-semibold">{ong.rating.toFixed(1)}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">Calificación</p>
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className="flex items-center justify-center">
-                            <Users className="w-5 h-5 text-blue-500" />
-                            <span className="ml-1 font-semibold">{ong.volunteers_count}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">Voluntarios</p>
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className="flex items-center justify-center">
-                            <Heart className="w-5 h-5 text-red-500" />
-                            <span className="ml-1 font-semibold">{ong.projects_count}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">Proyectos</p>
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className="flex items-center justify-center">
-                            <TrendingUp className="w-5 h-5 text-green-500" />
-                            <span className="ml-1 font-semibold">{ong.impact_score.toFixed(1)}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">Impacto</p>
-                        </div>
-                      </div>
+            {ongs.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">No hay ONGs registradas.</div>
+            ) : (
+              ongs.map((ong) => (
+                <div key={ong.id_usuario} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <Building className="w-8 h-8 text-purple-600" />
                     </div>
-                    
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-700 line-clamp-2">{ong.description}</p>
-                    </div>
-                    
-                    <div className="mt-3 flex items-center space-x-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        ong.type === 'public' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {ong.type === 'public' ? 'Pública' : 'Privada'}
-                      </span>
-                      
-                      <a
-                        href={ong.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-purple-600 hover:text-purple-800 font-medium"
-                      >
-                        Visitar sitio web →
-                      </a>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{ong.nombre || ong.usuario}</h3>
+                      <p className="text-sm text-gray-600">{ong.correo}</p>
+                      <p className="text-sm text-gray-600">{ong.ubicacion}</p>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -289,4 +214,4 @@ export default function RankingPage() {
       </div>
     </div>
   )
-} 
+}

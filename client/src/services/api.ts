@@ -1,3 +1,4 @@
+
 const API_BASE_URL = 'http://localhost:3001';
 
 export type UserRole = 'person' | 'ong';
@@ -15,6 +16,18 @@ export interface User {
 
 // Clase API
 class ApiService {
+  // Obtener ONGs (usuarios tipo 2)
+  async getONGs() {
+    try {
+      const response = await this.request<{ ongs: User[] }>('/auth/ongs', {
+        method: 'GET'
+      });
+      return response.ongs;
+    } catch (error) {
+      console.error('Error al obtener ONGs:', error);
+      throw error;
+    }
+  }
   private token: string | null = null;
 
   setToken(token: string) {
