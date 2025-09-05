@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { api, User } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -18,7 +18,8 @@ interface AuthContextType {
 interface RegisterData {
   email: string
   password: string
-  name: string
+  firstName: string
+  lastName?: string
   role: UserRole
   organization?: string
   location: string

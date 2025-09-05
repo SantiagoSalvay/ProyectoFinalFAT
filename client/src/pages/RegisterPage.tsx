@@ -44,22 +44,23 @@ export default function RegisterPage() {
     try {
       // Determinar tipo_usuario y datos según el tipo seleccionado
       let tipo_usuario = 1;
-      let name = `${data.firstName} ${data.lastName}`;
-      let organization = data.organization;
       let firstName = data.firstName;
       let lastName = data.lastName;
+      let organization = data.organization;
+      
       if (selectedRole === 'ong') {
         tipo_usuario = 2;
         // Para ONG, el nombre de la organización va en firstName y el nombre legal en organization
-        name = data.firstName;
-        organization = data.organization || '';
         firstName = data.firstName;
-        lastName = '';
+        lastName = ''; // Las ONGs no tienen apellido
+        organization = data.organization || '';
       }
+      
       const response = await registerUser({
         email: data.email,
         password: data.password,
-        name,
+        firstName,
+        lastName,
         role: selectedRole,
         organization,
         location: data.location,

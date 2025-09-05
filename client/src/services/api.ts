@@ -101,27 +101,25 @@ class ApiService {
 
   // Autenticación
   async register(userData: {
-    name: string;
+    firstName: string;
+    lastName?: string;
     email: string;
     password: string;
     location: string;
     role: UserRole;
+    organization?: string;
     tipo_usuario?: number;
   }) {
     console.log('Iniciando registro con datos:', {
-      name: userData.name,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
       email: userData.email,
       location: userData.location,
       role: userData.role,
+      organization: userData.organization,
+      tipo_usuario: userData.tipo_usuario,
       password: '[PROTECTED]'
     });
-
-    const [nombre, ...apellidoArray] = userData.name.split(' ');
-    const apellido = apellidoArray.join(' ');
-
-    if (!nombre || !apellido) {
-      throw new Error('Por favor ingresa nombre y apellido');
-    }
 
     try {
       const response = await this.request<{ 
@@ -134,13 +132,13 @@ class ApiService {
         {
           method: 'POST',
           body: JSON.stringify({
-            nombre,
-            apellido,
-            correo: userData.email,
-            contrasena: userData.password,
-            usuario: userData.email.split('@')[0],
-            ubicacion: userData.location,
-            tipo_usuario: userData.tipo_usuario
+            nombre: userData.firstName || '',
+            apellido: userData.lastName || '',
+            correo: userData.email || '',
+            contrasena: userData.password || '',
+            usuario: (userData.email && userData.email.split('@')[0]) || userData.email || '',
+            ubicacion: userData.location || '',
+            tipo_usuario: userData.tipo_usuario || 1
           }),
         }
       );

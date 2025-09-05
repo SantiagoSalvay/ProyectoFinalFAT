@@ -16,9 +16,29 @@ router.post('/register', async (req, res) => {
     console.log('Datos recibidos para registro:', req.body);
 
   const { nombre, apellido, correo, contrasena, usuario, ubicacion, tipo_usuario } = req.body;
+  
+  console.log('Campos extraídos:', {
+    nombre: nombre ? 'presente' : 'faltante',
+    apellido: apellido ? 'presente' : 'faltante',
+    correo: correo ? 'presente' : 'faltante',
+    contrasena: contrasena ? 'presente' : 'faltante',
+    usuario: usuario ? 'presente' : 'faltante',
+    ubicacion: ubicacion ? 'presente' : 'faltante',
+    tipo_usuario: tipo_usuario ? 'presente' : 'faltante'
+  });
+  
+  console.log('Valores específicos:', {
+    nombre: nombre,
+    apellido: apellido,
+    usuario: usuario,
+    tipo_usuario: tipo_usuario,
+    isONG: parseInt(tipo_usuario) === 2
+  });
 
     // Validar que todos los campos requeridos estén presentes
-  if (!nombre || !apellido || !correo || !contrasena || !tipo_usuario) {
+    // Para ONGs (tipo_usuario = 2), el apellido puede estar vacío
+    const isONG = parseInt(tipo_usuario) === 2;
+    if (!nombre || (!apellido && !isONG) || !correo || !contrasena || !usuario || !tipo_usuario) {
       return res.status(400).json({ 
         error: 'Todos los campos son requeridos' 
       });
