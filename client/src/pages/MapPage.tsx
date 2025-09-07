@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
+import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { Icon } from 'leaflet'
 import { api, User } from '../services/api'
+const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY;
 import { Heart, MapPin, Building, Users, Star, ExternalLink } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 
@@ -10,8 +12,8 @@ interface ONG {
   id: number
   name: string
   location: string
-  latitude: number
-  longitude: number
+  latitude?: number
+  longitude?: number
   group: string
   rating: number
   volunteers_count: number
@@ -41,40 +43,45 @@ function MapCenter({ center }: { center: [number, number] }) {
 }
 
 export default function MapPage() {
-  // ...existing code...
+  const [geoError, setGeoError] = useState<string | null>(null);
+  // Estados y hooks primero
   const [ongs, setOngs] = useState<ONG[]>([])
+  const [geoLoading, setGeoLoading] = useState(false)
   const [selectedONG, setSelectedONG] = useState<ONG | null>(null)
   const [loading, setLoading] = useState(true)
-  // (Eliminado filtro de tipo de ONG)
-  // Filtro por necesidad
   const [needFilter, setNeedFilter] = useState('')
-  // Filtro por grupo social
   const [groupFilter, setGroupFilter] = useState('')
-
   // Centro del mapa (Argentina)
   const mapCenter: [number, number] = [-34.6037, -58.3816]
+
+  // Colores por grupo social
+  const groupColors: Record<string, string> = {
+    'niños': '#2196f3', // celeste/azul
+    'ancianos': '#8bc34a', // verde claro
+    'mujeres': '#e040fb', // rosa/morado
+    'animales': '#ff9800', // naranja
+    'personas con discapacidad': '#9c27b0', // violeta
+    'familias': '#009688', // turquesa
+    'otros': '#f44336', // rojo
+  };
+
+  // Filtrado de ONGs por necesidad y grupo social
+  const filteredOngs = ongs.filter(ong => {
+    const needMatch = needFilter === '' || ong.description.toLowerCase().includes(needFilter.toLowerCase())
+    const groupMatch = groupFilter === '' || ong.group === groupFilter
+    return needMatch && groupMatch
+  })
 
   useEffect(() => {
     loadONGs()
   }, [needFilter, groupFilter])
 
   const loadONGs = async () => {
+  console.log('Cargando ONGs...')
+    setLoading(true)
+    setGeoLoading(true)
     try {
-      setLoading(true)
-      // Por ahora, obtener todas las ONGs sin filtros
-      // TODO: Implementar filtros en el servidor
-      const ongs = await api.getONGs()
-      
-      // Convertir User[] a ONG[] con datos mock para el mapa (ubicación dentro de Córdoba)
-      // Límites Córdoba:
-      // Latitud: norte -31.308333, sur -31.525
-      // Longitud: este -64.0575, oeste -64.309722
-      const minLat = -31.308333;
-      const maxLat = -31.525;
-      const minLng = -64.309722;
-      const maxLng = -64.0575;
-
-      // Grupos sociales posibles
+      const users = await api.getONGs()
       const grupos = [
         'niños',
         'ancianos',
@@ -84,10 +91,25 @@ export default function MapPage() {
         'familias',
         'otros'
       ];
-
-      const ongsWithLocation: ONG[] = ongs.map((user, index) => {
-        const latitude = minLat + Math.random() * (maxLat - minLat);
-        const longitude = minLng + Math.random() * (maxLng - minLng);
+      // Geocodificar cada ubicación
+      const geocodePromises = users.map(async (user) => {
+  console.log('Geocodificando:', user.ubicacion)
+        let latitude: number | undefined = undefined;
+        let longitude: number | undefined = undefined;
+        if (user.ubicacion) {
+          try {
+            const res = await axios.get(`https://us1.locationiq.com/v1/search?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(user.ubicacion)}&format=json&countrycodes=ar&limit=1`);
+            if (res.data && res.data.length > 0) {
+              latitude = parseFloat(res.data[0].lat);
+              longitude = parseFloat(res.data[0].lon);
+            }
+          } catch (err: any) {
+            if (err.response && err.response.status === 429) {
+              setGeoError('Se ha excedido el límite de peticiones de geocodificación. Intenta nuevamente en unos minutos.');
+            }
+            console.error('Error geocodificando ubicación:', user.ubicacion, err);
+          }
+        }
         // Asignar grupo social aleatorio
         const group = grupos[Math.floor(Math.random() * grupos.length)];
         return {
@@ -105,69 +127,25 @@ export default function MapPage() {
           phone: '+54 11 1234-5678',
           website: `https://${user.usuario}.org`
         }
-      })
-      
+      });
+      const ongsWithLocation = await Promise.all(geocodePromises);
+  console.log('ONGs con coordenadas:', ongsWithLocation)
       setOngs(ongsWithLocation)
     } catch (error) {
       console.error('Error loading ONGs:', error)
     } finally {
       setLoading(false)
+      setGeoLoading(false)
     }
-  }
-
-    // Filtrado de ONGs por necesidad y grupo social
-    const filteredOngs = ongs.filter(ong => {
-      // Filtro por necesidad (mock: busca en descripción)
-      const needMatch = needFilter === '' || ong.description.toLowerCase().includes(needFilter.toLowerCase())
-      // Filtro por grupo social
-      const groupMatch = groupFilter === '' || ong.group === groupFilter
-      return needMatch && groupMatch
-    })
-
-  // Colores por grupo social
-  const groupColors: Record<string, string> = {
-    'niños': '#2196f3', // celeste/azul
-    'ancianos': '#8bc34a', // verde claro
-    'mujeres': '#e040fb', // rosa/morado
-    'animales': '#ff9800', // marrón/naranja
-    'personas con discapacidad': '#006400', // verde oscuro
-    'familias': '#ffd600', // amarillo
-    'otros': '#f44336' // rojo
-  };
-
-  // URLs de iconos de color
-  const markerIconUrls: Record<string, string> = {
-    'niños': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-    'ancianos': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    'mujeres': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-    'animales': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-    'personas con discapacidad': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', // verde oscuro no existe, usar verde
-    'familias': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-    'otros': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png'
-  };
-
-  const getMarkerIcon = (group: string) => {
-    const url = markerIconUrls[group] || markerIconUrls['otros'];
-    return new Icon({
-      iconUrl: url,
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    )
   }
 
   return (
     <div className="bg-purple-600 shadow-sm border-b">
+      {geoError && (
+        <div className="bg-red-100 text-red-700 p-4 text-center font-semibold">
+          {geoError}
+        </div>
+      )}
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
     <div className="flex items-center justify-between">
       <div>
@@ -241,26 +219,28 @@ export default function MapPage() {
             />
             <MapCenter center={mapCenter as [number, number]} />
             {filteredOngs.length === 0 ? null : filteredOngs.map((ong) => (
-              <Marker
-                key={ong.id}
-                position={[ong.latitude, ong.longitude] as [number, number]}
-                // @ts-ignore
-                icon={getMarkerIcon(ong.group)}
-                eventHandlers={{
-                  click: () => setSelectedONG(ong),
-                }}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-semibold text-gray-900">{ong.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{ong.location}</p>
-                    <div className="flex items-center mt-2">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="text-sm ml-1">{ong.rating.toFixed(1)}</span>
+              ong.latitude !== undefined && ong.longitude !== undefined ? (
+                <Marker
+                  key={ong.id}
+                  position={[ong.latitude, ong.longitude] as [number, number]}
+                  // @ts-ignore
+                  icon={getMarkerIcon(ong.group)}
+                  eventHandlers={{
+                    click: () => setSelectedONG(ong),
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2">
+                      <h3 className="font-semibold text-gray-900">{ong.name}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{ong.location}</p>
+                      <div className="flex items-center mt-2">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        <span className="text-sm ml-1">{ong.rating.toFixed(1)}</span>
+                      </div>
                     </div>
-                  </div>
-                </Popup>
-              </Marker>
+                  </Popup>
+                </Marker>
+              ) : null
             ))}
           </MapContainer>
         </div>
@@ -431,4 +411,4 @@ export default function MapPage() {
       )}
     </div>
   )
-} 
+}
