@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 // ...sin integración Google Maps...
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { User, Building, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Map } from 'lucide-react';
 import { UserRole } from '../contexts/AuthContext'
 
 interface RegisterFormData {
@@ -19,6 +22,104 @@ interface RegisterFormData {
 }
 
 export default function RegisterPage() {
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(null);
+
+  // Función para obtener dirección inversa desde coordenadas
+  const fetchReverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const res = await fetch(`https://us1.locationiq.com/v1/reverse?key=${LOCATIONIQ_API_KEY}&lat=${lat}&lon=${lon}&format=json`);
+      const data = await res.json();
+      if (data && data.address) {
+        const road = data.address.road || '';
+        const houseNumber = data.address.house_number || '';
+        const suburb = data.address.suburb || data.address.neighbourhood || '';
+        const city = data.address.city || data.address.town || data.address.village || '';
+        let result = road;
+        if (houseNumber) result += ` ${houseNumber}`;
+        if (suburb) result += `, ${suburb}`;
+        if (city) result += `, ${city}`;
+        return result;
+      }
+      return `${lat}, ${lon}`;
+    } catch {
+      return `${lat}, ${lon}`;
+    }
+  };
+
+  // Componente para seleccionar punto en el mapa
+  function LocationMarker() {
+    useMapEvents({
+      click(e) {
+        setSelectedPosition([e.latlng.lat, e.latlng.lng]);
+      },
+    });
+    return selectedPosition ? (
+      <Marker position={selectedPosition} />
+    ) : null;
+  }
+  // Autocompletado de ubicación con LocationIQ
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationInput, setLocationInput] = useState('')
+
+  // Usar la variable de entorno VITE_LOCATIONIQ_API_KEY
+  const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY
+
+  // Debounce para evitar rate limit
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      if (!locationInput || locationInput.length < 3) {
+        setLocationSuggestions([])
+        return
+      }
+      setLocationLoading(true)
+  fetch(`https://us1.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(locationInput)}&limit=8&countrycodes=ar`)
+        .then(async res => {
+          if (!res.ok) {
+            console.error('Error en la respuesta de LocationIQ:', res.status, await res.text())
+            setLocationSuggestions([])
+            return []
+          }
+          return res.json()
+        })
+        .then(data => {
+          if (!Array.isArray(data)) {
+            console.error('Respuesta inesperada de LocationIQ:', data)
+            setLocationSuggestions([])
+            return
+          }
+          // Mostrar sugerencias en formato 'calle número, Córdoba' o display_name
+          const filtered = data.filter((item: any) => {
+            // Solo resultados que mencionen Córdoba en algún campo relevante
+            return (
+              (item.address && (
+                (item.address.city && item.address.city.toLowerCase().includes('córdoba')) ||
+                (item.address.state && item.address.state.toLowerCase().includes('córdoba')) ||
+                (item.display_name && item.display_name.toLowerCase().includes('córdoba'))
+              ))
+            );
+          });
+          setLocationSuggestions(filtered.map((item: any) => {
+            const road = item.address?.road || item.address?.name || '';
+            const houseNumber = item.address?.house_number || '';
+            if (road && houseNumber) {
+              return `${road} ${houseNumber}, Córdoba`;
+            }
+            if (road) {
+              return `${road}, Córdoba`;
+            }
+            return item.display_name;
+          }));
+        })
+        .catch((err) => {
+          console.error('Error al consultar LocationIQ:', err)
+          setLocationSuggestions([])
+        })
+        .finally(() => setLocationLoading(false))
+    }, 600)
+    return () => clearTimeout(handler)
+  }, [locationInput])
   const [selectedRole, setSelectedRole] = useState<UserRole>('person')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -274,16 +375,66 @@ export default function RegisterPage() {
             </div>
 
             {/* Location */}
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Ubicación
               </label>
-              <input
-                type="text"
-                {...register('location')}
-                className="input-field"
-                placeholder="Ciudad, País"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={locationInput}
+                  onChange={e => {
+                    setLocationInput(e.target.value)
+                    setValue('location', e.target.value)
+                  }}
+                  className="input-field flex-1"
+                  placeholder="Calle y numeración en Córdoba"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="p-2 rounded bg-purple-100 hover:bg-purple-200 border border-purple-300 flex items-center justify-center"
+                  title="Ubicarte en el mapa"
+                  onClick={() => setShowMapModal(true)}
+                >
+                  <Map className="w-5 h-5 text-purple-700" />
+                </button>
+              </div>
+              {/* Modal del mapa para seleccionar ubicación */}
+              {showMapModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-lg relative">
+                    <button
+                      className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowMapModal(false)}
+                    >
+                      Cerrar
+                    </button>
+                    <h3 className="text-lg font-semibold mb-2">Selecciona tu ubicación en el mapa</h3>
+                    <MapContainer center={[-31.4167, -64.1833]} zoom={13} style={{ height: '350px', width: '100%' }}>
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <LocationMarker />
+                    </MapContainer>
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        className="btn-primary px-4 py-2 rounded"
+                        disabled={!selectedPosition}
+                        onClick={async () => {
+                          if (selectedPosition) {
+                            const address = await fetchReverseGeocode(selectedPosition[0], selectedPosition[1]);
+                            setLocationInput(address);
+                            setValue('location', address);
+                            setShowMapModal(false);
+                            toast.success('Ubicación seleccionada');
+                          }
+                        }}
+                      >
+                        Usar esta ubicación
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Password */}
