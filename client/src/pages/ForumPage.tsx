@@ -124,25 +124,26 @@ export default function ForumPage() {
       return
     }
 
+    // Validar que el usuario sea ONG
     if (!isONG) {
       toast.error('Solo las ONGs pueden crear publicaciones')
       return
     }
 
-    if (!newPost.title || !newPost.content) {
+    if (!newPost.title.trim() || !newPost.content.trim()) {
       toast.error('Por favor completa todos los campos requeridos')
       return
     }
 
     const post: Post = {
       id: Date.now().toString(),
-      title: newPost.title,
-      content: newPost.content,
+      title: newPost.title.trim(),
+      content: newPost.content.trim(),
       author: {
-        id: user!.id.toString(),
-        name: user!.name,
-        role: user!.role,
-        organization: user!.organization
+        id: user.id?.toString() || '',
+        name: user.name || '',
+        role: 'ong',
+        organization: user.organization || ''
       },
       tags: newPost.tags.split(',').map(tag => tag.trim()).filter(Boolean),
       location: newPost.location,

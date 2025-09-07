@@ -12,7 +12,7 @@ interface ONG {
   location: string
   latitude: number
   longitude: number
-  type: 'public' | 'private'
+  group: string
   rating: number
   volunteers_count: number
   projects_count: number
@@ -41,6 +41,7 @@ function MapCenter({ center }: { center: [number, number] }) {
 }
 
 export default function MapPage() {
+  // ...existing code...
   const [ongs, setOngs] = useState<ONG[]>([])
   const [selectedONG, setSelectedONG] = useState<ONG | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,22 +65,47 @@ export default function MapPage() {
       // TODO: Implementar filtros en el servidor
       const ongs = await api.getONGs()
       
-      // Convertir User[] a ONG[] con datos mock para el mapa
-      const ongsWithLocation: ONG[] = ongs.map((user, index) => ({
-        id: user.id_usuario,
-        name: user.nombre || user.usuario,
-        location: user.ubicacion || 'Ubicación no especificada',
-        latitude: -34.6037 + (Math.random() - 0.5) * 0.1, // Coordenadas mock alrededor de Buenos Aires
-        longitude: -58.3816 + (Math.random() - 0.5) * 0.1,
-        type: Math.random() > 0.5 ? 'public' : 'private',
-        rating: 3.5 + Math.random() * 1.5, // Rating entre 3.5 y 5.0
-        volunteers_count: Math.floor(Math.random() * 100) + 10,
-        projects_count: Math.floor(Math.random() * 20) + 1,
-        description: `ONG dedicada a ayudar a la comunidad. ${user.ubicacion ? `Ubicada en ${user.ubicacion}.` : ''}`,
-        email: user.correo,
-        phone: '+54 11 1234-5678', // Mock phone
-        website: `https://${user.usuario}.org` // Mock website
-      }))
+      // Convertir User[] a ONG[] con datos mock para el mapa (ubicación dentro de Córdoba)
+      // Límites Córdoba:
+      // Latitud: norte -31.308333, sur -31.525
+      // Longitud: este -64.0575, oeste -64.309722
+      const minLat = -31.308333;
+      const maxLat = -31.525;
+      const minLng = -64.309722;
+      const maxLng = -64.0575;
+
+      // Grupos sociales posibles
+      const grupos = [
+        'niños',
+        'ancianos',
+        'mujeres',
+        'animales',
+        'personas con discapacidad',
+        'familias',
+        'otros'
+      ];
+
+      const ongsWithLocation: ONG[] = ongs.map((user, index) => {
+        const latitude = minLat + Math.random() * (maxLat - minLat);
+        const longitude = minLng + Math.random() * (maxLng - minLng);
+        // Asignar grupo social aleatorio
+        const group = grupos[Math.floor(Math.random() * grupos.length)];
+        return {
+          id: user.id_usuario,
+          name: user.nombre || user.usuario,
+          location: user.ubicacion || 'Ubicación no especificada',
+          latitude,
+          longitude,
+          group,
+          rating: 3.5 + Math.random() * 1.5,
+          volunteers_count: Math.floor(Math.random() * 100) + 10,
+          projects_count: Math.floor(Math.random() * 20) + 1,
+          description: `ONG dedicada a ayudar a la comunidad. ${user.ubicacion ? `Ubicada en ${user.ubicacion}.` : ''}`,
+          email: user.correo,
+          phone: '+54 11 1234-5678',
+          website: `https://${user.usuario}.org`
+        }
+      })
       
       setOngs(ongsWithLocation)
     } catch (error) {
@@ -89,17 +115,47 @@ export default function MapPage() {
     }
   }
 
-  const getMarkerIcon = (type: 'public' | 'private') => {
+    // Filtrado de ONGs por necesidad y grupo social
+    const filteredOngs = ongs.filter(ong => {
+      // Filtro por necesidad (mock: busca en descripción)
+      const needMatch = needFilter === '' || ong.description.toLowerCase().includes(needFilter.toLowerCase())
+      // Filtro por grupo social
+      const groupMatch = groupFilter === '' || ong.group === groupFilter
+      return needMatch && groupMatch
+    })
+
+  // Colores por grupo social
+  const groupColors: Record<string, string> = {
+    'niños': '#2196f3', // celeste/azul
+    'ancianos': '#8bc34a', // verde claro
+    'mujeres': '#e040fb', // rosa/morado
+    'animales': '#ff9800', // marrón/naranja
+    'personas con discapacidad': '#006400', // verde oscuro
+    'familias': '#ffd600', // amarillo
+    'otros': '#f44336' // rojo
+  };
+
+  // URLs de iconos de color
+  const markerIconUrls: Record<string, string> = {
+    'niños': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    'ancianos': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    'mujeres': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+    'animales': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+    'personas con discapacidad': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', // verde oscuro no existe, usar verde
+    'familias': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+    'otros': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png'
+  };
+
+  const getMarkerIcon = (group: string) => {
+    const url = markerIconUrls[group] || markerIconUrls['otros'];
     return new Icon({
-      iconUrl: type === 'public' 
-        ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
-        : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      iconUrl: url,
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
       shadowSize: [41, 41]
-    })
+    });
   }
 
   if (loading) {
@@ -156,16 +212,14 @@ export default function MapPage() {
             <option value="otros">Otros</option>
           </select>
         </div>
-        {/* Leyenda */}
-        <div className="flex items-center space-x-4 text-sm">
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-            <span className="text-white">Públicas</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-            <span className="text-white">Privadas</span>
-          </div>
+        {/* Leyenda por grupo social */}
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {Object.entries(groupColors).map(([group, color]) => (
+            <div key={group} className="flex items-center space-x-1 mr-2">
+              <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: color }}></div>
+              <span className="text-white capitalize">{group}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -175,23 +229,23 @@ export default function MapPage() {
         {/* Mapa */}
         <div className="flex-1">
           <MapContainer
-            center={mapCenter}
+            center={mapCenter as [number, number]}
             zoom={6}
             className="h-full w-full"
             style={{ height: '100%' }}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              // @ts-ignore
+              attribution="&copy; OpenStreetMap contributors"
             />
-            
-            <MapCenter center={mapCenter} />
-            
-            {ongs.map((ong) => (
+            <MapCenter center={mapCenter as [number, number]} />
+            {filteredOngs.length === 0 ? null : filteredOngs.map((ong) => (
               <Marker
                 key={ong.id}
-                position={[ong.latitude, ong.longitude]}
-                icon={getMarkerIcon(ong.type)}
+                position={[ong.latitude, ong.longitude] as [number, number]}
+                // @ts-ignore
+                icon={getMarkerIcon(ong.group)}
                 eventHandlers={{
                   click: () => setSelectedONG(ong),
                 }}
@@ -215,56 +269,73 @@ export default function MapPage() {
         <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
           <div className="p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              ONGs en el mapa ({ongs.length})
+              ONGs en el mapa ({filteredOngs.length})
             </h2>
-            
-            <div className="space-y-4">
-              {ongs.map((ong) => (
-                <div
-                  key={ong.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    selectedONG?.id === ong.id
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setSelectedONG(ong)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{ong.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{ong.location}</p>
-                      
-                      <div className="flex items-center mt-2 space-x-4 text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                          <span className="ml-1">{ong.rating.toFixed(1)}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Users className="w-4 h-4" />
-                          <span className="ml-1">{ong.volunteers_count}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Building className="w-4 h-4" />
-                          <span className="ml-1">{ong.type}</span>
+            {filteredOngs.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                No hay ONGs registradas con los filtros seleccionados.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredOngs.map((ong) => (
+                  <div
+                    key={ong.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      selectedONG?.id === ong.id
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedONG(ong)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{ong.name}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{ong.location}</p>
+                        <div className="flex items-center mt-2 space-x-4 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                            <span className="ml-1">{ong.rating.toFixed(1)}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4" />
+                            <span className="ml-1">{ong.volunteers_count}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Building className="w-4 h-4" style={{ color: groupColors[ong.group] || '#f44336' }} />
+                            <span className="ml-1 capitalize">{ong.group}</span>
+                          </div>
                         </div>
                       </div>
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: groupColors[ong.group] || 'gray' }}
+                      ></div>
                     </div>
-                    
-                    <div className={`w-3 h-3 rounded-full ${
-                      ong.type === 'public' ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Modal de detalles de ONG */}
       {selectedONG && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 1000 }}
+        >
+          {/* Overlay oscuro para bloquear interacción */}
+          <div
+            className="absolute inset-0 bg-black bg-opacity-60"
+            style={{ zIndex: 1000, pointerEvents: 'auto' }}
+            onClick={() => setSelectedONG(null)}
+          />
+          {/* Modal */}
+          <div
+            className="relative bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+            style={{ zIndex: 1010 }}
+          >
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -274,6 +345,7 @@ export default function MapPage() {
                 <button
                   onClick={() => setSelectedONG(null)}
                   className="text-gray-400 hover:text-gray-600"
+                  style={{ zIndex: 1020 }}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -289,7 +361,6 @@ export default function MapPage() {
                   </div>
                   <p className="text-sm text-gray-600 mt-1">Calificación</p>
                 </div>
-                
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center">
                     <Users className="w-5 h-5 text-blue-500" />
@@ -297,7 +368,6 @@ export default function MapPage() {
                   </div>
                   <p className="text-sm text-gray-600 mt-1">Voluntarios</p>
                 </div>
-                
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center">
                     <Heart className="w-5 h-5 text-red-500" />
@@ -305,13 +375,12 @@ export default function MapPage() {
                   </div>
                   <p className="text-sm text-gray-600 mt-1">Proyectos</p>
                 </div>
-                
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center">
-                    <Building className="w-5 h-5 text-green-500" />
-                    <span className="ml-2 font-semibold capitalize">{selectedONG.type}</span>
+                    <Building className="w-5 h-5" style={{ color: groupColors[selectedONG.group] || 'gray' }} />
+                    <span className="ml-2 font-semibold capitalize">{selectedONG.group}</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">Tipo</p>
+                  <p className="text-sm text-gray-600 mt-1">Grupo social</p>
                 </div>
               </div>
 
