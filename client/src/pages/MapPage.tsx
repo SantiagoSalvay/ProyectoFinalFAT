@@ -60,7 +60,7 @@ export default function MapPage() {
     'Gente mayor': '#8bc34a', // verde claro
     'Mujeres': '#e040fb', // rosa/morado
     'Animales': '#ff9800', // naranja
-    'Personas con discapacidad': '#9c27b0', // violeta
+    'Personas con discapacidad': '#e6f208ff', // amarillo
     'Familias': '#009688', // turquesa
     'Otros': '#f44336', // rojo
   };
