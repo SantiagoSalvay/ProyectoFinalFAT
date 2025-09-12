@@ -44,6 +44,12 @@ function MapCenter({ center }: { center: [number, number] }) {
 
 export default function MapPage() {
   const [geoError, setGeoError] = useState<string | null>(null);
+  // Manejo de error de tiles
+  const handleTileError = (e: any) => {
+    // e.target.status puede ser 401, 429, 404, etc.
+    // Pero Leaflet no expone status, así que revisamos el mensaje
+    setGeoError('No se pudo cargar el mapa. Verifica tu API key de LocationIQ o espera unos minutos si excediste el límite de peticiones.');
+  };
   // Estados y hooks primero
   const [ongs, setOngs] = useState<ONG[]>([])
   const [geoLoading, setGeoLoading] = useState(false)
@@ -104,8 +110,14 @@ export default function MapPage() {
               longitude = parseFloat(res.data[0].lon);
             }
           } catch (err: any) {
-            if (err.response && err.response.status === 429) {
-              setGeoError('Se ha excedido el límite de peticiones de geocodificación. Intenta nuevamente en unos minutos.');
+            if (err.response) {
+              if (err.response.status === 429) {
+                setGeoError('Se ha excedido el límite de peticiones de LocationIQ. Intenta nuevamente en unos minutos.');
+              } else if (err.response.status === 401) {
+                setGeoError('API key de LocationIQ inválida. Verifica tu configuración.');
+              } else {
+                setGeoError('Error al geocodificar la ubicación.');
+              }
             }
             console.error('Error geocodificando ubicación:', user.ubicacion, err);
           }
@@ -213,9 +225,10 @@ export default function MapPage() {
             style={{ height: '100%' }}
           >
             <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              url={`https://maps.locationiq.com/v3/{z}/{x}/{y}.png?key=${LOCATIONIQ_API_KEY}`}
               // @ts-ignore
-              attribution="&copy; OpenStreetMap contributors"
+              attribution="&copy; LocationIQ & OpenStreetMap contributors"
+              eventHandlers={{ error: handleTileError }}
             />
             <MapCenter center={mapCenter as [number, number]} />
             {filteredOngs.length === 0 ? null : filteredOngs.map((ong) => (
