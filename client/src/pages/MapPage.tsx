@@ -154,18 +154,6 @@ export default function MapPage() {
               longitude = coordinates.lng;
             }
           } catch (err: any) {
-<<<<<<< HEAD
-=======
-            if (err.response) {
-              if (err.response.status === 429) {
-                setGeoError('Se ha excedido el límite de peticiones de LocationIQ. Intenta nuevamente en unos minutos.');
-              } else if (err.response.status === 401) {
-                setGeoError('API key de LocationIQ inválida. Verifica tu configuración.');
-              } else {
-                setGeoError('Error al geocodificar la ubicación.');
-              }
-            }
->>>>>>> 2a0de6739d661adddc360570de848f8b9dc334dc
             console.error('Error geocodificando ubicación:', user.ubicacion, err);
           }
         }
@@ -279,25 +267,11 @@ export default function MapPage() {
               mapContainerStyle={mapContainerStyle}
               center={center}
             zoom={6}
-<<<<<<< HEAD
               onLoad={onLoad}
               onUnmount={onUnmount}
               options={options}
             >
               {filteredOngs.map((ong) => (
-=======
-            className="h-full w-full"
-            style={{ height: '100%' }}
-          >
-            <TileLayer
-              url={`https://maps.locationiq.com/v3/{z}/{x}/{y}.png?key=${LOCATIONIQ_API_KEY}`}
-              // @ts-ignore
-              attribution="&copy; LocationIQ & OpenStreetMap contributors"
-              eventHandlers={{ error: handleTileError }}
-            />
-            <MapCenter center={mapCenter as [number, number]} />
-            {filteredOngs.length === 0 ? null : filteredOngs.map((ong) => (
->>>>>>> 2a0de6739d661adddc360570de848f8b9dc334dc
               ong.latitude !== undefined && ong.longitude !== undefined ? (
                 <Marker
                   key={ong.id}
