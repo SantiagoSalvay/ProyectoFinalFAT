@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import { Icon } from 'leaflet'
+import React, { useState, useEffect, useCallback } from 'react'
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api'
 import { api, User } from '../services/api'
-const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY;
+const GOOGLE_MAPS_API_KEY = 'AIzaSyC33z7pXbXF16KbIDIXX-ZhBOLRNWqVAoo'
 import { Heart, MapPin, Building, Users, Star, ExternalLink } from 'lucide-react'
-import 'leaflet/dist/leaflet.css'
 
 // Interfaz para ONG
 interface ONG {
@@ -24,22 +21,23 @@ interface ONG {
   website: string
 }
 
-// Fix para los iconos de Leaflet
-import L from 'leaflet'
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-(L.Icon.Default as any).mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+// Configuración del mapa
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+}
 
-// Componente para centrar el mapa
-function MapCenter({ center }: { center: [number, number] }) {
-  const map = useMap()
-  useEffect(() => {
-    map.setView(center, 6)
-  }, [center, map])
-  return null
+const center = {
+  lat: -34.6037,
+  lng: -58.3816
+}
+
+const options = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
 }
 
 export default function MapPage() {
@@ -51,8 +49,22 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true)
   const [needFilter, setNeedFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
-  // Centro del mapa (Argentina)
-  const mapCenter: [number, number] = [-34.6037, -58.3816]
+  const [map, setMap] = useState<google.maps.Map | null>(null)
+
+  // Cargar Google Maps API
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  })
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map)
+  }, [])
+
+  const onUnmount = useCallback(() => {
+    setMap(null)
+  }, [])
 
   // Colores por grupo social
   const groupColors: Record<string, string> = {
@@ -73,8 +85,38 @@ export default function MapPage() {
   })
 
   useEffect(() => {
+    if (isLoaded) {
     loadONGs()
-  }, [needFilter, groupFilter])
+    }
+  }, [needFilter, groupFilter, isLoaded])
+
+  // Función para geocodificar usando Google Maps API
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    if (!isLoaded) return null;
+    
+    const geocoder = new google.maps.Geocoder();
+    
+    return new Promise((resolve) => {
+      geocoder.geocode(
+        { 
+          address: `${address}, Argentina`,
+          region: 'AR'
+        },
+        (results, status) => {
+          if (status === 'OK' && results && results[0]) {
+            const location = results[0].geometry.location;
+            resolve({
+              lat: location.lat(),
+              lng: location.lng()
+            });
+          } else {
+            console.error('Error geocodificando:', address, status);
+            resolve(null);
+          }
+        }
+      );
+    });
+  };
 
   const loadONGs = async () => {
   console.log('Cargando ONGs...')
@@ -91,25 +133,25 @@ export default function MapPage() {
         'Familias',
         'Otros'
       ];
-      // Geocodificar cada ubicación
+      
+      // Geocodificar cada ubicación usando Google Maps
       const geocodePromises = users.map(async (user) => {
   console.log('Geocodificando:', user.ubicacion)
         let latitude: number | undefined = undefined;
         let longitude: number | undefined = undefined;
+        
         if (user.ubicacion) {
           try {
-            const res = await axios.get(`https://us1.locationiq.com/v1/search?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(user.ubicacion)}&format=json&countrycodes=ar&limit=1`);
-            if (res.data && res.data.length > 0) {
-              latitude = parseFloat(res.data[0].lat);
-              longitude = parseFloat(res.data[0].lon);
+            const coordinates = await geocodeAddress(user.ubicacion);
+            if (coordinates) {
+              latitude = coordinates.lat;
+              longitude = coordinates.lng;
             }
           } catch (err: any) {
-            if (err.response && err.response.status === 429) {
-              setGeoError('Se ha excedido el límite de peticiones de geocodificación. Intenta nuevamente en unos minutos.');
-            }
             console.error('Error geocodificando ubicación:', user.ubicacion, err);
           }
         }
+        
         // Asignar grupo social aleatorio
         const group = grupos[Math.floor(Math.random() * grupos.length)];
         return {
@@ -128,6 +170,7 @@ export default function MapPage() {
           website: `https://${user.usuario}.org`
         }
       });
+      
       const ongsWithLocation = await Promise.all(geocodePromises);
   console.log('ONGs con coordenadas:', ongsWithLocation)
       setOngs(ongsWithLocation)
@@ -206,30 +249,41 @@ export default function MapPage() {
       <div className="flex h-[calc(100vh-120px)]">
         {/* Mapa */}
         <div className="flex-1">
-          <MapContainer
-            center={mapCenter as [number, number]}
+          {!isLoaded ? (
+            <div className="h-full w-full flex items-center justify-center bg-gray-100">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando mapa...</p>
+              </div>
+            </div>
+          ) : (
+            <GoogleMap
+              mapContainerStyle={mapContainerStyle}
+              center={center}
             zoom={6}
-            className="h-full w-full"
-            style={{ height: '100%' }}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              // @ts-ignore
-              attribution="&copy; OpenStreetMap contributors"
-            />
-            <MapCenter center={mapCenter as [number, number]} />
-            {filteredOngs.length === 0 ? null : filteredOngs.map((ong) => (
+              onLoad={onLoad}
+              onUnmount={onUnmount}
+              options={options}
+            >
+              {filteredOngs.map((ong) => (
               ong.latitude !== undefined && ong.longitude !== undefined ? (
                 <Marker
                   key={ong.id}
-                  position={[ong.latitude, ong.longitude] as [number, number]}
-                  // @ts-ignore
-                  icon={getMarkerIcon(ong.group)}
-                  eventHandlers={{
-                    click: () => setSelectedONG(ong),
-                  }}
-                >
-                  <Popup>
+                    position={{ lat: ong.latitude, lng: ong.longitude }}
+                    onClick={() => setSelectedONG(ong)}
+                    icon={{
+                      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="16" cy="16" r="12" fill="${groupColors[ong.group] || '#f44336'}" stroke="white" stroke-width="2"/>
+                          <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">${ong.group.charAt(0)}</text>
+                        </svg>
+                      `)}`,
+                      scaledSize: new google.maps.Size(32, 32),
+                      anchor: new google.maps.Point(16, 16)
+                    }}
+                  >
+                    {selectedONG?.id === ong.id && (
+                      <InfoWindow onCloseClick={() => setSelectedONG(null)}>
                     <div className="p-2">
                       <h3 className="font-semibold text-gray-900">{ong.name}</h3>
                       <p className="text-sm text-gray-600 mt-1">{ong.location}</p>
@@ -238,11 +292,13 @@ export default function MapPage() {
                         <span className="text-sm ml-1">{ong.rating.toFixed(1)}</span>
                       </div>
                     </div>
-                  </Popup>
+                      </InfoWindow>
+                    )}
                 </Marker>
               ) : null
             ))}
-          </MapContainer>
+            </GoogleMap>
+          )}
         </div>
 
         {/* Panel lateral */}

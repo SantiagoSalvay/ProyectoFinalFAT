@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import React, { useState } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -28,7 +29,7 @@ export default function RegisterPage() {
   // Función para obtener dirección inversa desde coordenadas
   const fetchReverseGeocode = async (lat: number, lon: number) => {
     try {
-      const res = await fetch(`https://us1.locationiq.com/v1/reverse?key=${LOCATIONIQ_API_KEY}&lat=${lat}&lon=${lon}&format=json`);
+      const res = await fetch(`https://api.locationiq.com/v1/reverse?key=${LOCATIONIQ_API_KEY}&lat=${lat}&lon=${lon}&format=json`);
       const data = await res.json();
       if (data && data.address) {
         const road = data.address.road || '';
@@ -64,17 +65,17 @@ export default function RegisterPage() {
   const [locationInput, setLocationInput] = useState('')
 
   // Usar la variable de entorno VITE_LOCATIONIQ_API_KEY
-  const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY
+  const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY || 'pk.1234567890abcdef'
 
   // Debounce para evitar rate limit
   React.useEffect(() => {
     const handler = setTimeout(() => {
       if (!locationInput || locationInput.length < 3) {
-        setLocationSuggestions([])
-        return
+        setLocationSuggestions([]);
+        return;
       }
       setLocationLoading(true)
-  fetch(`https://us1.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(locationInput)}&limit=8&countrycodes=ar`)
+  fetch(`https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(locationInput)}&limit=8&countrycodes=ar`)
         .then(async res => {
           if (!res.ok) {
             console.error('Error en la respuesta de LocationIQ:', res.status, await res.text())
