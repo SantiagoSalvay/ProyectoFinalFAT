@@ -62,13 +62,13 @@ export default function MapPage() {
 
   // Colores por grupo social
   const groupColors: Record<string, string> = {
-    'niños': '#2196f3', // celeste/azul
-    'ancianos': '#8bc34a', // verde claro
-    'mujeres': '#e040fb', // rosa/morado
-    'animales': '#ff9800', // naranja
-    'personas con discapacidad': '#9c27b0', // violeta
-    'familias': '#009688', // turquesa
-    'otros': '#f44336', // rojo
+    'Niños': '#2196f3', // celeste/azul
+    'Gente mayor': '#8bc34a', // verde claro
+    'Mujeres': '#e040fb', // rosa/morado
+    'Animales': '#ff9800', // naranja
+    'Personas con discapacidad': '#e6f208ff', // amarillo
+    'Familias': '#009688', // turquesa
+    'Otros': '#f44336', // rojo
   };
 
   // Filtrado de ONGs por necesidad y grupo social
@@ -89,13 +89,13 @@ export default function MapPage() {
     try {
       const users = await api.getONGs()
       const grupos = [
-        'niños',
-        'ancianos',
-        'mujeres',
-        'animales',
-        'personas con discapacidad',
-        'familias',
-        'otros'
+        'Niños',
+        'Gente mayor',
+        'Mujeres',
+        'Animales',
+        'Personas con discapacidad',
+        'Familias',
+        'Otros'
       ];
       // Geocodificar cada ubicación
       const geocodePromises = users.map(async (user) => {
@@ -193,13 +193,13 @@ export default function MapPage() {
             className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
           >
             <option value="">Todos</option>
-            <option value="niños">Niños</option>
-            <option value="ancianos">Ancianos</option>
-            <option value="mujeres">Mujeres</option>
-            <option value="animales">Animales</option>
-            <option value="personas con discapacidad">Personas con discapacidad</option>
-            <option value="familias">Familias</option>
-            <option value="otros">Otros</option>
+            <option value="Niños">Niños</option>
+            <option value="Gente mayor">Gente mayor</option>
+            <option value="Mujeres">Mujeres</option>
+            <option value="Animales">Animales</option>
+            <option value="Personas con discapacidad">Personas con discapacidad</option>
+            <option value="Familias">Familias</option>
+            <option value="Otros">Otros</option>
           </select>
         </div>
         {/* Leyenda por grupo social */}
