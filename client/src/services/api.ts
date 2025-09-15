@@ -12,10 +12,49 @@ export interface User {
   apellido?: string;
   ubicacion?: string;
   createdAt?: Date;
+  tipo_usuario?: number;
 }
 
 // Clase API
 class ApiService {
+  // Obtener datos de TipoONG por id de usuario
+  async getTipoONGById(id_usuario: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/profile/tipoong?id=${id_usuario}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.getToken() && { Authorization: `Bearer ${this.getToken()}` })
+        }
+      });
+      if (!response.ok) throw new Error('Error al obtener datos de TipoONG');
+      const data = await response.json();
+      return data.tipoONG;
+    } catch (error) {
+      console.error('Error al obtener datos de TipoONG por id:', error);
+      return null;
+    }
+  }
+  // Guardar datos de TipoONG para el usuario autenticado
+  async saveTipoONG(data: { grupo_social: string; necesidad: string }) {
+    try {
+      const response = await this.request<{ tipoONG: any }>(
+        '/auth/profile/tipoong',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        }
+      );
+      return response.tipoONG;
+    } catch (error) {
+      console.error('Error al guardar datos de TipoONG:', error);
+      throw error;
+    }
+  }
   // Obtener ONGs (usuarios tipo 2)
   async getONGs() {
     try {
@@ -28,6 +67,25 @@ class ApiService {
       throw error;
     }
   }
+
+    // Obtener datos de TipoONG para el usuario autenticado
+    async getTipoONG() {
+      try {
+        const response = await this.request<{ tipoONG: { ID_tipo: number; grupo_social: string | null; necesidad: string | null } | null }>(
+          '/auth/profile/tipoong',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${this.getToken()}`
+            }
+          }
+        );
+        return response.tipoONG;
+      } catch (error) {
+        console.error('Error al obtener datos de TipoONG:', error);
+        throw error;
+      }
+    }
   private token: string | null = null;
 
   setToken(token: string) {

@@ -140,12 +140,10 @@ export default function MapPage() {
         'Otros'
       ];
       
-      // Geocodificar cada ubicación usando Google Maps
+      // Geocodificar cada ubicación usando Google Maps y obtener grupo/necesidad reales
       const geocodePromises = users.map(async (user) => {
-  console.log('Geocodificando:', user.ubicacion)
         let latitude: number | undefined = undefined;
         let longitude: number | undefined = undefined;
-        
         if (user.ubicacion) {
           try {
             const coordinates = await geocodeAddress(user.ubicacion);
@@ -157,9 +155,14 @@ export default function MapPage() {
             console.error('Error geocodificando ubicación:', user.ubicacion, err);
           }
         }
-        
-        // Asignar grupo social aleatorio
-        const group = grupos[Math.floor(Math.random() * grupos.length)];
+        // Obtener grupo_social y necesidad desde la base de datos
+        let group = 'Otros';
+        let need = 'Otros';
+        try {
+          const tipoONG = await api.getTipoONGById(user.id_usuario);
+          if (tipoONG?.grupo_social) group = tipoONG.grupo_social;
+          if (tipoONG?.necesidad) need = tipoONG.necesidad;
+        } catch {}
         return {
           id: user.id_usuario,
           name: user.nombre || user.usuario,
@@ -167,6 +170,7 @@ export default function MapPage() {
           latitude,
           longitude,
           group,
+          need,
           rating: 3.5 + Math.random() * 1.5,
           volunteers_count: Math.floor(Math.random() * 100) + 10,
           projects_count: Math.floor(Math.random() * 20) + 1,
@@ -176,9 +180,7 @@ export default function MapPage() {
           website: `https://${user.usuario}.org`
         }
       });
-      
       const ongsWithLocation = await Promise.all(geocodePromises);
-  console.log('ONGs con coordenadas:', ongsWithLocation)
       setOngs(ongsWithLocation)
     } catch (error) {
       console.error('Error loading ONGs:', error)

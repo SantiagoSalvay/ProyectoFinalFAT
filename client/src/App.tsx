@@ -15,6 +15,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 
+import CompleteDataPage from './pages/CompleteDataPage'
+
 import MapPage from './pages/MapPage'
 import RankingPage from './pages/RankingPage'
 import ONGsPage from './pages/ONGsPage'
@@ -82,6 +84,11 @@ function App() {
                   <ProfilePage />
                 </ProtectedRoute>
               } />
+            <Route path="/complete-data" element={
+              <ProtectedRoute>
+                <CompleteDataPage />
+              </ProtectedRoute>
+            } />
             </Routes>
           </Layout>
           

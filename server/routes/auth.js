@@ -83,3 +83,46 @@ router.put('/profile', verifyToken, async (req, res) => {
 });
 
 export default router; 
+// Obtener datos de TipoONG para el usuario autenticado
+router.get('/profile/tipoong', verifyToken, async (req, res) => {
+  try {
+    const tipoONG = await prisma.tipoONG.findFirst({
+      where: { usuarioId: req.userId },
+      select: {
+        ID_tipo: true,
+        grupo_social: true,
+        necesidad: true
+      }
+    });
+    res.json({ tipoONG });
+  } catch (error) {
+    console.error('Error al obtener datos de TipoONG:', error);
+    res.status(500).json({ error: 'Error al obtener datos de TipoONG' });
+  }
+});
+
+// Guardar datos de TipoONG para el usuario autenticado
+router.post('/profile/tipoong', verifyToken, async (req, res) => {
+  const { grupo_social, necesidad } = req.body;
+  if (!grupo_social || !necesidad) {
+    return res.status(400).json({ error: 'Faltan campos requeridos.' });
+  }
+  try {
+    // Si ya existe, actualizar; si no, crear
+    let tipoONG = await prisma.tipoONG.findFirst({ where: { usuarioId: req.userId } });
+    if (tipoONG) {
+      tipoONG = await prisma.tipoONG.update({
+        where: { ID_tipo: tipoONG.ID_tipo },
+        data: { grupo_social, necesidad }
+      });
+    } else {
+      tipoONG = await prisma.tipoONG.create({
+        data: { grupo_social, necesidad, usuarioId: req.userId }
+      });
+    }
+    res.json({ tipoONG });
+  } catch (error) {
+    console.error('Error al guardar datos de TipoONG:', error);
+    res.status(500).json({ error: 'Error al guardar datos de TipoONG' });
+  }
+});

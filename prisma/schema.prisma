@@ -47,6 +47,7 @@ model Usuario {
   Ranking                   Ranking[]
   respuestas                RespuestaForo[]
   tipo                      TipoUsuario      @relation(fields: [tipo_usuario], references: [tipo_usuario])
+  tiposONG                  TipoONG[]
 }
 
 model Foro {
@@ -126,4 +127,13 @@ model Ranking {
   pedido          PedidoDonacion @relation(fields: [id_pedido], references: [id_pedido])
   tipoRanking     TipoRanking    @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
   Usuario         Usuario        @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+// Modelo para tipos de ONG, vinculado opcionalmente a Usuario (solo tipo 2)
+model TipoONG {
+  ID_tipo      Int      @id @default(autoincrement())
+  grupo_social String?
+  necesidad    String?
+  usuarioId    Int?
+  usuario      Usuario? @relation(fields: [usuarioId], references: [id_usuario])
 }

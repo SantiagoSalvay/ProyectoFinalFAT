@@ -1,14 +1,52 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Heart, Users, DollarSign, Calendar, TrendingUp, Award, MapPin, Building } from 'lucide-react'
 
+import React, { useEffect, useState } from 'react';
+import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+
 export default function DashboardPage() {
   const { user } = useAuth()
 
   // Considera ONG si tipo_usuario === 2 (igual que ProfilePage)
-  const isONG = user?.tipo_usuario === 2
+  const isONG = user?.id_usuario && user?.tipo_usuario === 2
+
+  const [tipoONG, setTipoONG] = useState<{ grupo_social: string | null; necesidad: string | null } | null>(null);
+  const [loadingTipoONG, setLoadingTipoONG] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchTipoONG = async () => {
+      if (isONG) {
+        try {
+          const data = await api.getTipoONG();
+          setTipoONG(data);
+        } catch (err) {
+          setTipoONG(null);
+        } finally {
+          setLoadingTipoONG(false);
+        }
+      }
+    };
+    fetchTipoONG();
+  }, [isONG]);
 
   return (
     <div className="min-h-screen bg-gray-50">
+        {/* Cartel amarillo para ONG sin grupo_social o necesidad */}
+        {isONG && !loadingTipoONG && (!tipoONG || !tipoONG.grupo_social || !tipoONG.necesidad) && (
+          <div className="fixed top-0 left-0 w-full flex justify-center z-50">
+            <div className="bg-yellow-300 bg-opacity-80 text-yellow-900 font-semibold rounded-b-xl shadow-lg px-6 py-4 flex items-center gap-4" style={{maxWidth: '480px'}}>
+              <span>Gracias por registrarte, completa algunos campos más y estaremos listos.</span>
+              <button
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors"
+                onClick={() => navigate('/completar-datos-ong')}
+              >
+                Completar datos
+              </button>
+            </div>
+          </div>
+        )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -177,30 +215,21 @@ export default function DashboardPage() {
                     {isONG ? <Building className="w-4 h-4 text-white" /> : <Users className="w-4 h-4 text-white" />}
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                    <p className="text-sm font-medium text-gray-900">{user?.nombre || user?.usuario}</p>
                     <p className="text-xs text-gray-500">
                       {isONG ? 'Organización' : 'Persona'}
                     </p>
                   </div>
                 </div>
-                {user?.location && (
+                {user?.ubicacion && (
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="w-4 h-4 mr-2" />
-                    {user.location}
+                    {user.ubicacion}
                   </div>
                 )}
                 {isONG && (
                   <>
-                    {user?.organization && (
-                      <div className="text-sm text-gray-600">
-                        <strong>Organización:</strong> {user.organization}
-                      </div>
-                    )}
-                    {user?.cuit && (
-                      <div className="text-sm text-gray-600">
-                        <strong>CUIT:</strong> {user.cuit}
-                      </div>
-                    )}
+                    {/* Si tienes campos extra para ONG, agrégalos aquí */}
                   </>
                 )}
               </div>
