@@ -30,7 +30,7 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-fg)' }}>
           <Layout>
             <Routes>
               <Route path="/" element={<HomePage />} />

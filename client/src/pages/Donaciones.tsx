@@ -1,4 +1,5 @@
 
+import React from 'react'
 import Header from '../components/Header';
 import { useState, useEffect } from 'react';
 import { api, User } from '../services/api';
@@ -38,12 +39,12 @@ export default function Donaciones() {
     setError('');
     setInitPoint('');
     if (donationType === 'dinero') {
-      const cleanedPrice = price.replace(',', '.').replace(/[^\\d.]/g, '');
+      const cleanedPrice = price.replace(',', '.').replace(/[^\d.]/g, '');
       const parsedPrice = Number(cleanedPrice);
       if (
         isNaN(parsedPrice) ||
         parsedPrice <= 0 ||
-        !/^\\d{1,}(\\.|,)?\\d{0,2}$/.test(price)
+        !/^\d{1,}(\.|,)?\d{0,2}$/.test(price)
       ) {
         setError('Ingrese un monto válido.');
         setLoading(false);
@@ -85,12 +86,12 @@ export default function Donaciones() {
   // Mostrar pantalla de error solo si el usuario intenta buscar en el mapa y no hay ONGs
   if (ongsError) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-white to-emerald-50">
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-bg)' }}>
         <Header />
         <main className="flex flex-col items-center justify-center py-16 px-4 flex-1">
-          <div className="max-w-xl w-full bg-white rounded-lg shadow-lg p-8 text-center">
-            <h1 className="text-3xl font-bold text-red-700 mb-4">Ha ocurrido un error</h1>
-            <p className="text-gray-700 mb-6">No se pudieron cargar las ONGs. Por favor, vuelva a intentarlo más tarde.</p>
+          <div className="max-w-xl w-full rounded-lg shadow-lg p-8 text-center" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+            <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--color-fg)' }}>Ha ocurrido un error</h1>
+            <p className="mb-6" style={{ color: 'var(--color-muted)' }}>No se pudieron cargar las ONGs. Por favor, vuelva a intentarlo más tarde.</p>
             <button className="btn-primary mt-4" onClick={() => {
               setOngsError(false);
             }}>Volver a donaciones</button>
@@ -100,11 +101,11 @@ export default function Donaciones() {
     );
   }
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-white to-emerald-50">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-bg)' }}>
       <Header />
       <main className="flex flex-col items-center justify-center py-16 px-4 flex-1">
-        <div className="max-w-xl w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <h1 className="text-3xl font-bold text-purple-700 mb-4">Donaciones</h1>
+        <div className="max-w-xl w-full rounded-lg shadow-lg p-8 text-center" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+          <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--color-fg)' }}>Donaciones</h1>
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
             <select
               className="input-field w-full"
@@ -146,7 +147,7 @@ export default function Donaciones() {
                   placeholder="Cantidad a donar"
                   required
                 />
-                <div className="text-left text-gray-500 mb-2">
+                <div className="text-left mb-2" style={{ color: 'var(--color-muted)' }}>
                   {price === '' ? '' : `Monto: $${price.replace('.', ',')}`}
                 </div>
                 <button
@@ -193,7 +194,7 @@ export default function Donaciones() {
               </>
             )}
           </form>
-          {error && <div className="text-red-500 mb-4">{error}</div>}
+          {error && <div className="mb-4" style={{ color: '#ef4444' }}>{error}</div>}
           {initPoint && (
             <a
               href={initPoint}
