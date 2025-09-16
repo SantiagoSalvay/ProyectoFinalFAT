@@ -11,12 +11,9 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuth()
   const { notifications, unreadCount, markAsRead, removeNotification } = useNotifications()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-<<<<<<< Updated upstream
-  const { theme, toggleTheme } = useTheme()
-=======
   const [showNotifications, setShowNotifications] = useState(false)
   const bellRef = useRef<HTMLButtonElement>(null)
->>>>>>> Stashed changes
+  const { theme, toggleTheme } = useTheme()
 
   // Navegación para usuarios NO registrados
   const unauthenticatedNavigation = [
@@ -79,26 +76,17 @@ export default function Header() {
               className="p-2 rounded-full border transition-colors"
               aria-label="Cambiar tema"
               title="Cambiar tema"
-              style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-fg)', borderColor: 'var(--color-border)' }}
-            >
+              style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-fg)', borderColor: 'var(--color-border)' }}>
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
             {isAuthenticated ? (
               <>
                 {/* Notifications */}
-<<<<<<< Updated upstream
-                <Link
-                  to="/notifications"
-                  className="relative p-2 transition-colors"
-                  style={{ color: 'var(--color-fg)' }}
-=======
                 <button
                   ref={bellRef}
                   className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors"
-                  onClick={() => setShowNotifications(v => !v)}
->>>>>>> Stashed changes
-                >
+                  onClick={() => setShowNotifications(v => !v)}>
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">

@@ -44,6 +44,10 @@ export default function DashboardPage() {
       isONG &&
       user != null &&
       !loadingTipoONG &&
+      tipoONG &&
+      (
+        !tipoONG.grupo_social || !tipoONG.necesidad
+      ) &&
       !notifications.some(n => n.type === 'warning' && n.title === 'Completa tus datos de ONG')
     ) {
       addNotification({
@@ -53,7 +57,7 @@ export default function DashboardPage() {
         link: '/complete-data'
       });
     }
-  }, [isONG, user, loadingTipoONG, notifications, addNotification]);
+  }, [isONG, user, loadingTipoONG, tipoONG, notifications, addNotification]);
 
   return (
     <div className="min-h-screen bg-gray-50">
