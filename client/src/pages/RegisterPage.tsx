@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { User, Building, Eye, EyeOff, ArrowLeft, MapPin } from 'lucide-react'
 import { UserRole } from '../contexts/AuthContext'
 import ClickableMapModal from '../components/ClickableMapModal'
+import SocialLoginButtons from '../components/SocialLoginButtons'
 
 interface RegisterFormData {
   email: string
@@ -173,23 +174,23 @@ export default function RegisterPage() {
   // Si se mostró el mensaje de verificación, renderizar esa pantalla
   if (showVerificationMessage) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl border border-gray-200 text-center">
+          <div className="rounded-2xl p-8 shadow-2xl border text-center" style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
             <div className="mb-6">
               <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">¡Revisa tu correo!</h2>
-              <p className="text-gray-600 text-sm">
-                Te hemos enviado un correo de verificación a <strong className="text-purple-600">{userEmail}</strong>
+              <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-fg)' }}>¡Revisa tu correo!</h2>
+              <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+                Te hemos enviado un correo de verificación a <strong className="text-purple-400">{userEmail}</strong>
               </p>
             </div>
             
-            <div className="bg-gradient-to-r from-purple-50 to-emerald-50 rounded-lg p-6 mb-6">
-              <p className="text-gray-700 text-sm leading-relaxed">
+            <div className="rounded-lg p-6 mb-6" style={{ background: 'color-mix(in oklab, var(--accent) 6%, transparent)' }}>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--color-fg)' }}>
                 Haz clic en el enlace del correo para verificar tu cuenta y completar el registro. 
                 Una vez verificado, podrás iniciar sesión automáticamente.
               </p>
@@ -198,13 +199,14 @@ export default function RegisterPage() {
             <div className="space-y-3">
               <button
                 onClick={() => setShowVerificationMessage(false)}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-lg"
+                className="w-full btn-primary"
               >
                 Intentar de nuevo
               </button>
               <Link 
                 to="/login"
-                className="block w-full border-2 border-purple-600 text-purple-600 py-3 rounded-lg font-semibold hover:bg-purple-600 hover:text-white transition-colors text-center"
+                className="block w-full text-center border-2 py-3 rounded-lg font-semibold transition-colors"
+                style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
               >
                 Ir a iniciar sesión
               </Link>
@@ -216,18 +218,18 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-4">
+          <Link to="/" className="inline-flex items-center mb-4" style={{ color: 'var(--link)' }}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver al inicio
           </Link>
           
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-fg)' }}>
             Únete a Demos+
           </h2>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--color-muted)' }}>
             Crea tu cuenta y comienza a hacer la diferencia
           </p>
         </div>
@@ -235,7 +237,7 @@ export default function RegisterPage() {
         <div className="card p-8">
           {/* Role Selection */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-fg)' }}>
               ¿Cómo quieres participar?
             </label>
             <div className="grid grid-cols-2 gap-4">
@@ -244,13 +246,17 @@ export default function RegisterPage() {
                 onClick={() => setSelectedRole('person')}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedRole === 'person'
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-purple-500'
+                    : 'border'
                 }`}
+                style={selectedRole === 'person' 
+                  ? { background: 'color-mix(in oklab, #7c3aed 12%, transparent)', color: 'var(--color-fg)', borderColor: '#7c3aed' }
+                  : { background: 'var(--color-card)', color: 'var(--color-fg)', borderColor: 'var(--color-border)' }
+                }
               >
                 <User className="w-6 h-6 mx-auto mb-2" />
                 <div className="font-medium">Persona</div>
-                <div className="text-xs text-gray-500">Donar o hacer voluntariado</div>
+                <div className="text-xs" style={{ color: 'var(--color-muted)' }}>Donar o hacer voluntariado</div>
               </button>
               
               <button
@@ -258,13 +264,17 @@ export default function RegisterPage() {
                 onClick={() => setSelectedRole('ong')}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedRole === 'ong'
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-emerald-500'
+                    : 'border'
                 }`}
+                style={selectedRole === 'ong' 
+                  ? { background: 'color-mix(in oklab, #10b981 14%, transparent)', color: 'var(--color-fg)', borderColor: '#10b981' }
+                  : { background: 'var(--color-card)', color: 'var(--color-fg)', borderColor: 'var(--color-border)' }
+                }
               >
                 <Building className="w-6 h-6 mx-auto mb-2" />
                 <div className="font-medium">ONG</div>
-                <div className="text-xs text-gray-500">Organización sin fines de lucro</div>
+                <div className="text-xs" style={{ color: 'var(--color-muted)' }}>Organización sin fines de lucro</div>
               </button>
             </div>
           </div>
@@ -275,7 +285,7 @@ export default function RegisterPage() {
               <>
                 {/* First Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                     Nombre
                   </label>
                   <input
@@ -285,13 +295,13 @@ export default function RegisterPage() {
                     placeholder="Tu nombre"
                   />
                   {errors.firstName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                    <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.firstName.message}</p>
                   )}
                 </div>
 
                 {/* Last Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                     Apellido
                   </label>
                   <input
@@ -301,14 +311,14 @@ export default function RegisterPage() {
                     placeholder="Tu apellido"
                   />
                   {errors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+                    <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.lastName.message}</p>
                   )}
                 </div>
               </>
             ) : (
               /* Organization Name - Only for ONG */
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                   Nombre de la organización
                 </label>
                 <input
@@ -318,7 +328,7 @@ export default function RegisterPage() {
                   placeholder="Nombre de la ONG"
                 />
                 {errors.firstName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                  <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.firstName.message}</p>
                 )}
               </div>
             )}
@@ -326,7 +336,7 @@ export default function RegisterPage() {
             {/* Organization (only for ONG) */}
             {selectedRole === 'ong' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                   Nombre legal de la organización
                 </label>
                 <input
@@ -340,7 +350,7 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                 Correo electrónico
               </label>
               <input
@@ -356,13 +366,13 @@ export default function RegisterPage() {
                 placeholder="tu@email.com"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.email.message}</p>
               )}
             </div>
 
             {/* Location */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                 Ubicación
               </label>
               <div className="flex gap-2">
@@ -379,11 +389,12 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  className="p-2 rounded bg-purple-100 hover:bg-purple-200 border border-purple-300 flex items-center justify-center"
+                  className="p-2 rounded border flex items-center justify-center"
                   title="Seleccionar ubicación en el mapa"
                   onClick={() => setShowLocationModal(true)}
+                  style={{ background: 'color-mix(in oklab, var(--accent) 8%, transparent)', borderColor: 'var(--accent)' }}
                 >
-                  <MapPin className="w-5 h-5 text-purple-700" />
+                  <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                 </button>
               </div>
               
@@ -432,7 +443,7 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                 Contraseña
               </label>
               <div className="relative">
@@ -454,20 +465,20 @@ export default function RegisterPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
+                    <EyeOff className="h-5 w-5" style={{ color: 'var(--color-muted)' }} />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
+                    <Eye className="h-5 w-5" style={{ color: 'var(--color-muted)' }} />
                   )}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.password.message}</p>
               )}
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                 Confirmar contraseña
               </label>
               <div className="relative">
@@ -486,14 +497,14 @@ export default function RegisterPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
+                    <EyeOff className="h-5 w-5" style={{ color: 'var(--color-muted)' }} />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
+                    <Eye className="h-5 w-5" style={{ color: 'var(--color-muted)' }} />
                   )}
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.confirmPassword.message}</p>
               )}
             </div>
 
@@ -508,13 +519,16 @@ export default function RegisterPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
               ¿Ya tienes una cuenta?{' '}
-              <Link to="/login" className="font-medium text-purple-600 hover:text-purple-700">
+              <Link to="/login" className="font-medium" style={{ color: 'var(--link)' }}>
                 Inicia sesión
               </Link>
             </p>
           </div>
+
+          {/* Social Login Buttons */}
+          <SocialLoginButtons mode="register" />
         </div>
       </div>
     </div>

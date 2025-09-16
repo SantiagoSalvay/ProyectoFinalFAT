@@ -1,3 +1,4 @@
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, Users, ArrowRight } from 'lucide-react'
 
@@ -5,7 +6,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-emerald-50">
+      <section className="relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-20 left-10 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
@@ -16,25 +17,25 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <div className="mb-8">
-              <div className="inline-flex items-center px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium mb-6">
+              <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-6" style={{ backgroundColor: 'color-mix(in oklab, var(--accent) 16%, transparent)', color: 'var(--color-fg)', border: '1px solid var(--color-border)' }}>
                 <Heart className="w-4 h-4 mr-2" />
                 Conectando corazones, transformando vidas
               </div>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight" style={{ color: 'var(--color-fg)' }}>
               <span className="bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
                 Demos+
               </span>
               <br />
-              <span className="text-gray-700">Plataforma de</span>
+              <span style={{ color: 'var(--color-muted)' }}>Plataforma de</span>
               <br />
               <span className="bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent">
                 Solidaridad
               </span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed" style={{ color: 'var(--color-muted)' }}>
               Únete a nuestra comunidad donde las personas y organizaciones trabajan juntas 
               para crear un impacto positivo en el mundo. Donar, hacer voluntariado y 
               conectar con causas que importan.
@@ -60,13 +61,13 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20" style={{ backgroundColor: 'var(--color-card)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold mb-4" style={{ color: 'var(--color-fg)' }}>
               ¿Por qué elegir Demos+?
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl max-w-2xl mx-auto" style={{ color: 'var(--color-muted)' }}>
               Nuestra plataforma está diseñada para facilitar la conexión entre 
               personas que quieren ayudar y organizaciones que necesitan apoyo.
             </p>
@@ -78,10 +79,10 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <Heart className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-fg)' }}>
                 Donaciones Transparentes
               </h3>
-              <p className="text-gray-600">
+              <p style={{ color: 'var(--color-muted)' }}>
                 Conecta directamente con organizaciones verificadas y sigue el impacto 
                 de tus donaciones en tiempo real.
               </p>
@@ -92,10 +93,10 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-fg)' }}>
                 Voluntariado Activo
               </h3>
-              <p className="text-gray-600">
+              <p style={{ color: 'var(--color-muted)' }}>
                 Encuentra oportunidades de voluntariado que se adapten a tus habilidades 
                 y horarios disponibles.
               </p>
@@ -106,10 +107,10 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <Heart className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-fg)' }}>
                 Comunidad Solidaria
               </h3>
-              <p className="text-gray-600">
+              <p style={{ color: 'var(--color-muted)' }}>
                 Únete a una comunidad de personas comprometidas con el cambio social 
                 y comparte experiencias.
               </p>
@@ -152,12 +153,12 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-4xl font-bold mb-6" style={{ color: 'var(--color-fg)' }}>
             ¿Listo para hacer la diferencia?
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl mb-8" style={{ color: 'var(--color-muted)' }}>
             Únete a miles de personas que ya están creando un impacto positivo 
             en sus comunidades y en el mundo.
           </p>

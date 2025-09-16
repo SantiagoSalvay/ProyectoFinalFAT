@@ -1,8 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import session from 'express-session';
 import authRoutes from './routes/auth.js';
+import oauthRoutes from './routes/oauth.js';
 import mercadopagoRoutes from '../routes/mercadopago.js';
+import passport from './config/passport.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -21,8 +24,21 @@ app.use(cors({
 // Middleware para parsear JSON
 app.use(express.json());
 
+// Configurar sesiones para Passport
+app.use(session({
+  secret: process.env.JWT_SECRET || 'fallback-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Cambiar a true en producción con HTTPS
+}));
+
+// Inicializar Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Rutas
 app.use('/auth', authRoutes);
+app.use('/api/auth', oauthRoutes);
 app.use('/mercadopago', mercadopagoRoutes);
 
 // Ruta de prueba

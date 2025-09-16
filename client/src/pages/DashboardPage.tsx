@@ -2,6 +2,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { Heart, Users, DollarSign, Calendar, TrendingUp, Award, MapPin, Building } from 'lucide-react'
 
 import React, { useEffect, useState } from 'react';
+import { useNotifications } from '../contexts/NotificationContext';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,10 +15,12 @@ export default function DashboardPage() {
   const [tipoONG, setTipoONG] = useState<{ grupo_social: string | null; necesidad: string | null } | null>(null);
   const [loadingTipoONG, setLoadingTipoONG] = useState(true);
   const navigate = useNavigate();
+  const { addNotification, notifications, removeNotification } = useNotifications();
 
   useEffect(() => {
     const fetchTipoONG = async () => {
-      if (isONG) {
+      const token = api.getToken();
+      if (isONG && token) {
         try {
           const data = await api.getTipoONG();
           setTipoONG(data);
@@ -26,27 +29,34 @@ export default function DashboardPage() {
         } finally {
           setLoadingTipoONG(false);
         }
+      } else {
+        setTipoONG(null);
+        setLoadingTipoONG(false);
       }
     };
     fetchTipoONG();
   }, [isONG]);
 
+  // Mostrar la notificación solo cuando tipoONG esté listo
+  useEffect(() => {
+    console.log('DEBUG tipoONG:', tipoONG, 'isONG:', isONG, 'isAuthenticated:', user != null, 'loadingTipoONG:', loadingTipoONG, 'notifications:', notifications);
+    if (
+      isONG &&
+      user != null &&
+      !loadingTipoONG &&
+      !notifications.some(n => n.type === 'warning' && n.title === 'Completa tus datos de ONG')
+    ) {
+      addNotification({
+        type: 'warning',
+        title: 'Completa tus datos de ONG',
+        message: 'Tienes datos faltantes en tu perfil de ONG. Haz clic en "Acceder" para completar tu grupo social y necesidad.',
+        link: '/complete-data'
+      });
+    }
+  }, [isONG, user, loadingTipoONG, notifications, addNotification]);
+
   return (
     <div className="min-h-screen bg-gray-50">
-        {/* Cartel amarillo para ONG sin grupo_social o necesidad */}
-        {isONG && !loadingTipoONG && (!tipoONG || !tipoONG.grupo_social || !tipoONG.necesidad) && (
-          <div className="fixed top-0 left-0 w-full flex justify-center z-50">
-            <div className="bg-yellow-300 bg-opacity-80 text-yellow-900 font-semibold rounded-b-xl shadow-lg px-6 py-4 flex items-center gap-4" style={{maxWidth: '480px'}}>
-              <span>Gracias por registrarte, completa algunos campos más y estaremos listos.</span>
-              <button
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors"
-                onClick={() => navigate('/completar-datos-ong')}
-              >
-                Completar datos
-              </button>
-            </div>
-          </div>
-        )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
