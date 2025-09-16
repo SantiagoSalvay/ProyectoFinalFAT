@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-hot-toast'
@@ -33,10 +33,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-4">
+          <Link to="/" className="inline-flex items-center mb-4" style={{ color: 'var(--link)' }}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver al inicio
           </Link>
@@ -47,10 +47,10 @@ export default function LoginPage() {
             </div>
           </div>
           
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-fg)' }}>
             Bienvenido de vuelta
           </h2>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--color-muted)' }}>
             Inicia sesión en tu cuenta de Demos+
           </p>
         </div>
@@ -59,7 +59,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                 Correo electrónico
               </label>
               <input
@@ -75,13 +75,13 @@ export default function LoginPage() {
                 placeholder="tu@email.com"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.email.message}</p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
                 Contraseña
               </label>
               <div className="relative">
@@ -97,14 +97,14 @@ export default function LoginPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
+                    <EyeOff className="h-5 w-5" style={{ color: 'var(--color-muted)' }} />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
+                    <Eye className="h-5 w-5" style={{ color: 'var(--color-muted)' }} />
                   )}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm" style={{ color: '#ef4444' }}>{errors.password.message}</p>
               )}
             </div>
 
@@ -112,7 +112,8 @@ export default function LoginPage() {
             <div className="flex items-center justify-end">
               <Link
                 to="/forgot-password"
-                className="text-sm font-medium text-purple-600 hover:text-purple-700"
+                className="text-sm font-medium"
+                style={{ color: 'var(--link)' }}
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -129,9 +130,9 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
               ¿No tienes una cuenta?{' '}
-              <Link to="/register" className="font-medium text-purple-600 hover:text-purple-700">
+              <Link to="/register" className="font-medium" style={{ color: 'var(--link)' }}>
                 Regístrate aquí
               </Link>
             </p>
