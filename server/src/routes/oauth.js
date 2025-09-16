@@ -11,6 +11,11 @@ router.get('/google', passport.authenticate('google', {
   scope: ['profile', 'email']
 }));
 
+// Ruta para iniciar autenticación con Twitter (solo si está configurado)
+if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
+  router.get('/twitter', passport.authenticate('twitter'));
+}
+
 // Callback de Google OAuth
 router.get('/google/callback', 
   passport.authenticate('google', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
@@ -39,6 +44,34 @@ router.get('/google/callback',
     }
   }
 );
+
+// Callback de Twitter OAuth (solo si está configurado)
+if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
+  router.get('/twitter/callback',
+    passport.authenticate('twitter', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+    (req, res) => {
+      try {
+        const user = req.user;
+        if (!user) {
+          return res.redirect('http://localhost:3000/login?error=user_not_found');
+        }
+
+        // Generar JWT
+        const token = jwt.sign(
+          { userId: user.id_usuario, email: user.correo, provider: user.auth_provider },
+          process.env.JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        // Redirigir al frontend con el token
+        res.redirect(`http://localhost:3000/auth/callback?token=${token}&provider=${user.auth_provider}`);
+      } catch (error) {
+        console.error('❌ Error al generar token JWT después de Twitter OAuth:', error);
+        res.redirect('http://localhost:3000/login?error=token_generation_failed');
+      }
+    }
+  );
+}
 
 // Ruta para obtener información del usuario autenticado
 router.get('/me', async (req, res) => {

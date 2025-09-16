@@ -17,8 +17,21 @@ export default function SocialLoginButtons({ mode }: SocialLoginButtonsProps) {
   }
 
   const handleTwitterLogin = () => {
-    toast.info('Inicio de sesión con Twitter próximamente disponible')
-    // TODO: Implementar autenticación con Twitter
+    // Verificar si Twitter está configurado
+    fetch('http://localhost:3001/api/auth/twitter')
+      .then(response => {
+        if (response.ok) {
+          // Twitter está configurado, redirigir
+          window.location.href = 'http://localhost:3001/api/auth/twitter'
+        } else {
+          // Twitter no está configurado
+          toast.info('Twitter OAuth no está configurado aún. Próximamente disponible.')
+        }
+      })
+      .catch(() => {
+        // Error o Twitter no configurado
+        toast.info('Twitter OAuth no está configurado aún. Próximamente disponible.')
+      })
   }
 
   return (
