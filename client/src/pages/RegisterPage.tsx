@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { User, Building, Eye, EyeOff, ArrowLeft, MapPin } from 'lucide-react'
 import { UserRole } from '../contexts/AuthContext'
 import ClickableMapModal from '../components/ClickableMapModal'
+import SocialLoginButtons from '../components/SocialLoginButtons'
 
 interface RegisterFormData {
   email: string
@@ -479,6 +480,9 @@ export default function RegisterPage() {
               </Link>
             </p>
           </div>
+
+          {/* Social Login Buttons */}
+          <SocialLoginButtons mode="register" />
         </div>
       </div>
     </div>

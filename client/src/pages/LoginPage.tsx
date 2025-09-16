@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { Eye, EyeOff, ArrowLeft, Heart } from 'lucide-react'
+import SocialLoginButtons from '../components/SocialLoginButtons'
 
 interface LoginFormData {
   email: string
@@ -135,6 +136,9 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
+
+          {/* Social Login Buttons */}
+          <SocialLoginButtons mode="login" />
         </div>
       </div>
     </div>

@@ -16,6 +16,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 
 import CompleteDataPage from './pages/CompleteDataPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 
 import MapPage from './pages/MapPage'
 import RankingPage from './pages/RankingPage'
@@ -38,6 +39,7 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
               <Route path="/verificar/:token" element={<VerifyEmailPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
               
               {/* Rutas solo para usuarios NO registrados */}
               <Route path="/mission" element={

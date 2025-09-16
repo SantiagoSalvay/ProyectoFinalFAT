@@ -13,6 +13,7 @@ interface AuthContextType {
   logout: () => void
   updateProfile: (profileData: UpdateProfileData) => Promise<void>
   setUserFromVerification: (user: User, token: string) => void
+  setUser: (user: User | null) => void
 }
 
 interface RegisterData {
@@ -143,7 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     updateProfile,
-    setUserFromVerification
+    setUserFromVerification,
+    setUser
   }
 
   return (
