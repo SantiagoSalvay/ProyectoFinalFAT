@@ -1,5 +1,6 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
@@ -68,6 +69,80 @@ passport.use(new GoogleStrategy({
     return done(error, null);
   }
 }));
+
+// Configurar estrategia de Twitter (solo si las credenciales están disponibles)
+if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
+  passport.use(new TwitterStrategy({
+    consumerKey: process.env.TWITTER_CONSUMER_KEY,
+    consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
+    callbackURL: 'http://localhost:3001/api/auth/twitter/callback'
+  },
+  async (token, tokenSecret, profile, done) => {
+    try {
+      console.log('🔍 Twitter OAuth Profile:', profile);
+
+      const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+      if (!email) {
+        return done(new Error('No email found in Twitter profile'), null);
+      }
+
+      let user = await prisma.usuario.findUnique({
+        where: { twitter_id: profile.id }
+      });
+
+      if (!user) {
+        user = await prisma.usuario.findUnique({
+          where: { correo: email }
+        });
+
+        if (user) {
+          // Link existing account
+          user = await prisma.usuario.update({
+            where: { id_usuario: user.id_usuario },
+            data: {
+              twitter_id: profile.id,
+              auth_provider: 'twitter',
+              profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
+              email_verified: true // OAuth users are considered verified
+            }
+          });
+          console.log('🔗 Cuenta existente vinculada:', user.correo);
+        } else {
+          // Create new user
+          const firstName = profile.displayName ? profile.displayName.split(' ')[0] : 'Usuario';
+          const lastName = profile.displayName ? profile.displayName.split(' ').slice(1).join(' ') : 'Twitter';
+          const username = profile.username || email.split('@')[0];
+
+          user = await prisma.usuario.create({
+            data: {
+              twitter_id: profile.id,
+              nombre: firstName,
+              apellido: lastName,
+              correo: email,
+              usuario: username,
+              contrasena: null, // No password for OAuth users
+              tipo_usuario: 1, // Default to 'person'
+              ubicacion: null, // User must complete this later
+              auth_provider: 'twitter',
+              profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
+              email_verified: true
+            }
+          });
+          console.log('🆕 Nuevo usuario creado:', user.correo);
+        }
+      } else {
+        console.log('🎉 Twitter OAuth exitoso para usuario:', user.correo);
+      }
+      done(null, user);
+    } catch (error) {
+      console.error('❌ Error en Twitter OAuth:', error);
+      done(error, null);
+    }
+  }));
+  console.log('✅ Twitter OAuth configurado correctamente');
+} else {
+  console.log('⚠️ Twitter OAuth no configurado - faltan credenciales en .env');
+}
 
 // Serializar usuario para la sesión
 passport.serializeUser((user, done) => {

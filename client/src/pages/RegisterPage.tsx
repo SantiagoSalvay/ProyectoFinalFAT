@@ -44,6 +44,7 @@ export default function RegisterPage() {
   // Usar la variable de entorno VITE_LOCATIONIQ_API_KEY
   const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY
 
+
   // Debounce para evitar rate limit
   React.useEffect(() => {
     const handler = setTimeout(() => {
@@ -60,7 +61,7 @@ export default function RegisterPage() {
       }
       
       setLocationLoading(true)
-  fetch(`https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(locationInput)}&limit=8&countrycodes=ar`)
+  fetch(`https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(locationInput)}&limit=8&countrycodes=ar&dedupe=1`)
         .then(async res => {
           if (!res.ok) {
             console.error('Error en la respuesta de LocationIQ:', res.status, await res.text())
@@ -396,6 +397,41 @@ export default function RegisterPage() {
                   <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                 </button>
               </div>
+              
+              {/* Sugerencias de autocompletado - Máximo 3 con scroll */}
+              {locationSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  <div className="max-h-36 overflow-y-auto">
+                    {locationSuggestions.slice(0, 3).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors"
+                        onClick={() => {
+                          setLocationInput(suggestion);
+                          setValue('location', suggestion);
+                          setLocationSuggestions([]);
+                        }}
+                      >
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-sm text-gray-700">{suggestion}</span>
+                        </div>
+                      </button>
+                    ))}
+                    {/* Indicador si hay más sugerencias */}
+                    {locationSuggestions.length > 3 && (
+                      <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-t border-gray-200">
+                        +{locationSuggestions.length - 3} sugerencias más disponibles
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               {/* Modal del mapa para seleccionar ubicación */}
               <ClickableMapModal
                 isOpen={showLocationModal}

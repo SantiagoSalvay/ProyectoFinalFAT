@@ -200,3 +200,4 @@ function ProfilePage() {
 - ✅ Diseño consistente con el tema de la aplicación
 - ✅ Accesibilidad y UX optimizada
 
+
