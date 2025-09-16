@@ -16,6 +16,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   router.get('/twitter', passport.authenticate('twitter'));
 }
 
+
 // Callback de Google OAuth
 router.get('/google/callback', 
   passport.authenticate('google', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
@@ -72,6 +73,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
     }
   );
 }
+
 
 // Ruta para obtener información del usuario autenticado
 router.get('/me', async (req, res) => {

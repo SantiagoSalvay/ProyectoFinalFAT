@@ -144,6 +144,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   console.log('⚠️ Twitter OAuth no configurado - faltan credenciales en .env');
 }
 
+
 // Serializar usuario para la sesión
 passport.serializeUser((user, done) => {
   done(null, user.id_usuario);
