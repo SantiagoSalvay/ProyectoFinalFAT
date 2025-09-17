@@ -409,9 +409,22 @@ router.post('/request-password-reset', async (req, res) => {
       return res.json({ message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
     }
 
+    // Limpiar tokens anteriores para este usuario
+    console.log('🧹 [RESET REQUEST] Limpiando tokens anteriores para:', correo);
+    await prisma.usuario.update({
+      where: { id_usuario: user.id_usuario },
+      data: {
+        reset_token: null,
+        reset_token_expiry: null
+      }
+    });
+
     // Generar token único
     const resetToken = uuidv4();
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hora de validez
+
+    console.log('🔑 [RESET REQUEST] Nuevo token generado:', resetToken);
+    console.log('⏰ [RESET REQUEST] Token expira:', resetTokenExpiry);
 
     // Guardar token en la base de datos
     await prisma.usuario.update({
@@ -456,6 +469,11 @@ router.post('/reset-password/:token', async (req, res) => {
     const { token } = req.params;
     const { nuevaContrasena } = req.body;
 
+    console.log('🔍 [RESET PASSWORD] Iniciando reset de contraseña...');
+    console.log('🔍 [RESET PASSWORD] Token recibido:', token);
+    console.log('🔍 [RESET PASSWORD] Longitud del token:', token ? token.length : 0);
+    console.log('🔍 [RESET PASSWORD] Nueva contraseña recibida:', nuevaContrasena ? 'SÍ' : 'NO');
+
     // Buscar usuario con token válido
     const user = await prisma.usuario.findFirst({
       where: {
@@ -466,7 +484,24 @@ router.post('/reset-password/:token', async (req, res) => {
       }
     });
 
+    console.log('🔍 [RESET PASSWORD] Usuario encontrado:', user ? 'SÍ' : 'NO');
+    if (user) {
+      console.log('🔍 [RESET PASSWORD] Usuario:', user.correo);
+      console.log('🔍 [RESET PASSWORD] Token en BD:', user.reset_token);
+      console.log('🔍 [RESET PASSWORD] Tokens coinciden:', user.reset_token === token);
+    }
+
     if (!user) {
+      console.log('❌ [RESET PASSWORD] Token inválido o expirado');
+      
+      // Mostrar tokens disponibles para debugging
+      const tokensDisponibles = await prisma.usuario.findMany({
+        where: { reset_token: { not: null } },
+        select: { correo: true, reset_token: true, reset_token_expiry: true }
+      });
+      
+      console.log('📋 [RESET PASSWORD] Tokens disponibles en BD:', tokensDisponibles);
+      
       return res.status(400).json({ error: 'Token inválido o expirado' });
     }
 

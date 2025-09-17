@@ -18,6 +18,16 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
+      },
+      '/auth': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/mercadopago': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
       }
     }
   },

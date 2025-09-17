@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 
 // Configuración del transportador de email (IDÉNTICA a la de verificación)
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '465'),
   secure: true,
   auth: {
