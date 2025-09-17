@@ -100,11 +100,11 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# Package lock files (keep only one)
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# Package lock files (keep only one - comment out the ones you're not using)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
 
 # Server dependencies
 server/node_modules/
-server/package-lock.json
+# server/package-lock.json

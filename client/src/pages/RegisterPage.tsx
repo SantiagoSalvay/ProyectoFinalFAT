@@ -528,7 +528,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Social Login Buttons */}
-          <SocialLoginButtons mode="register" />
+          <SocialLoginButtons mode="register" hideForONG={selectedRole === 'ong'} />
         </div>
       </div>
     </div>

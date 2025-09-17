@@ -20,6 +20,9 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
   - ✅ **Edición de información personal (nombre, ubicación)** (NUEVO)
   - ✅ **Sistema de roles y permisos** (IMPLEMENTADO)
   - ✅ **Inicio de sesión automático tras verificación** (IMPLEMENTADO)
+  - ✅ **Autenticación OAuth con Google** (IMPLEMENTADO)
+  - ✅ **Autenticación OAuth con Twitter** (PREPARADO)
+  - ✅ **Inicio de sesión con redes sociales** (IMPLEMENTADO)
 
 - 💰 **Gestión de Donaciones**
   - Integración con MercadoPago
