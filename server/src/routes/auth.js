@@ -11,6 +11,63 @@ import { passwordResetService } from '../../lib/password-reset-service.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Obtener datos de tipoONG, grupo_social y necesidades
+router.get('/profile/tipoong', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    // Buscar el registro TipoONG vinculado al usuario
+  const tipoOng = await prisma.TipoONG.findFirst({
+      where: { usuarioId: decoded.userId },
+      select: {
+        grupo_social: true,
+        necesidad: true
+      }
+    });
+    if (!tipoOng) {
+      return res.json({ grupo_social: null, necesidad: null });
+    }
+    res.json(tipoOng);
+  } catch (error) {
+    console.error('Error al obtener tipoONG:', error);
+    res.status(500).json({ error: 'Error al obtener tipoONG' });
+  }
+});
+
+// Guardar datos de tipoONG, grupo_social y necesidades
+router.post('/profile/tipoong', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    const { grupo_social, necesidad } = req.body;
+    // Buscar si ya existe registro TipoONG para el usuario
+  const existing = await prisma.TipoONG.findFirst({ where: { usuarioId: decoded.userId } });
+    let tipoOng;
+    if (existing) {
+  tipoOng = await prisma.TipoONG.update({
+        where: { ID_tipo: existing.ID_tipo },
+        data: { grupo_social, necesidad }
+      });
+    } else {
+  tipoOng = await prisma.TipoONG.create({
+        data: { grupo_social, necesidad, usuarioId: decoded.userId }
+      });
+    }
+    res.json({ message: 'Datos guardados exitosamente', grupo_social: tipoOng.grupo_social, necesidad: tipoOng.necesidad });
+  } catch (error) {
+    console.error('Error al guardar tipoONG:', error);
+    res.status(500).json({ error: 'Error al guardar tipoONG' });
+  }
+});
+
 // Obtener todos los usuarios tipo 2 (ONGs)
 router.get('/ongs', async (req, res) => {
   try {

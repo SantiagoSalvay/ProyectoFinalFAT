@@ -12,7 +12,7 @@ export default function DashboardPage() {
   // Considera ONG si tipo_usuario === 2 (igual que ProfilePage)
   const isONG = user?.id_usuario && user?.tipo_usuario === 2
 
-  const [tipoONG, setTipoONG] = useState<{ grupo_social: string | null; necesidad: string | null } | null>(null);
+  const [tipoONG, setTipoONG] = useState<{ grupo_social?: string | null; necesidad?: string | null } | null>(null);
   const [loadingTipoONG, setLoadingTipoONG] = useState(true);
   const navigate = useNavigate();
   const { addNotification, notifications, removeNotification } = useNotifications();
@@ -23,9 +23,13 @@ export default function DashboardPage() {
       if (isONG && token) {
         try {
           const data = await api.getTipoONG();
-          setTipoONG(data);
+          if (data && typeof data === 'object' && (data.grupo_social !== undefined || data.necesidad !== undefined)) {
+            setTipoONG(data);
+          } else {
+            setTipoONG({});
+          }
         } catch (err) {
-          setTipoONG(null);
+          setTipoONG({});
         } finally {
           setLoadingTipoONG(false);
         }
@@ -44,10 +48,7 @@ export default function DashboardPage() {
       isONG &&
       user != null &&
       !loadingTipoONG &&
-      tipoONG &&
-      (
-        !tipoONG.grupo_social || !tipoONG.necesidad
-      ) &&
+      (!tipoONG || !tipoONG.grupo_social || !tipoONG.necesidad) &&
       !notifications.some(n => n.type === 'warning' && n.title === 'Completa tus datos de ONG')
     ) {
       addNotification({
