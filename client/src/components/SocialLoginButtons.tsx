@@ -3,9 +3,10 @@ import toast from 'react-hot-toast'
 
 interface SocialLoginButtonsProps {
   mode: 'login' | 'register'
+  hideForONG?: boolean
 }
 
-export default function SocialLoginButtons({ mode }: SocialLoginButtonsProps) {
+export default function SocialLoginButtons({ mode, hideForONG = false }: SocialLoginButtonsProps) {
   const handleGoogleLogin = () => {
     // Redirigir al endpoint de Google OAuth
     window.location.href = 'http://localhost:3001/api/auth/google'
@@ -15,6 +16,11 @@ export default function SocialLoginButtons({ mode }: SocialLoginButtonsProps) {
   const handleTwitterLogin = () => {
     // Redirigir directamente al endpoint de Twitter OAuth
     window.location.href = 'http://localhost:3001/api/auth/twitter'
+  }
+
+  // Si hideForONG es true, no renderizar los botones sociales
+  if (hideForONG) {
+    return null
   }
 
   return (
