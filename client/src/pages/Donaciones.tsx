@@ -56,7 +56,7 @@ export default function Donaciones() {
         return;
       }
       try {
-        const res = await fetch('http://localhost:3001/mercadopago/create-preference', {
+        const res = await fetch('/mercadopago/create-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ description: `Donación a ${ongs.find(o => o.id === selectedOng)?.name || ''}`, price: parsedPrice, quantity, ongId: selectedOng })

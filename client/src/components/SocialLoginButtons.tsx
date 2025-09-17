@@ -9,13 +9,13 @@ interface SocialLoginButtonsProps {
 export default function SocialLoginButtons({ mode, hideForONG = false }: SocialLoginButtonsProps) {
   const handleGoogleLogin = () => {
     // Redirigir al endpoint de Google OAuth
-    window.location.href = 'http://localhost:3001/api/auth/google'
+    window.location.href = '/api/auth/google'
   }
 
 
   const handleTwitterLogin = () => {
     // Redirigir directamente al endpoint de Twitter OAuth
-    window.location.href = 'http://localhost:3001/api/auth/twitter'
+    window.location.href = '/api/auth/twitter'
   }
 
   // Si hideForONG es true, no renderizar los botones sociales

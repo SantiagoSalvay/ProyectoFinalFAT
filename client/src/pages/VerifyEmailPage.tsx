@@ -31,7 +31,7 @@ export default function VerifyEmailPage() {
         console.log('🔍 Iniciando verificación con token:', token)
         
         // Hacer petición al servidor para verificar el token
-        const response = await fetch(`http://localhost:3001/auth/verify-email/${token}`, {
+        const response = await fetch(`/auth/verify-email/${token}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
@@ -100,7 +100,7 @@ export default function VerifyEmailPage() {
 
     setIsResending(true)
     try {
-      const response = await fetch('http://localhost:3001/auth/resend-verification', {
+      const response = await fetch('/auth/resend-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
