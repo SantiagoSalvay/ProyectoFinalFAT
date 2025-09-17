@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
@@ -111,7 +111,7 @@ async function cleanPendingRegistrations() {
     if (registrosFinales.length > 0) {
       console.log('   - Los registros restantes son recientes (menos de 24 horas)');
       console.log('   - Si sigues teniendo problemas, considera limpiar todos los registros pendientes');
-      console.log('   - Ejecuta: node scripts/clean-all-pending.js (¡CUIDADO: elimina TODOS!)');
+      console.log('   - Ejecuta: node scripts/clean-all-pending.cjs (¡CUIDADO: elimina TODOS!)');
     } else {
       console.log('   - No hay registros pendientes. El sistema está limpio.');
     }
@@ -123,9 +123,5 @@ async function cleanPendingRegistrations() {
   }
 }
 
-// Ejecutar si se llama directamente
-if (import.meta.url === `file://${process.argv[1]}`) {
-  cleanPendingRegistrations();
-}
-
-export { cleanPendingRegistrations };
+// Ejecutar la función
+cleanPendingRegistrations();

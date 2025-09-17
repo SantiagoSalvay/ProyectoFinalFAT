@@ -495,6 +495,8 @@ router.get('/verify-email/:token', async (req, res) => {
   try {
     const { token } = req.params;
     console.log('🔍 [VERIFICACIÓN] Iniciando verificación con token:', token);
+    console.log('🔍 [VERIFICACIÓN] Longitud del token:', token ? token.length : 0);
+    console.log('🔍 [VERIFICACIÓN] Formato del token:', token ? (token.includes('-') ? 'UUID' : 'OTRO') : 'VACÍO');
 
     if (!token) {
       console.log('❌ [VERIFICACIÓN] Token no proporcionado');
@@ -514,11 +516,16 @@ router.get('/verify-email/:token', async (req, res) => {
     
     if (pendingRegistration) {
       console.log('✅ [VERIFICACIÓN] Token encontrado en BD:', {
+        id: pendingRegistration.id,
         correo: pendingRegistration.correo,
-        usuario: pendingRegistration.usuario
+        usuario: pendingRegistration.usuario,
+        tokenEncontrado: pendingRegistration.verification_token,
+        tokenBuscado: token,
+        tokensCoinciden: pendingRegistration.verification_token === token
       });
     } else {
       console.log('❌ [VERIFICACIÓN] Token NO existe en la base de datos');
+      console.log('❌ [VERIFICACIÓN] Token buscado:', token);
       
       // Verificar si el usuario ya fue registrado previamente con este token
       const usuarioExistente = await prisma.usuario.findFirst({
@@ -540,6 +547,7 @@ router.get('/verify-email/:token', async (req, res) => {
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: {
+          id: true,
           correo: true,
           verification_token: true,
           createdAt: true
@@ -547,6 +555,13 @@ router.get('/verify-email/:token', async (req, res) => {
       });
       
       console.log('📋 [VERIFICACIÓN] Últimos 5 registros pendientes:', ultimosRegistros);
+      
+      // Mostrar comparación detallada de tokens
+      console.log('🔍 [VERIFICACIÓN] Comparación de tokens:');
+      ultimosRegistros.forEach((reg, index) => {
+        const coincidencia = reg.verification_token === token;
+        console.log(`   ${index + 1}. Token: ${reg.verification_token} - Coincide: ${coincidencia ? '✅' : '❌'}`);
+      });
     }
     
     // Si no encontramos el registro pendiente, ya retornamos error
