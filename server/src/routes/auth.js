@@ -338,6 +338,37 @@ router.post('/login', async (req, res) => {
     // Omitir contraseña de la respuesta
     const { contrasena: _, ...userWithoutPassword } = user;
 
+    // Enviar email de notificación de inicio de sesión
+    try {
+      console.log('📧 [LOGIN] Enviando email de notificación de login...');
+      
+      // Obtener información del cliente
+      const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
+      const userAgent = req.headers['user-agent'] || 'Desconocido';
+      const currentDateTime = new Date().toLocaleString('es-ES', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      const loginInfo = {
+        dateTime: currentDateTime,
+        ipAddress: ipAddress,
+        userAgent: userAgent,
+        location: 'Argentina' // Podrías integrar con una API de geolocalización
+      };
+
+      await emailService.sendLoginNotificationEmail(user.correo, user.nombre, loginInfo);
+      console.log('✅ [LOGIN] Email de notificación de login enviado exitosamente');
+    } catch (emailError) {
+      console.error('⚠️ [LOGIN] Error al enviar email de notificación de login (no crítico):', emailError);
+      // No fallar el login si el email falla
+    }
+
     res.json({
       message: 'Login exitoso',
       user: userWithoutPassword,

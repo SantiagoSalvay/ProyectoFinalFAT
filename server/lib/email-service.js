@@ -1,15 +1,38 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
 
-// Configuración del transportador de email
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
-  auth: {
+// Cargar variables de entorno
+dotenv.config({ path: '../../../.env' });
+
+// Función para crear transporter
+const createTransporter = () => {
+  console.log('🔧 [EMAIL SERVICE] Creando transporter con configuración:', {
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '465'),
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
+    pass: process.env.SMTP_PASS ? 'Configurada' : 'No configurada'
+  });
+  
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    secure: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    },
+    // Configuraciones para evitar spam
+    tls: {
+      rejectUnauthorized: false
+    },
+    // Headers adicionales para mejorar la entrega
+    headers: {
+      'X-Mailer': 'DEMOS+ Platform',
+      'X-Priority': '3',
+      'X-MSMail-Priority': 'Normal'
+    }
+  });
+};
 
 // Plantillas de email
 const emailTemplates = {
@@ -160,6 +183,122 @@ const emailTemplates = {
         
       </div>
     `
+  }),
+
+  loginNotification: (userName, loginInfo) => ({
+    subject: 'Nuevo inicio de sesión en tu cuenta DEMOS+',
+    text: `
+DEMOS+ - Notificación de Seguridad
+
+Hola ${userName},
+
+Hemos detectado un nuevo inicio de sesión en tu cuenta DEMOS+.
+
+Detalles de la sesión:
+- Fecha y hora: ${loginInfo.dateTime}
+- Dirección IP: ${loginInfo.ipAddress}
+- Dispositivo: ${loginInfo.userAgent}
+- Ubicación: ${loginInfo.location || 'No disponible'}
+
+¿No fuiste tú?
+Si no iniciaste sesión en tu cuenta, te recomendamos cambiar tu contraseña inmediatamente y revisar la actividad de tu cuenta.
+
+Acciones recomendadas:
+- Ver mi cuenta: ${process.env.APP_URL || 'http://localhost:3000'}/dashboard
+- Cambiar contraseña: ${process.env.APP_URL || 'http://localhost:3000'}/change-password
+
+Este es un mensaje automático de seguridad de DEMOS+.
+© 2024 DEMOS+ - Plataforma de donaciones y ayuda comunitaria
+    `,
+    html: `
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); padding: 40px 30px; text-align: center;">
+          <h1 style="color: #ffffff; font-size: 32px; margin: 0; font-weight: 700;">
+            DEMOS+
+          </h1>
+        </div>
+        
+        <!-- Mensaje principal -->
+        <div style="padding: 40px 30px; text-align: center;">
+          <div style="font-size: 48px; margin-bottom: 20px;">🔐</div>
+          <h2 style="color: #2b555f; font-size: 24px; margin: 0 0 15px 0; font-weight: 600;">
+            Nuevo inicio de sesión detectado
+          </h2>
+          <p style="color: #6c757d; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+            Hola ${userName}, hemos detectado un nuevo inicio de sesión en tu cuenta.
+          </p>
+        </div>
+        
+        <!-- Información de la sesión -->
+        <div style="padding: 0 30px 30px 30px;">
+          <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid #ff6b6b;">
+            <h3 style="color: #2b555f; font-size: 18px; margin: 0 0 20px 0; font-weight: 600;">
+              📍 Detalles de la sesión:
+            </h3>
+            
+            <div style="margin-bottom: 15px;">
+              <strong style="color: #495057;">🕐 Fecha y hora:</strong>
+              <span style="color: #6c757d; margin-left: 8px;">${loginInfo.dateTime}</span>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+              <strong style="color: #495057;">🌐 Dirección IP:</strong>
+              <span style="color: #6c757d; margin-left: 8px; font-family: monospace;">${loginInfo.ipAddress}</span>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+              <strong style="color: #495057;">💻 Dispositivo:</strong>
+              <span style="color: #6c757d; margin-left: 8px;">${loginInfo.userAgent}</span>
+            </div>
+            
+            <div style="margin-bottom: 0;">
+              <strong style="color: #495057;">📍 Ubicación aproximada:</strong>
+              <span style="color: #6c757d; margin-left: 8px;">${loginInfo.location || 'No disponible'}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Advertencia de seguridad -->
+        <div style="padding: 0 30px 30px 30px;">
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 8px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">⚠️</span>
+              <strong style="color: #856404;">¿No fuiste tú?</strong>
+            </div>
+            <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
+              Si no iniciaste sesión en tu cuenta, te recomendamos cambiar tu contraseña inmediatamente y revisar la actividad de tu cuenta.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Botones de acción -->
+        <div style="padding: 0 30px 30px 30px; text-align: center;">
+          <a href="${process.env.APP_URL || 'http://localhost:3000'}/dashboard" 
+             style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 25px; text-decoration: none; 
+                    border-radius: 25px; font-weight: 600; font-size: 14px; margin: 0 10px 10px 0;">
+            🔍 Ver mi cuenta
+          </a>
+          <a href="${process.env.APP_URL || 'http://localhost:3000'}/change-password" 
+             style="display: inline-block; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 12px 25px; text-decoration: none; 
+                    border-radius: 25px; font-weight: 600; font-size: 14px; margin: 0 0 10px 10px;">
+            🔒 Cambiar contraseña
+          </a>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #2b555f; padding: 20px; text-align: center; color: white;">
+          <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.8;">
+            Este es un mensaje automático de seguridad de DEMOS+
+          </p>
+          <p style="margin: 0; font-size: 12px; opacity: 0.7;">
+            © 2024 DEMOS+ - Plataforma de donaciones y ayuda comunitaria
+          </p>
+        </div>
+        
+      </div>
+    `
   })
 };
 
@@ -176,6 +315,7 @@ export const emailService = {
       });
       
       const template = emailTemplates.verifyEmail(verificationToken);
+      const transporter = createTransporter();
       
       console.log('🔗 [EMAIL SERVICE] Enlace generado:', `http://localhost:3000/verificar/${verificationToken}`);
       
@@ -273,6 +413,7 @@ export const emailService = {
       });
       
       const template = emailTemplates.welcomeEmail(userName);
+      const transporter = createTransporter();
       
       await transporter.sendMail({
         from: `"DEMOS+ 🎉" <${process.env.SMTP_USER}>`,
@@ -285,6 +426,45 @@ export const emailService = {
       return true;
     } catch (error) {
       console.error('❌ [EMAIL SERVICE] Error al enviar email de bienvenida:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Envía un correo de notificación de inicio de sesión
+   */
+  sendLoginNotificationEmail: async (to, userName, loginInfo) => {
+    try {
+      console.log('📧 [EMAIL SERVICE] Enviando email de notificación de login:', {
+        to: to,
+        userName: userName,
+        ipAddress: loginInfo.ipAddress,
+        userAgent: loginInfo.userAgent
+      });
+      
+      const template = emailTemplates.loginNotification(userName, loginInfo);
+      const transporter = createTransporter();
+      
+      await transporter.sendMail({
+        from: `"DEMOS+ Security" <${process.env.SMTP_USER}>`,
+        to,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
+        // Headers adicionales para mejorar la entrega
+        headers: {
+          'X-Mailer': 'DEMOS+ Platform',
+          'X-Priority': '3',
+          'X-MSMail-Priority': 'Normal',
+          'List-Unsubscribe': `<${process.env.APP_URL || 'http://localhost:3000'}/unsubscribe>`,
+          'X-Report-Abuse': `Please report abuse to ${process.env.SMTP_USER}`
+        }
+      });
+      
+      console.log('✅ [EMAIL SERVICE] Email de notificación de login enviado exitosamente');
+      return true;
+    } catch (error) {
+      console.error('❌ [EMAIL SERVICE] Error al enviar email de notificación de login:', error);
       throw error;
     }
   }

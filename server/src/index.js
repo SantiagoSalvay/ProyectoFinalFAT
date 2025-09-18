@@ -7,8 +7,8 @@ import oauthRoutes from './routes/oauth.js';
 import mercadopagoRoutes from '../routes/mercadopago.js';
 import passport from './config/passport.js';
 
-// Cargar variables de entorno
-dotenv.config();
+// Cargar variables de entorno desde el directorio raíz
+dotenv.config({ path: '../.env' });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
