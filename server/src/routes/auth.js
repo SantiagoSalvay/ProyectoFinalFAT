@@ -549,6 +549,34 @@ router.post('/reset-password/:token', async (req, res) => {
       }
     });
 
+    // Enviar email de notificación de cambio de contraseña
+    try {
+      console.log('📧 [RESET PASSWORD] Enviando email de notificación de cambio de contraseña...');
+
+      const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
+      const userAgent = req.headers['user-agent'] || 'Desconocido';
+      const currentDateTime = new Date().toLocaleString('es-ES', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      const changeInfo = {
+        dateTime: currentDateTime,
+        ipAddress: ipAddress,
+        userAgent: userAgent
+      };
+
+      await emailService.sendPasswordChangeNotificationEmail(user.correo, user.nombre, changeInfo);
+      console.log('✅ [RESET PASSWORD] Email de notificación de cambio de contraseña enviado exitosamente');
+    } catch (emailError) {
+      console.error('⚠️ [RESET PASSWORD] Error al enviar email de notificación de cambio de contraseña (no crítico):', emailError);
+    }
+
     res.json({ message: 'Contraseña actualizada exitosamente' });
   } catch (error) {
     console.error('Error al resetear contraseña:', error);

@@ -299,6 +299,98 @@ Este es un mensaje automático de seguridad de DEMOS+.
         
       </div>
     `
+  }),
+
+  passwordChangeNotification: (userName, changeInfo) => ({
+    subject: 'Tu contraseña ha sido cambiada - DEMOS+',
+    text: `
+DEMOS+ - Notificación de Seguridad
+
+Hola ${userName},
+
+Tu contraseña ha sido cambiada exitosamente en tu cuenta DEMOS+.
+
+Detalles del cambio:
+- Fecha y hora: ${changeInfo.dateTime}
+- Dirección IP: ${changeInfo.ipAddress}
+- Dispositivo: ${changeInfo.userAgent}
+
+Si no realizaste este cambio, contacta inmediatamente con nuestro equipo de soporte.
+
+Saludos,
+El equipo de DEMOS+
+    `,
+    html: `
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #2b555f 0%, #73e4fd 100%); padding: 30px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: 300;">DEMOS+</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Plataforma de donaciones y ayuda comunitaria</p>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div style="padding: 30px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 40px;">🔒</span>
+            </div>
+            <h2 style="color: #2b555f; margin: 0 0 10px 0; font-size: 24px;">Contraseña actualizada</h2>
+            <p style="color: #6c757d; font-size: 16px; margin: 0;">Tu contraseña ha sido cambiada exitosamente</p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; margin-bottom: 25px;">
+            <h3 style="color: #2b555f; margin: 0 0 20px 0; font-size: 18px;">📋 Detalles del cambio</h3>
+            
+            <div style="margin-bottom: 15px;">
+              <strong style="color: #495057;">📅 Fecha y hora:</strong>
+              <span style="color: #6c757d; margin-left: 8px;">${changeInfo.dateTime}</span>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+              <strong style="color: #495057;">🌐 Dirección IP:</strong>
+              <span style="color: #6c757d; margin-left: 8px;">${changeInfo.ipAddress}</span>
+            </div>
+            
+            <div style="margin-bottom: 0;">
+              <strong style="color: #495057;">💻 Dispositivo:</strong>
+              <span style="color: #6c757d; margin-left: 8px;">${changeInfo.userAgent}</span>
+            </div>
+          </div>
+          
+          <!-- Advertencia de seguridad -->
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">⚠️</span>
+              <strong style="color: #856404;">¿No realizaste este cambio?</strong>
+            </div>
+            <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
+              Si no cambiaste tu contraseña, contacta inmediatamente con nuestro equipo de soporte para asegurar la seguridad de tu cuenta.
+            </p>
+          </div>
+          
+          <!-- Botón de acción -->
+          <div style="text-align: center;">
+            <a href="${process.env.APP_URL || 'http://localhost:3000'}/dashboard" 
+               style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 25px; text-decoration: none; 
+                      border-radius: 25px; font-weight: 600; font-size: 14px;">
+              🔍 Ir a mi cuenta
+            </a>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #2b555f; padding: 20px; text-align: center; color: white;">
+          <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.8;">
+            Este es un mensaje automático de seguridad de DEMOS+
+          </p>
+          <p style="margin: 0; font-size: 12px; opacity: 0.7;">
+            © 2024 DEMOS+ - Plataforma de donaciones y ayuda comunitaria
+          </p>
+        </div>
+        
+      </div>
+    `
   })
 };
 
@@ -465,6 +557,45 @@ export const emailService = {
       return true;
     } catch (error) {
       console.error('❌ [EMAIL SERVICE] Error al enviar email de notificación de login:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Envía un correo de notificación de cambio de contraseña
+   */
+  sendPasswordChangeNotificationEmail: async (to, userName, changeInfo) => {
+    try {
+      console.log('📧 [EMAIL SERVICE] Enviando email de notificación de cambio de contraseña:', {
+        to: to,
+        userName: userName,
+        ipAddress: changeInfo.ipAddress,
+        userAgent: changeInfo.userAgent
+      });
+
+      const template = emailTemplates.passwordChangeNotification(userName, changeInfo);
+      const transporter = createTransporter();
+
+      await transporter.sendMail({
+        from: `"DEMOS+ Security" <${process.env.SMTP_USER}>`,
+        to,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
+        // Headers adicionales para mejorar la entrega
+        headers: {
+          'X-Mailer': 'DEMOS+ Platform',
+          'X-Priority': '3',
+          'X-MSMail-Priority': 'Normal',
+          'List-Unsubscribe': `<${process.env.APP_URL || 'http://localhost:3000'}/unsubscribe>`,
+          'X-Report-Abuse': `Please report abuse to ${process.env.SMTP_USER}`
+        }
+      });
+
+      console.log('✅ [EMAIL SERVICE] Email de notificación de cambio de contraseña enviado exitosamente');
+      return true;
+    } catch (error) {
+      console.error('❌ [EMAIL SERVICE] Error al enviar email de notificación de cambio de contraseña:', error);
       throw error;
     }
   }
