@@ -391,6 +391,89 @@ El equipo de DEMOS+
         
       </div>
     `
+  }),
+
+  oauthAccountCreated: (userName, provider) => ({
+    subject: `¡Cuenta creada exitosamente con ${provider}! - DEMOS+`,
+    text: `
+DEMOS+ - Cuenta Creada
+
+Hola ${userName},
+
+¡Tu cuenta ha sido creada exitosamente usando ${provider}!
+
+Tu cuenta está lista para usar. Puedes acceder a todas las funcionalidades de DEMOS+.
+
+Saludos,
+El equipo de DEMOS+
+    `,
+    html: `
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #2b555f 0%, #73e4fd 100%); padding: 30px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: 300;">DEMOS+</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Plataforma de donaciones y ayuda comunitaria</p>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div style="padding: 30px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 40px;">${provider === 'Google' ? '🔍' : '🐦'}</span>
+            </div>
+            <h2 style="color: #2b555f; margin: 0 0 10px 0; font-size: 24px;">¡Cuenta creada exitosamente!</h2>
+            <p style="color: #6c757d; font-size: 16px; margin: 0;">Tu cuenta ha sido creada usando ${provider}</p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; margin-bottom: 25px;">
+            <h3 style="color: #2b555f; margin: 0 0 20px 0; font-size: 18px;">🎉 ¡Bienvenido a DEMOS+!</h3>
+            
+            <p style="color: #495057; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">
+              Tu cuenta está lista para usar. Puedes acceder a todas las funcionalidades de nuestra plataforma:
+            </p>
+            
+            <ul style="color: #495057; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+              <li>📝 Crear y participar en foros</li>
+              <li>🎯 Publicar pedidos de donación</li>
+              <li>🤝 Conectar con la comunidad</li>
+              <li>📊 Ver rankings y estadísticas</li>
+            </ul>
+          </div>
+          
+          <!-- Información de seguridad -->
+          <div style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">🔒</span>
+              <strong style="color: #0066cc;">Cuenta segura</strong>
+            </div>
+            <p style="color: #0066cc; font-size: 14px; margin: 0; line-height: 1.5;">
+              Tu cuenta está vinculada a ${provider}, por lo que es segura y no necesitas recordar una contraseña adicional.
+            </p>
+          </div>
+          
+          <!-- Botón de acción -->
+          <div style="text-align: center;">
+            <a href="${process.env.APP_URL || 'http://localhost:3000'}/dashboard" 
+               style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 25px; text-decoration: none; 
+                      border-radius: 25px; font-weight: 600; font-size: 14px;">
+              🚀 Comenzar a usar DEMOS+
+            </a>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #2b555f; padding: 20px; text-align: center; color: white;">
+          <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.8;">
+            Este es un mensaje automático de DEMOS+
+          </p>
+          <p style="margin: 0; font-size: 12px; opacity: 0.7;">
+            © 2024 DEMOS+ - Plataforma de donaciones y ayuda comunitaria
+          </p>
+        </div>
+        
+      </div>
+    `
   })
 };
 
@@ -596,6 +679,44 @@ export const emailService = {
       return true;
     } catch (error) {
       console.error('❌ [EMAIL SERVICE] Error al enviar email de notificación de cambio de contraseña:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Envía un correo de notificación de cuenta creada con OAuth
+   */
+  sendOAuthAccountCreatedEmail: async (to, userName, provider) => {
+    try {
+      console.log('📧 [EMAIL SERVICE] Enviando email de cuenta creada con OAuth:', {
+        to: to,
+        userName: userName,
+        provider: provider
+      });
+
+      const template = emailTemplates.oauthAccountCreated(userName, provider);
+      const transporter = createTransporter();
+
+      await transporter.sendMail({
+        from: `"DEMOS+ Welcome" <${process.env.SMTP_USER}>`,
+        to,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
+        // Headers adicionales para mejorar la entrega
+        headers: {
+          'X-Mailer': 'DEMOS+ Platform',
+          'X-Priority': '3',
+          'X-MSMail-Priority': 'Normal',
+          'List-Unsubscribe': `<${process.env.APP_URL || 'http://localhost:3000'}/unsubscribe>`,
+          'X-Report-Abuse': `Please report abuse to ${process.env.SMTP_USER}`
+        }
+      });
+
+      console.log('✅ [EMAIL SERVICE] Email de cuenta creada con OAuth enviado exitosamente');
+      return true;
+    } catch (error) {
+      console.error('❌ [EMAIL SERVICE] Error al enviar email de cuenta creada con OAuth:', error);
       throw error;
     }
   }

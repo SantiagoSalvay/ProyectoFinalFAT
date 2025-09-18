@@ -2,6 +2,7 @@ import express from 'express';
 import passport from '../config/passport.js';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { emailService } from '../../lib/email-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -23,6 +24,36 @@ router.get('/google/callback',
   async (req, res) => {
     try {
       console.log('🎉 Google OAuth exitoso para usuario:', req.user.email);
+      
+      // Enviar email de notificación de login para usuarios existentes
+      try {
+        console.log('📧 [GOOGLE OAUTH LOGIN] Enviando email de notificación de login...');
+
+        const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
+        const userAgent = req.headers['user-agent'] || 'Desconocido';
+        const currentDateTime = new Date().toLocaleString('es-ES', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+
+        const loginInfo = {
+          dateTime: currentDateTime,
+          ipAddress: ipAddress,
+          userAgent: userAgent,
+          location: 'Argentina'
+        };
+
+        const userName = `${req.user.nombre} ${req.user.apellido}`.trim();
+        await emailService.sendLoginNotificationEmail(req.user.correo, userName, loginInfo);
+        console.log('✅ [GOOGLE OAUTH LOGIN] Email de notificación de login enviado');
+      } catch (emailError) {
+        console.error('⚠️ [GOOGLE OAUTH LOGIN] Error al enviar email de notificación de login (no crítico):', emailError);
+      }
       
       // Generar JWT token
       const token = jwt.sign(
@@ -50,11 +81,41 @@ router.get('/google/callback',
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   router.get('/twitter/callback',
     passport.authenticate('twitter', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
-    (req, res) => {
+    async (req, res) => {
       try {
         const user = req.user;
         if (!user) {
           return res.redirect('http://localhost:3000/login?error=user_not_found');
+        }
+
+        // Enviar email de notificación de login para usuarios existentes
+        try {
+          console.log('📧 [TWITTER OAUTH LOGIN] Enviando email de notificación de login...');
+
+          const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
+          const userAgent = req.headers['user-agent'] || 'Desconocido';
+          const currentDateTime = new Date().toLocaleString('es-ES', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+
+          const loginInfo = {
+            dateTime: currentDateTime,
+            ipAddress: ipAddress,
+            userAgent: userAgent,
+            location: 'Argentina'
+          };
+
+          const userName = `${user.nombre} ${user.apellido}`.trim();
+          await emailService.sendLoginNotificationEmail(user.correo, userName, loginInfo);
+          console.log('✅ [TWITTER OAUTH LOGIN] Email de notificación de login enviado');
+        } catch (emailError) {
+          console.error('⚠️ [TWITTER OAUTH LOGIN] Error al enviar email de notificación de login (no crítico):', emailError);
         }
 
         // Generar JWT

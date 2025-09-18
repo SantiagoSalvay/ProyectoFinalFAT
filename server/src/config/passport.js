@@ -3,6 +3,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { Strategy as TwitterStrategy } from 'passport-twitter';
+import { emailService } from '../../lib/email-service.js';
 
 const prisma = new PrismaClient();
 
@@ -62,6 +63,25 @@ passport.use(new GoogleStrategy({
     });
 
     console.log('🆕 Nuevo usuario creado:', newUser.email);
+
+    // Enviar emails de notificación para nuevo usuario OAuth
+    try {
+      console.log('📧 [GOOGLE OAUTH] Enviando emails de notificación...');
+      
+      const userName = `${newUser.nombre} ${newUser.apellido}`.trim();
+      
+      // 1. Email de cuenta creada exitosamente
+      await emailService.sendOAuthAccountCreatedEmail(newUser.correo, userName, 'Google');
+      console.log('✅ [GOOGLE OAUTH] Email de cuenta creada enviado');
+      
+      // 2. Email de bienvenida
+      await emailService.sendWelcomeEmail(newUser.correo, userName);
+      console.log('✅ [GOOGLE OAUTH] Email de bienvenida enviado');
+      
+    } catch (emailError) {
+      console.error('⚠️ [GOOGLE OAUTH] Error al enviar emails (no crítico):', emailError);
+    }
+
     return done(null, newUser);
 
   } catch (error) {
@@ -129,6 +149,24 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
             }
           });
           console.log('🆕 Nuevo usuario creado:', user.correo);
+
+          // Enviar emails de notificación para nuevo usuario OAuth
+          try {
+            console.log('📧 [TWITTER OAUTH] Enviando emails de notificación...');
+            
+            const userName = `${user.nombre} ${user.apellido}`.trim();
+            
+            // 1. Email de cuenta creada exitosamente
+            await emailService.sendOAuthAccountCreatedEmail(user.correo, userName, 'Twitter');
+            console.log('✅ [TWITTER OAUTH] Email de cuenta creada enviado');
+            
+            // 2. Email de bienvenida
+            await emailService.sendWelcomeEmail(user.correo, userName);
+            console.log('✅ [TWITTER OAUTH] Email de bienvenida enviado');
+            
+          } catch (emailError) {
+            console.error('⚠️ [TWITTER OAUTH] Error al enviar emails (no crítico):', emailError);
+          }
         }
       } else {
         console.log('🎉 Twitter OAuth exitoso para usuario:', user.correo);
