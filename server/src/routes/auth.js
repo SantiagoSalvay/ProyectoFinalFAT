@@ -695,6 +695,16 @@ router.get('/verify-email/:token', async (req, res) => {
       nombre: newUser.nombre
     });
 
+    // Enviar email de bienvenida solo para usuarios registrados por formulario (auth_provider = "email")
+    try {
+      console.log('📧 [VERIFICACIÓN] Enviando email de bienvenida...');
+      await emailService.sendWelcomeEmail(newUser.correo, newUser.nombre);
+      console.log('✅ [VERIFICACIÓN] Email de bienvenida enviado exitosamente');
+    } catch (emailError) {
+      console.error('⚠️ [VERIFICACIÓN] Error al enviar email de bienvenida (no crítico):', emailError);
+      // No fallar la verificación si el email de bienvenida falla
+    }
+
     // Generar token JWT para login automático
     const authToken = jwt.sign(
       { userId: newUser.id_usuario, email: newUser.correo },
