@@ -219,16 +219,28 @@ export default function DashboardPage() {
               </h3>
               
               <div className="space-y-3">
-                <button className="w-full btn-primary text-sm">
+                <button
+                  className="w-full btn-primary text-sm"
+                  onClick={() => navigate(isONG ? '/acciones/crear-campania' : '/acciones/buscar-organizaciones')}
+                >
                   {isONG ? 'Crear Nueva Campaña' : 'Buscar Organizaciones'}
                 </button>
-                <button className="w-full btn-secondary text-sm">
+                <button
+                  className="w-full btn-secondary text-sm"
+                  onClick={() => navigate(isONG ? '/acciones/gestionar-voluntarios' : '/acciones/oportunidades-voluntariado')}
+                >
                   {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades de Voluntariado'}
                 </button>
-                <button className="w-full btn-accent text-sm">
+                <button
+                  className="w-full btn-accent text-sm"
+                  onClick={() => navigate(isONG ? '/acciones/reportes' : '/acciones/mi-historial')}
+                >
                   {isONG ? 'Ver Reportes' : 'Ver Mi Historial'}
                 </button>
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors">
+                <button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
+                  onClick={() => navigate(isONG ? '/acciones/historial-donaciones' : '/acciones/mis-donaciones')}
+                >
                   {isONG ? 'Historial Donaciones' : 'Administrar Mis Donaciones'}
                 </button>
               </div>

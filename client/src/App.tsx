@@ -26,11 +26,21 @@ import ProtectedRoute from './components/ProtectedRoute'
 import UnauthenticatedOnlyRoute from './components/UnauthenticatedOnlyRoute'
 import AuthenticatedOnlyRoute from './components/AuthenticatedOnlyRoute'
 
+// Quick Actions pages
+import CreateCampaignPage from './pages/CreateCampaignPage'
+import ManageVolunteersPage from './pages/ManageVolunteersPage'
+import ReportsPage from './pages/ReportsPage'
+import DonationsHistoryPage from './pages/DonationsHistoryPage'
+import SearchOrgsPage from './pages/SearchOrgsPage'
+import VolunteerOpportunitiesPage from './pages/VolunteerOpportunitiesPage'
+import MyHistoryPage from './pages/MyHistoryPage'
+import MyDonationsPage from './pages/MyDonationsPage'
+
 function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-fg)' }}>
+        <div className="min-h-screen">
           <Layout>
             <Routes>
               <Route path="/" element={<HomePage />} />
@@ -86,6 +96,15 @@ function App() {
                   <ProfilePage />
                 </ProtectedRoute>
               } />
+              {/* Quick Actions routes */}
+              <Route path="/acciones/crear-campania" element={<ProtectedRoute><CreateCampaignPage /></ProtectedRoute>} />
+              <Route path="/acciones/gestionar-voluntarios" element={<ProtectedRoute><ManageVolunteersPage /></ProtectedRoute>} />
+              <Route path="/acciones/reportes" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+              <Route path="/acciones/historial-donaciones" element={<ProtectedRoute><DonationsHistoryPage /></ProtectedRoute>} />
+              <Route path="/acciones/buscar-organizaciones" element={<ProtectedRoute><SearchOrgsPage /></ProtectedRoute>} />
+              <Route path="/acciones/oportunidades-voluntariado" element={<ProtectedRoute><VolunteerOpportunitiesPage /></ProtectedRoute>} />
+              <Route path="/acciones/mi-historial" element={<ProtectedRoute><MyHistoryPage /></ProtectedRoute>} />
+              <Route path="/acciones/mis-donaciones" element={<ProtectedRoute><MyDonationsPage /></ProtectedRoute>} />
             <Route path="/complete-data" element={
               <ProtectedRoute>
                 <CompleteDataPage />
@@ -98,23 +117,18 @@ function App() {
             position="top-right"
             toastOptions={{
               duration: 4000,
+              // Usamos variables CSS (index.css) para respetar html[data-theme]
               style: {
-                background: '#363636',
-                color: '#fff',
+                background: 'var(--color-card)',
+                color: 'var(--color-fg)',
+                border: '1px solid var(--color-border)',
+                boxShadow: '0 10px 30px -12px rgba(0,0,0,0.20)'
               },
               success: {
                 duration: 3000,
-                iconTheme: {
-                  primary: '#10b981',
-                  secondary: '#fff',
-                },
               },
               error: {
                 duration: 5000,
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#fff',
-                },
               },
             }}
           />

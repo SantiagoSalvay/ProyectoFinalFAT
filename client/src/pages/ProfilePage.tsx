@@ -444,21 +444,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
-              <div className="space-y-3">
-                <button className="w-full btn-primary text-sm">
-                  {isONG ? 'Crear Campaña' : 'Buscar ONGs'}
-                </button>
-                <button className="w-full btn-secondary text-sm">
-                  {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades'}
-                </button>
-                <button className="w-full btn-accent text-sm">
-                  Ver Historial
-                </button>
-              </div>
-            </div>
+            {/* Quick Actions removidas del perfil según requerimiento */}
           </div>
         </div>
       </div>
