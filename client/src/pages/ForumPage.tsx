@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { toast } from 'react-hot-toast'
 import { api } from '../services/api'
+import ClickableMapModal from '../components/ClickableMapModal'
 import { 
   MessageCircle, 
   Heart, 
@@ -51,6 +52,11 @@ export default function ForumPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
   const [creatingPost, setCreatingPost] = useState(false)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState<{
+    address: string;
+    coordinates: [number, number];
+  } | null>(null)
 
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -60,7 +66,8 @@ export default function ForumPage() {
     title: '',
     content: '',
     categorias: [] as number[],
-    location: ''
+    location: '',
+    coordinates: null as [number, number] | null
   })
 
   // Cargar datos al montar el componente
@@ -152,10 +159,11 @@ export default function ForumPage() {
         titulo: newPost.title.trim(),
         descripcion: newPost.content.trim(),
         categorias: newPost.categorias,
-        ubicacion: newPost.location.trim() || undefined
+        ubicacion: newPost.location.trim() || undefined,
+        coordenadas: newPost.coordinates || undefined
       })
 
-      setNewPost({ title: '', content: '', categorias: [], location: '' })
+      setNewPost({ title: '', content: '', categorias: [], location: '', coordinates: null })
       setShowCreatePost(false)
       toast.success('Publicación creada exitosamente')
       
@@ -168,6 +176,18 @@ export default function ForumPage() {
       setCreatingPost(false)
     }
   }
+
+  // Función para manejar la selección de ubicación del modal
+  const handleLocationSelect = (location: { address: string; coordinates: [number, number] }) => {
+    setSelectedLocation(location);
+    setNewPost(prev => ({ 
+      ...prev, 
+      location: location.address,
+      coordinates: location.coordinates
+    }));
+    setShowLocationModal(false);
+    toast.success('Ubicación seleccionada correctamente');
+  };
 
   // Función para verificar si una publicación requiere ubicación
   const requiresLocation = (categoriasIds: number[]) => {
@@ -364,13 +384,24 @@ export default function ForumPage() {
                         : 'Ubicación de Voluntariado'
                       }
                     </label>
-                    <input
-                      type="text"
-                      value={newPost.location}
-                      onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
-                      className="input-field"
-                      placeholder="Ciudad, País"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newPost.location}
+                        onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
+                        className="input-field flex-1"
+                        placeholder="Ciudad, País"
+                      />
+                      <button
+                        type="button"
+                        className="p-2 rounded border flex items-center justify-center hover:bg-gray-50 transition-colors"
+                        title="Seleccionar ubicación en el mapa"
+                        onClick={() => setShowLocationModal(true)}
+                        style={{ background: 'color-mix(in oklab, var(--accent) 8%, transparent)', borderColor: 'var(--accent)' }}
+                      >
+                        <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -496,6 +527,14 @@ export default function ForumPage() {
             </div>
           )}
         </div>
+
+        {/* Modal de selección de ubicación */}
+        <ClickableMapModal
+          isOpen={showLocationModal}
+          onClose={() => setShowLocationModal(false)}
+          onLocationSelect={handleLocationSelect}
+          initialLocation={newPost.location}
+        />
       </div>
     </div>
   )

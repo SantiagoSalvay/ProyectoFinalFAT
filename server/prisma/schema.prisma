@@ -47,6 +47,7 @@ model Foro {
   titulo          String
   descripcion     String
   fecha           DateTime
+  ubicacion       String?
   usuario         Usuario          @relation(fields: [id_usuario], references: [id_usuario])
   foroCategorias  ForoCategoria[]
   pedidosDonacion PedidoDonacion[]

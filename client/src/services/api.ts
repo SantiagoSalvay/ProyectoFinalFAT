@@ -336,6 +336,7 @@ class ApiService {
     descripcion: string;
     categorias: number[];
     ubicacion?: string;
+    coordenadas?: [number, number];
   }) {
     try {
       const response = await this.request<{ message: string; id: number }>(

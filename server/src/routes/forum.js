@@ -80,24 +80,40 @@ router.get('/publicaciones', async (req, res) => {
     });
 
     // Transformar los datos para el frontend
-    const publicacionesFormateadas = publicaciones.map(publicacion => ({
-      id: publicacion.id_foro.toString(),
-      title: publicacion.titulo,
-      content: publicacion.descripcion,
-      author: {
-        id: publicacion.usuario.id_usuario.toString(),
-        name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
-        role: publicacion.usuario.tipo_usuario === 2 ? 'ong' : 'person',
-        organization: publicacion.usuario.tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
-        avatar: undefined
-      },
-      tags: publicacion.foroCategorias.map(fc => fc.categoria.etiqueta),
-      location: publicacion.usuario.ubicacion,
-      likes: 0, // Por ahora no implementamos likes
-      comments: publicacion.respuestas.length,
-      createdAt: publicacion.fecha,
-      isLiked: false
-    }));
+    const publicacionesFormateadas = publicaciones.map(publicacion => {
+      let location = publicacion.ubicacion;
+      
+      // Si la ubicación es un JSON string, parsearlo
+      if (location && typeof location === 'string') {
+        try {
+          const parsedLocation = JSON.parse(location);
+          if (parsedLocation.address) {
+            location = parsedLocation.address;
+          }
+        } catch (e) {
+          // Si no es JSON válido, usar el string tal como está
+        }
+      }
+      
+      return {
+        id: publicacion.id_foro.toString(),
+        title: publicacion.titulo,
+        content: publicacion.descripcion,
+        author: {
+          id: publicacion.usuario.id_usuario.toString(),
+          name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
+          role: publicacion.usuario.tipo_usuario === 2 ? 'ong' : 'person',
+          organization: publicacion.usuario.tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
+          avatar: undefined
+        },
+        tags: publicacion.foroCategorias.map(fc => fc.categoria.etiqueta),
+        location: location,
+        likes: 0, // Por ahora no implementamos likes
+        comments: publicacion.respuestas.length,
+        createdAt: publicacion.fecha,
+        isLiked: false
+      };
+    });
 
     res.json(publicacionesFormateadas);
   } catch (error) {
@@ -109,7 +125,7 @@ router.get('/publicaciones', async (req, res) => {
 // Crear una nueva publicación (solo ONGs)
 router.post('/publicaciones', authenticateToken, async (req, res) => {
   try {
-    const { titulo, descripcion, categorias, ubicacion } = req.body;
+    const { titulo, descripcion, categorias, ubicacion, coordenadas } = req.body;
     const userId = req.user?.id_usuario;
 
     if (!userId) {
@@ -126,13 +142,27 @@ router.post('/publicaciones', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Solo las ONGs pueden crear publicaciones' });
     }
 
+    // Preparar datos de ubicación
+    let ubicacionData = null;
+    if (ubicacion) {
+      if (coordenadas && Array.isArray(coordenadas) && coordenadas.length === 2) {
+        ubicacionData = JSON.stringify({
+          address: ubicacion,
+          coordinates: coordenadas
+        });
+      } else {
+        ubicacionData = ubicacion;
+      }
+    }
+
     // Crear la publicación
     const nuevaPublicacion = await prisma.foro.create({
       data: {
         id_usuario: userId,
         titulo,
         descripcion,
-        fecha: new Date()
+        fecha: new Date(),
+        ubicacion: ubicacionData
       }
     });
 
@@ -148,13 +178,6 @@ router.post('/publicaciones', authenticateToken, async (req, res) => {
       }
     }
 
-    // Si se proporciona ubicación, actualizar el usuario
-    if (ubicacion) {
-      await prisma.usuario.update({
-        where: { id_usuario: userId },
-        data: { ubicacion }
-      });
-    }
 
     res.status(201).json({ 
       message: 'Publicación creada exitosamente',
@@ -179,8 +202,7 @@ router.get('/publicaciones/:id', async (req, res) => {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true,
-            ubicacion: true
+            tipo_usuario: true
           }
         },
         foroCategorias: {
