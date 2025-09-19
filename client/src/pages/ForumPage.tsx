@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { toast } from 'react-hot-toast'
+import { api } from '../services/api'
 import { 
   MessageCircle, 
   Heart, 
@@ -14,7 +15,8 @@ import {
   User,
   Building,
   LogIn,
-  UserPlus
+  UserPlus,
+  Loader2
 } from 'lucide-react'
 
 interface Post {
@@ -37,43 +39,18 @@ interface Post {
   isLiked?: boolean
 }
 
+interface Categoria {
+  id_categoria: number
+  etiqueta: string
+}
+
 export default function ForumPage() {
   const { user } = useAuth()
   const { addNotification } = useNotifications()
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: '1',
-      title: 'Campaña de Donación: Ayuda para Niños en Situación de Calle',
-      content: 'Estamos organizando una campaña para ayudar a niños en situación de calle. Necesitamos donaciones de ropa, alimentos y útiles escolares. ¡Cualquier ayuda es bienvenida!',
-      author: {
-        id: 'ong1',
-        name: 'Fundación Ayuda',
-        role: 'ong',
-        organization: 'Fundación Ayuda'
-      },
-      tags: ['Donación', 'Niños', 'Educación'],
-      location: 'Buenos Aires, Argentina',
-      likes: 45,
-      comments: 12,
-      createdAt: new Date('2024-01-15')
-    },
-    {
-      id: '2',
-      title: 'Voluntariado: Limpieza de Playa',
-      content: 'Organizamos una jornada de limpieza de playa este sábado. Necesitamos voluntarios para ayudar a mantener limpio nuestro medio ambiente.',
-      author: {
-        id: 'ong2',
-        name: 'EcoVida',
-        role: 'ong',
-        organization: 'EcoVida'
-      },
-      tags: ['Voluntariado', 'Medio Ambiente', 'Limpieza'],
-      location: 'Mar del Plata, Argentina',
-      likes: 32,
-      comments: 8,
-      createdAt: new Date('2024-01-14')
-    }
-  ])
+  const [posts, setPosts] = useState<Post[]>([])
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [loading, setLoading] = useState(true)
+  const [creatingPost, setCreatingPost] = useState(false)
 
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -82,9 +59,38 @@ export default function ForumPage() {
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
-    tags: '',
+    categorias: [] as number[],
     location: ''
   })
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const [publicacionesData, categoriasData] = await Promise.all([
+        api.getPublicaciones(),
+        api.getCategorias()
+      ])
+      
+      // Transformar las fechas de string a Date
+      const publicacionesFormateadas = publicacionesData.map(post => ({
+        ...post,
+        createdAt: new Date(post.createdAt)
+      }))
+      
+      setPosts(publicacionesFormateadas)
+      setCategorias(categoriasData)
+    } catch (error) {
+      console.error('Error al cargar datos:', error)
+      toast.error('Error al cargar las publicaciones')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Considera ONG si tipo_usuario === 2 (igual que en ProfilePage y DashboardPage)
   const isONG = user?.tipo_usuario === 2
@@ -118,7 +124,7 @@ export default function ForumPage() {
     toast.success('Función de comentarios próximamente')
   }
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!user) {
       setShowAuthModal(true)
       return
@@ -135,27 +141,41 @@ export default function ForumPage() {
       return
     }
 
-    const post: Post = {
-      id: Date.now().toString(),
-      title: newPost.title.trim(),
-      content: newPost.content.trim(),
-      author: {
-        id: user.id?.toString() || '',
-        name: user.name || '',
-        role: 'ong',
-        organization: user.organization || ''
-      },
-      tags: newPost.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-      location: newPost.location,
-      likes: 0,
-      comments: 0,
-      createdAt: new Date()
+    if (newPost.categorias.length === 0) {
+      toast.error('Por favor selecciona al menos una categoría')
+      return
     }
 
-    setPosts(prev => [post, ...prev])
-    setNewPost({ title: '', content: '', tags: '', location: '' })
-    setShowCreatePost(false)
-    toast.success('Publicación creada exitosamente')
+    try {
+      setCreatingPost(true)
+      await api.crearPublicacion({
+        titulo: newPost.title.trim(),
+        descripcion: newPost.content.trim(),
+        categorias: newPost.categorias,
+        ubicacion: newPost.location.trim() || undefined
+      })
+
+      setNewPost({ title: '', content: '', categorias: [], location: '' })
+      setShowCreatePost(false)
+      toast.success('Publicación creada exitosamente')
+      
+      // Recargar las publicaciones
+      await loadData()
+    } catch (error) {
+      console.error('Error al crear publicación:', error)
+      toast.error('Error al crear la publicación')
+    } finally {
+      setCreatingPost(false)
+    }
+  }
+
+  // Función para verificar si una publicación requiere ubicación
+  const requiresLocation = (categoriasIds: number[]) => {
+    const locationRequiredCategories = categoriasIds.filter(catId => {
+      const categoria = categorias.find(c => c.id_categoria === catId)
+      return categoria?.etiqueta === 'Donacion' || categoria?.etiqueta === 'Voluntariado'
+    })
+    return locationRequiredCategories.length > 0
   }
 
   const filteredPosts = posts.filter(post => {
@@ -164,7 +184,7 @@ export default function ForumPage() {
                          post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     
     const matchesFilter = selectedFilter === 'all' || 
-                         (selectedFilter === 'donations' && post.tags.includes('Donación')) ||
+                         (selectedFilter === 'donations' && post.tags.includes('Donacion')) ||
                          (selectedFilter === 'volunteering' && post.tags.includes('Voluntariado'))
 
     return matchesSearch && matchesFilter
@@ -266,7 +286,7 @@ export default function ForumPage() {
         {/* Create Post Modal */}
         {showCreatePost && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Nueva Publicación</h2>
               
               <div className="space-y-4">
@@ -293,40 +313,83 @@ export default function ForumPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Etiquetas (separadas por comas)</label>
-                  <input
-                    type="text"
-                    value={newPost.tags}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, tags: e.target.value }))}
-                    className="input-field"
-                    placeholder="Donación, Voluntariado, etc."
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Categorías</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                    {categorias.map(categoria => (
+                      <label key={categoria.id_categoria} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newPost.categorias.includes(categoria.id_categoria)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewPost(prev => ({
+                                ...prev,
+                                categorias: [...prev.categorias, categoria.id_categoria]
+                              }))
+                            } else {
+                              setNewPost(prev => ({
+                                ...prev,
+                                categorias: prev.categorias.filter(id => id !== categoria.id_categoria)
+                              }))
+                            }
+                          }}
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-gray-700">{categoria.etiqueta}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
-                  <input
-                    type="text"
-                    value={newPost.location}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
-                    className="input-field"
-                    placeholder="Ciudad, País"
-                  />
-                </div>
+                {/* Campo de ubicación condicional */}
+                {(newPost.categorias.some(catId => {
+                  const categoria = categorias.find(c => c.id_categoria === catId)
+                  return categoria?.etiqueta === 'Donacion' || categoria?.etiqueta === 'Voluntariado'
+                })) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {newPost.categorias.some(catId => {
+                        const categoria = categorias.find(c => c.id_categoria === catId)
+                        return categoria?.etiqueta === 'Donacion'
+                      }) && newPost.categorias.some(catId => {
+                        const categoria = categorias.find(c => c.id_categoria === catId)
+                        return categoria?.etiqueta === 'Voluntariado'
+                      }) 
+                        ? 'Ubicación de Donación/Voluntariado'
+                        : newPost.categorias.some(catId => {
+                            const categoria = categorias.find(c => c.id_categoria === catId)
+                            return categoria?.etiqueta === 'Donacion'
+                          })
+                        ? 'Ubicación de Donación'
+                        : 'Ubicación de Voluntariado'
+                      }
+                    </label>
+                    <input
+                      type="text"
+                      value={newPost.location}
+                      onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
+                      className="input-field"
+                      placeholder="Ciudad, País"
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => setShowCreatePost(false)}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  disabled={creatingPost}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleCreatePost}
-                  className="btn-primary"
+                  className="btn-primary flex items-center"
+                  disabled={creatingPost}
                 >
-                  Publicar
+                  {creatingPost && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {creatingPost ? 'Publicando...' : 'Publicar'}
                 </button>
               </div>
             </div>
@@ -335,7 +398,13 @@ export default function ForumPage() {
 
         {/* Posts */}
         <div className="space-y-6">
-          {filteredPosts.map(post => (
+          {loading ? (
+            <div className="text-center py-12">
+              <Loader2 className="w-8 h-8 text-purple-600 mx-auto mb-4 animate-spin" />
+              <p className="text-gray-600">Cargando publicaciones...</p>
+            </div>
+          ) : (
+            filteredPosts.map(post => (
             <div key={post.id} className="card p-6">
               <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center">
@@ -416,9 +485,10 @@ export default function ForumPage() {
                 </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
           
-          {filteredPosts.length === 0 && (
+          {!loading && filteredPosts.length === 0 && (
             <div className="text-center py-12">
               <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron publicaciones</h3>

@@ -299,6 +299,58 @@ class ApiService {
       throw error;
     }
   }
+
+  // Métodos del foro
+  async getCategorias() {
+    try {
+      const response = await this.request<{ id_categoria: number; etiqueta: string }[]>(
+        '/api/forum/categorias',
+        {
+          method: 'GET'
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener categorías:', error);
+      throw error;
+    }
+  }
+
+  async getPublicaciones() {
+    try {
+      const response = await this.request<any[]>(
+        '/api/forum/publicaciones',
+        {
+          method: 'GET'
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener publicaciones:', error);
+      throw error;
+    }
+  }
+
+  async crearPublicacion(data: {
+    titulo: string;
+    descripcion: string;
+    categorias: number[];
+    ubicacion?: string;
+  }) {
+    try {
+      const response = await this.request<{ message: string; id: number }>(
+        '/api/forum/publicaciones',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al crear publicación:', error);
+      throw error;
+    }
+  }
 }
 
 export const api = new ApiService(); 
