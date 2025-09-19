@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import ClickableMapModal from '../components/ClickableMapModal'
 import { useAuth } from '../contexts/AuthContext'
 import { toast } from 'react-hot-toast'
 import { 
@@ -23,6 +24,82 @@ export default function ProfilePage() {
     email: '',
     location: ''
   })
+
+  // Autocompletado de ubicación con LocationIQ
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationInput, setLocationInput] = useState('')
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState<{
+    address: string;
+    coordinates: [number, number];
+  } | null>(null);
+
+  // Usar la variable de entorno VITE_LOCATIONIQ_API_KEY
+  const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY
+
+  // Debounce para evitar rate limit
+  useEffect(() => {
+    if (!isEditing) return;
+    const handler = setTimeout(() => {
+      if (!locationInput || locationInput.length < 3) {
+        setLocationSuggestions([]);
+        return;
+      }
+      if (!LOCATIONIQ_API_KEY) {
+        setLocationSuggestions([]);
+        return;
+      }
+      setLocationLoading(true)
+      fetch(`https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(locationInput)}&limit=8&countrycodes=ar&dedupe=1`)
+        .then(async res => {
+          if (!res.ok) {
+            setLocationSuggestions([])
+            return []
+          }
+          return res.json()
+        })
+        .then(data => {
+          if (!Array.isArray(data)) {
+            setLocationSuggestions([])
+            return
+          }
+          const filtered = data.filter((item: any) => {
+            return (
+              (item.address && (
+                (item.address.city && item.address.city.toLowerCase().includes('córdoba')) ||
+                (item.address.state && item.address.state.toLowerCase().includes('córdoba')) ||
+                (item.display_name && item.display_name.toLowerCase().includes('córdoba'))
+              ))
+            );
+          });
+          setLocationSuggestions(filtered.map((item: any) => {
+            const road = item.address?.road || item.address?.name || '';
+            const houseNumber = item.address?.house_number || '';
+            if (road && houseNumber) {
+              return `${road} ${houseNumber}, Córdoba`;
+            }
+            if (road) {
+              return `${road}, Córdoba`;
+            }
+            return item.display_name;
+          }));
+        })
+        .catch(() => {
+          setLocationSuggestions([])
+        })
+        .finally(() => setLocationLoading(false))
+    }, 600)
+    return () => clearTimeout(handler)
+  }, [locationInput, isEditing])
+
+  // Modal: seleccionar ubicación en el mapa
+  const handleLocationSelect = (location: { address: string; coordinates: [number, number] }) => {
+    setSelectedLocation(location);
+    setLocationInput(location.address);
+    setProfileData(prev => ({ ...prev, location: location.address }));
+    setShowLocationModal(false);
+  };
 
   // Detectar si el usuario es ONG (tipo_usuario === 2)
   const isONG = user?.tipo_usuario === 2;
@@ -199,17 +276,73 @@ export default function ProfilePage() {
                     Ubicación
                   </label>
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={profileData.location}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                      className="input-field"
-                      placeholder="Ciudad, País"
-                    />
+                    <div className="relative">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={locationInput}
+                          onChange={e => {
+                            setLocationInput(e.target.value)
+                            setProfileData(prev => ({ ...prev, location: e.target.value }))
+                          }}
+                          className="input-field flex-1"
+                          placeholder="Calle y numeración en Córdoba"
+                          autoComplete="off"
+                        />
+                        <button
+                          type="button"
+                          className="p-2 rounded border flex items-center justify-center"
+                          title="Seleccionar ubicación en el mapa"
+                          onClick={() => setShowLocationModal(true)}
+                          style={{ background: 'color-mix(in oklab, var(--accent) 8%, transparent)', borderColor: 'var(--accent)' }}
+                        >
+                          <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                        </button>
+                      </div>
+                      {/* Sugerencias de autocompletado - Máximo 3 con scroll */}
+                      {locationSuggestions.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                          <div className="max-h-36 overflow-y-auto">
+                            {locationSuggestions.slice(0, 3).map((suggestion, index) => (
+                              <button
+                                key={index}
+                                type="button"
+                                className="w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors"
+                                onClick={() => {
+                                  setLocationInput(suggestion);
+                                  setProfileData(prev => ({ ...prev, location: suggestion }))
+                                  setLocationSuggestions([]);
+                                }}
+                              >
+                                <div className="flex items-center">
+                                  <svg className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                  <span className="text-sm text-gray-700">{suggestion}</span>
+                                </div>
+                              </button>
+                            ))}
+                            {locationSuggestions.length > 3 && (
+                              <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-t border-gray-200">
+                                +{locationSuggestions.length - 3} sugerencias más disponibles
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {/* Modal del mapa para seleccionar ubicación */}
+                      <ClickableMapModal
+                        isOpen={showLocationModal}
+                        onClose={() => setShowLocationModal(false)}
+                        onLocationSelect={handleLocationSelect}
+                        initialLocation={locationInput}
+                      />
+                    </div>
                   ) : (
                     <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                       <MapPin className="w-5 h-5 text-gray-400 mr-3" />
-                      <span className="text-gray-900">{profileData.location || 'No especificada'}</span>
+                      <span className="text-gray-900">{profileData.location || 'No especificada. ej: '}</span>
                     </div>
                   )}
                 </div>

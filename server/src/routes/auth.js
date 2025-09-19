@@ -406,7 +406,7 @@ router.get('/profile', async (req, res) => {
         createdAt: true
       }
     });
-    
+
     console.log('Datos del usuario encontrados:', user);
     console.log('🔍 [DEBUG] Campo createdAt del servidor:', user?.createdAt);
     console.log('🔍 [DEBUG] Tipo de createdAt del servidor:', typeof user?.createdAt);
@@ -415,7 +415,18 @@ router.get('/profile', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    res.json({ user });
+    // Si es persona y no tiene ubicación, incluir advertencia
+    let warnings = [];
+    if (user.tipo_usuario === 1 && (!user.ubicacion || user.ubicacion === '')) {
+      warnings.push({
+        type: 'warning',
+        title: 'Completa tu ubicación',
+        message: 'No tienes una ubicación registrada. Haz clic en "Acceder" para completar tu perfil.',
+        link: '/profile'
+      });
+    }
+
+    res.json({ user, warnings });
   } catch (error) {
     console.error('Error detallado al obtener perfil:', error);
     if (error.name === 'JsonWebTokenError') {

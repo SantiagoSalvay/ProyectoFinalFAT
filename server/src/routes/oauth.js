@@ -173,8 +173,19 @@ router.get('/me', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
+    // Si es persona y no tiene ubicación, incluir advertencia
+    let warnings = [];
+    if (user.tipo_usuario === 1 && (!user.ubicacion || user.ubicacion === '')) {
+      warnings.push({
+        type: 'warning',
+        title: 'Completa tu ubicación',
+        message: 'No tienes una ubicación registrada. Haz clic en "Acceder" para completar tu perfil.',
+        link: '/profile'
+      });
+    }
+
     console.log('✅ [AUTH/ME] Usuario encontrado:', user);
-    res.json({ user });
+    res.json({ user, warnings });
 
   } catch (error) {
     console.error('❌ [AUTH/ME] Error al obtener usuario:', error);

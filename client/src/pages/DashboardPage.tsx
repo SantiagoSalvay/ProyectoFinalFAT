@@ -58,6 +58,22 @@ export default function DashboardPage() {
         link: '/complete-data'
       });
     }
+    
+      // Notificación para persona sin ubicación
+      const isPersona = user?.id_usuario && user?.tipo_usuario === 1;
+      if (
+        isPersona &&
+        user != null &&
+        (!user.ubicacion || user.ubicacion === '') &&
+        !notifications.some(n => n.type === 'warning' && n.title === 'Completa tu ubicación')
+      ) {
+        addNotification({
+          type: 'warning',
+          title: 'Completa tu ubicación',
+          message: 'No tienes una ubicación registrada. Haz clic en "Acceder" para completar tu perfil.',
+          link: '/profile'
+        });
+      }
   }, [isONG, user, loadingTipoONG, tipoONG, notifications, addNotification]);
 
   return (
