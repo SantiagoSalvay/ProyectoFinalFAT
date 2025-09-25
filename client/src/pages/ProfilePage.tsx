@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import ClickableMapModal from '../components/ClickableMapModal'
 import { useAuth } from '../contexts/AuthContext'
 import { toast } from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 import { 
   User, 
   Building, 
@@ -18,6 +19,7 @@ import {
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
+  const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     name: '',
@@ -448,7 +450,18 @@ export default function ProfilePage() {
             <div className="card p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
               <div className="space-y-3">
-                <button className="w-full btn-primary text-sm">
+                <button 
+                  className="w-full btn-primary text-sm"
+                  onClick={() => {
+                    if (isONG) {
+                      // Para ONGs: Crear Campaña (funcionalidad futura)
+                      console.log('Crear Campaña - funcionalidad pendiente');
+                    } else {
+                      // Para usuarios: Buscar ONGs
+                      navigate('/ongs');
+                    }
+                  }}
+                >
                   {isONG ? 'Crear Campaña' : 'Buscar ONGs'}
                 </button>
                 <button className="w-full btn-secondary text-sm">
