@@ -5,7 +5,7 @@ import session from 'express-session';
 import authRoutes from './routes/auth.js';
 import oauthRoutes from './routes/oauth.js';
 import forumRoutes from './routes/forum.js';
-import mercadopagoRoutes from '../routes/mercadopago.js';
+import mercadopagoRoutes from './routes/mercadopago.js';
 import passport from './config/passport.js';
 
 // Cargar variables de entorno desde el directorio raíz

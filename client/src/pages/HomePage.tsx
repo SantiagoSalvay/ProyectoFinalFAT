@@ -173,7 +173,7 @@ export default function HomePage() {
               to="/login"
               className="btn-secondary text-lg px-8 py-4"
             >
-              Ya tengo cuenta
+              Ya Tengo Cuenta
             </Link>
           </div>
         </div>
