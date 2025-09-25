@@ -464,7 +464,17 @@ export default function ProfilePage() {
                 >
                   {isONG ? 'Crear Campaña' : 'Buscar ONGs'}
                 </button>
-                <button className="w-full btn-secondary text-sm">
+                <button className="w-full btn-secondary text-sm"
+                  onClick={() => {
+                    if (isONG) {
+                      // Para ONGs: Gestionar Voluntarios (funcionalidad futura)
+                      console.log('Gestionar Voluntarios - funcionalidad pendiente');
+                    } else {
+                      // Para usuarios: Ver Oportunidades
+                      navigate('/forum');
+                    }
+                  }}
+                >
                   {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades'}
                 </button>
                 <button className="w-full btn-accent text-sm">

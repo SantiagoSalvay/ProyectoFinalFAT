@@ -233,7 +233,18 @@ export default function DashboardPage() {
                 >
                   {isONG ? 'Crear Nueva Campaña' : 'Buscar Organizaciones'}
                 </button>
-                <button className="w-full btn-secondary text-sm">
+                <button 
+                  className="w-full btn-secondary text-sm"
+                  onClick={() => {
+                    if (isONG) {
+                      // Para ONGs: Gestionar Voluntarios (funcionalidad futura)
+                      console.log('Gestionar Voluntarios - funcionalidad pendiente');
+                    } else {
+                      // Para usuarios: Ver Oportunidades de Voluntariado
+                      navigate('/forum');
+                    }
+                  }}
+                >
                   {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades de Voluntariado'}
                 </button>
                 <button className="w-full btn-accent text-sm">
