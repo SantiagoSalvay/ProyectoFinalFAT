@@ -49,7 +49,7 @@ class ApiService {
   // Obtener datos de TipoONG por id de usuario
   async getTipoONGById(id_usuario: number) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/profile/tipoong?id=${id_usuario}`, {
+      const response = await fetch(`${API_BASE_URL}/auth/profile/tipoong/${id_usuario}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -79,6 +79,25 @@ router.get('/profile/tipoong', async (req, res) => {
   }
 });
 
+// Obtener datos de tipoONG por ID de usuario específico
+router.get('/profile/tipoong/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: 'ID de usuario requerido' });
+    }
+
+    const tipoOng = await prisma.TipoONG.findFirst({
+      where: { usuarioId: parseInt(id) }
+    });
+
+    res.json({ tipoONG: tipoOng });
+  } catch (error) {
+    console.error('Error al obtener tipoONG por ID:', error);
+    res.status(500).json({ error: 'Error al obtener tipoONG' });
+  }
+});
+
 // Guardar datos de tipoONG, grupo_social y necesidades
 router.post('/profile/tipoong', async (req, res) => {
   try {
