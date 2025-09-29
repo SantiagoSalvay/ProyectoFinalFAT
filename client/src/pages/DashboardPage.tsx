@@ -219,13 +219,34 @@ export default function DashboardPage() {
               </h3>
               
               <div className="space-y-3">
-                <button className="w-full btn-primary text-sm">
+                <button
+                  className="w-full btn-primary text-sm"
+                  onClick={() => {
+                    if (!isONG) {
+                      navigate('/ranking');
+                    }
+                  }}
+                >
                   {isONG ? 'Crear Nueva Campaña' : 'Buscar Organizaciones'}
                 </button>
-                <button className="w-full btn-secondary text-sm">
+                <button
+                  className="w-full btn-secondary text-sm"
+                  onClick={() => {
+                    if (!isONG) {
+                      navigate('/forum?filtro=voluntariado');
+                    }
+                  }}
+                >
                   {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades de Voluntariado'}
                 </button>
-                <button className="w-full btn-accent text-sm">
+                <button
+                  className="w-full btn-accent text-sm"
+                  onClick={() => {
+                    if (!isONG) {
+                      navigate('/donations-history');
+                    }
+                  }}
+                >
                   {isONG ? 'Ver Reportes' : 'Ver Mi Historial'}
                 </button>
                 <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors">

@@ -17,6 +17,21 @@ export interface User {
 
 // Clase API
 class ApiService {
+  // Obtener donaciones realizadas por el usuario autenticado
+  async getDonacionesRealizadas() {
+    try {
+      const response = await this.request<any[]>('/auth/donaciones/realizadas', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${this.getToken()}`
+        }
+      });
+      return response;
+    } catch (error) {
+      console.error('Error al obtener donaciones realizadas:', error);
+      throw error;
+    }
+  }
   // Obtener datos de TipoONG por id de usuario
   async getTipoONGById(id_usuario: number) {
     try {

@@ -62,6 +62,18 @@ export default function ForumPage() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
+
+  // Leer filtro desde query param al montar
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const filtro = params.get('filtro');
+    if (filtro === 'voluntariado' || filtro === 'volunteering') {
+      setSelectedFilter('volunteering');
+    }
+    if (filtro === 'donaciones' || filtro === 'donations') {
+      setSelectedFilter('donations');
+    }
+  }, []);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
