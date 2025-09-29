@@ -11,6 +11,47 @@ import { passwordResetService } from '../../lib/password-reset-service.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Historial de donaciones realizadas por el usuario autenticado
+router.get('/donaciones/realizadas', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    const userId = decoded.userId;
+
+    // Busca las donaciones realizadas por el usuario
+    const donaciones = await prisma.PedidoDonacion.findMany({
+      where: { usuarioId: userId },
+      include: {
+        destinatario: {
+          select: { nombre: true, usuario: true, correo: true }
+        }
+      },
+      orderBy: { fecha: 'desc' }
+    });
+
+    // Formatea la respuesta
+    const result = donaciones.map(d => ({
+      id: d.id,
+      amount: d.monto,
+      date: d.fecha,
+      recipient: {
+        name: d.destinatario?.nombre || d.destinatario?.usuario || d.destinatario?.correo || '',
+        organization: d.destinatario?.usuario || undefined
+      },
+      message: d.mensaje || ''
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error al obtener donaciones realizadas:', error);
+    res.status(500).json({ error: 'Error al obtener donaciones realizadas' });
+  }
+});
+
 // Obtener datos de tipoONG, grupo_social y necesidades
 router.get('/profile/tipoong', async (req, res) => {
   try {
