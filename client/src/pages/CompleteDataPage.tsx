@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useONGNotifications } from '../hooks/useONGNotifications';
 
 const GROUP_OPTIONS = [
   'Niños',
@@ -27,6 +28,7 @@ export default function CompleteDataPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { clearMissingDataNotification } = useONGNotifications();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +40,8 @@ export default function CompleteDataPage() {
     setLoading(true);
     try {
       await api.saveTipoONG({ grupo_social: group, necesidad: need });
+      // Limpiar notificación de datos faltantes
+      clearMissingDataNotification();
       navigate('/dashboard');
     } catch (err) {
       setError('Error al guardar los datos. Intenta nuevamente.');

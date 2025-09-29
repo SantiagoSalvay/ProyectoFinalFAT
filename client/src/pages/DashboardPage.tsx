@@ -3,6 +3,7 @@ import { Heart, Users, DollarSign, Calendar, TrendingUp, Award, MapPin, Building
 
 import React, { useEffect, useState } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useONGNotifications } from '../hooks/useONGNotifications';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const [tipoONG, setTipoONG] = useState<{ grupo_social?: string | null; necesidad?: string | null } | null>(null);
   const [loadingTipoONG, setLoadingTipoONG] = useState(true);
   const { addNotification, notifications, removeNotification } = useNotifications();
+  const { isONG: isONGUser } = useONGNotifications();
 
   useEffect(() => {
     const fetchTipoONG = async () => {
@@ -41,40 +43,24 @@ export default function DashboardPage() {
     fetchTipoONG();
   }, [isONG]);
 
-  // Mostrar la notificación solo cuando tipoONG esté listo
+  // Notificación para persona sin ubicación
   useEffect(() => {
-    console.log('DEBUG tipoONG:', tipoONG, 'isONG:', isONG, 'isAuthenticated:', user != null, 'loadingTipoONG:', loadingTipoONG, 'notifications:', notifications);
+    const isPersona = user?.id_usuario && user?.tipo_usuario === 1;
     if (
-      isONG &&
+      isPersona &&
       user != null &&
-      !loadingTipoONG &&
-      (!tipoONG || !tipoONG.grupo_social || !tipoONG.necesidad) &&
-      !notifications.some(n => n.type === 'warning' && n.title === 'Completa tus datos de ONG')
+      (!user.ubicacion || user.ubicacion === '') &&
+      !notifications.some(n => n.type === 'warning' && n.title === 'Completa tu ubicación')
     ) {
       addNotification({
+        id: 'person-missing-location',
         type: 'warning',
-        title: 'Completa tus datos de ONG',
-        message: 'Tienes datos faltantes en tu perfil de ONG. Haz clic en "Acceder" para completar tu grupo social y necesidad.',
-        link: '/complete-data'
+        title: 'Completa tu ubicación',
+        message: 'No tienes una ubicación registrada. Haz clic en "Acceder" para completar tu perfil.',
+        link: '/profile'
       });
     }
-    
-      // Notificación para persona sin ubicación
-      const isPersona = user?.id_usuario && user?.tipo_usuario === 1;
-      if (
-        isPersona &&
-        user != null &&
-        (!user.ubicacion || user.ubicacion === '') &&
-        !notifications.some(n => n.type === 'warning' && n.title === 'Completa tu ubicación')
-      ) {
-        addNotification({
-          type: 'warning',
-          title: 'Completa tu ubicación',
-          message: 'No tienes una ubicación registrada. Haz clic en "Acceder" para completar tu perfil.',
-          link: '/profile'
-        });
-      }
-  }, [isONG, user, loadingTipoONG, tipoONG, notifications, addNotification]);
+  }, [user, notifications, addNotification]);
 
   return (
     <div className="min-h-screen bg-gray-50">

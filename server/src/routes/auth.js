@@ -462,6 +462,7 @@ router.get('/profile', async (req, res) => {
         usuario: true,
         correo: true,
         ubicacion: true,
+        bio: true,
         tipo_usuario: true,
         createdAt: true
       }
@@ -945,13 +946,14 @@ router.put('/profile', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     
-    const { nombre, apellido, ubicacion } = req.body;
+    const { nombre, apellido, ubicacion, bio } = req.body;
 
     // Filtrar campos undefined para evitar errores
     const updateData = {};
     if (nombre !== undefined) updateData.nombre = nombre;
     if (apellido !== undefined) updateData.apellido = apellido;
     if (ubicacion !== undefined) updateData.ubicacion = ubicacion;
+    if (bio !== undefined) updateData.bio = bio;
 
     console.log('Datos a actualizar:', updateData);
 
@@ -965,6 +967,7 @@ router.put('/profile', async (req, res) => {
         apellido: true,
         correo: true,
         ubicacion: true,
+        bio: true,
         tipo_usuario: true,
         createdAt: true
       }

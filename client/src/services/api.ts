@@ -11,6 +11,7 @@ export interface User {
   nombre?: string;
   apellido?: string;
   ubicacion?: string;
+  bio?: string;
   createdAt?: Date;
   tipo_usuario?: number;
 }
@@ -339,6 +340,7 @@ class ApiService {
     nombre?: string;
     apellido?: string;
     ubicacion?: string;
+    bio?: string;
   }) {
     try {
       console.log('Actualizando perfil con datos:', profileData);
