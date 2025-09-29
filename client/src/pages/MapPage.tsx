@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api'
-import { api, User } from '../services/api'
+import { api, ONG } from '../services/api'
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC33z7pXbXF16KbIDIXX-ZhBOLRNWqVAoo'
 import { Heart, MapPin, Building, Users, Star, ExternalLink } from 'lucide-react'
 
-// Interfaz para ONG
-interface ONG {
+// Interfaz para ONG con datos del mapa
+interface ONGWithLocation {
   id: number
   name: string
   location: string
   latitude?: number
   longitude?: number
   group: string
+  need: string
   rating: number
   volunteers_count: number
   projects_count: number
@@ -49,9 +50,9 @@ export default function MapPage() {
     setGeoError('No se pudo cargar el mapa. Verifica tu API key de LocationIQ o espera unos minutos si excediste el límite de peticiones.');
   };
   // Estados y hooks primero
-  const [ongs, setOngs] = useState<ONG[]>([])
+  const [ongs, setOngs] = useState<ONGWithLocation[]>([])
   const [geoLoading, setGeoLoading] = useState(false)
-  const [selectedONG, setSelectedONG] = useState<ONG | null>(null)
+  const [selectedONG, setSelectedONG] = useState<ONGWithLocation | null>(null)
   const [loading, setLoading] = useState(true)
   const [needFilter, setNeedFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
@@ -85,7 +86,7 @@ export default function MapPage() {
 
   // Filtrado de ONGs por necesidad y grupo social
   const filteredOngs = ongs.filter(ong => {
-    const needMatch = needFilter === '' || ong.description.toLowerCase().includes(needFilter.toLowerCase())
+    const needMatch = needFilter === '' || ong.need.toLowerCase().includes(needFilter.toLowerCase())
     const groupMatch = groupFilter === '' || ong.group === groupFilter
     return needMatch && groupMatch
   })
@@ -129,7 +130,7 @@ export default function MapPage() {
     setLoading(true)
     setGeoLoading(true)
     try {
-      const users = await api.getONGs()
+      const response = await api.getONGs()
       const grupos = [
         'Niños',
         'Gente mayor',
@@ -141,43 +142,43 @@ export default function MapPage() {
       ];
       
       // Geocodificar cada ubicación usando Google Maps y obtener grupo/necesidad reales
-      const geocodePromises = users.map(async (user) => {
+      const geocodePromises = response.ongs.map(async (ong) => {
         let latitude: number | undefined = undefined;
         let longitude: number | undefined = undefined;
-        if (user.ubicacion) {
+        if (ong.location) {
           try {
-            const coordinates = await geocodeAddress(user.ubicacion);
+            const coordinates = await geocodeAddress(ong.location);
             if (coordinates) {
               latitude = coordinates.lat;
               longitude = coordinates.lng;
             }
           } catch (err: any) {
-            console.error('Error geocodificando ubicación:', user.ubicacion, err);
+            console.error('Error geocodificando ubicación:', ong.location, err);
           }
         }
         // Obtener grupo_social y necesidad desde la base de datos
         let group = 'Otros';
         let need = 'Otros';
         try {
-          const tipoONG = await api.getTipoONGById(user.id_usuario);
+          const tipoONG = await api.getTipoONGById(ong.id);
           if (tipoONG?.grupo_social) group = tipoONG.grupo_social;
           if (tipoONG?.necesidad) need = tipoONG.necesidad;
         } catch {}
         return {
-          id: user.id_usuario,
-          name: user.nombre || user.usuario,
-          location: user.ubicacion || 'Ubicación no especificada',
+          id: ong.id,
+          name: ong.name,
+          location: ong.location || 'Ubicación no especificada',
           latitude,
           longitude,
           group,
           need,
-          rating: 3.5 + Math.random() * 1.5,
-          volunteers_count: Math.floor(Math.random() * 100) + 10,
-          projects_count: Math.floor(Math.random() * 20) + 1,
-          description: `ONG dedicada a ayudar a la comunidad. ${user.ubicacion ? `Ubicada en ${user.ubicacion}.` : ''}`,
-          email: user.correo,
-          phone: '+54 11 1234-5678',
-          website: `https://${user.usuario}.org`
+          rating: ong.rating,
+          volunteers_count: ong.volunteers_count,
+          projects_count: ong.projects_count,
+          description: ong.description,
+          email: ong.email,
+          phone: ong.phone,
+          website: ong.website
         }
       });
       const ongsWithLocation = await Promise.all(geocodePromises);
