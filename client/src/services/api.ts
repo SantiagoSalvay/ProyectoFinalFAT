@@ -1,5 +1,5 @@
 
-const API_BASE_URL = '';
+const API_BASE_URL = 'http://localhost:3001';
 
 export type UserRole = 'person' | 'ong';
 
@@ -13,6 +13,20 @@ export interface User {
   ubicacion?: string;
   createdAt?: Date;
   tipo_usuario?: number;
+}
+
+export interface ONG {
+  id: number;
+  name: string;
+  description: string;
+  location: string;
+  email: string;
+  type: 'public' | 'private';
+  rating: number;
+  volunteers_count: number;
+  projects_count: number;
+  website: string;
+  phone: string;
 }
 
 // Clase API
@@ -71,14 +85,30 @@ class ApiService {
     }
   }
   // Obtener ONGs (usuarios tipo 2)
-  async getONGs() {
+  async getONGs(filters?: { type?: string; location?: string }) {
     try {
-      const response = await this.request<{ ongs: User[] }>('/auth/ongs', {
+      const queryParams = new URLSearchParams();
+      if (filters?.type) queryParams.append('type', filters.type);
+      if (filters?.location) queryParams.append('location', filters.location);
+      
+      const queryString = queryParams.toString();
+      const endpoint = `/api/ongs${queryString ? `?${queryString}` : ''}`;
+      
+      console.log('🔍 [API] Obteniendo ONGs desde:', `${API_BASE_URL}${endpoint}`);
+      console.log('🔍 [API] Filtros aplicados:', filters);
+      
+      const response = await this.request<{ ongs: ONG[] }>(endpoint, {
         method: 'GET'
       });
-      return response.ongs;
+      
+      console.log('✅ [API] ONGs obtenidas exitosamente:', response.ongs?.length || 0, 'ONGs');
+      return response;
     } catch (error) {
-      console.error('Error al obtener ONGs:', error);
+      console.error('❌ [API] Error al obtener ONGs:', error);
+      console.error('❌ [API] Detalles del error:', {
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }
@@ -151,34 +181,46 @@ class ApiService {
     };
 
     try {
+      console.log('🌐 [API] Haciendo petición:', {
+        url,
+        method: options.method || 'GET',
+        headers: Object.keys(headers)
+      });
+      
       const response = await fetch(url, config);
-      console.log('Respuesta recibida:', {
+      console.log('📡 [API] Respuesta recibida:', {
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
+        ok: response.ok,
+        url: response.url
       });
       
       let data;
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
-        console.log('Datos recibidos:', data);
+        console.log('📦 [API] Datos JSON recibidos:', data);
       } else {
         data = await response.text();
-        console.log('Texto recibido:', data);
+        console.log('📄 [API] Texto recibido:', data);
       }
 
       if (!response.ok) {
-        throw new Error(typeof data === 'object' ? data.error : `HTTP error! status: ${response.status}`);
+        const errorMessage = typeof data === 'object' && data.error 
+          ? data.error 
+          : `HTTP error! status: ${response.status} - ${response.statusText}`;
+        console.error('❌ [API] Error HTTP:', errorMessage);
+        throw new Error(errorMessage);
       }
 
+      console.log('✅ [API] Petición exitosa');
       return data;
     } catch (error) {
-      console.error('Error detallado en la API:', {
-        error,
+      console.error('💥 [API] Error en la petición:', {
+        error: error instanceof Error ? error.message : error,
         url,
         method: options.method,
-        headers,
+        headers: Object.keys(headers),
         body: options.body ? JSON.parse(options.body as string) : undefined
       });
       throw error;
@@ -364,6 +406,39 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al crear publicación:', error);
+      throw error;
+    }
+  }
+
+  // Métodos para ONGs
+  async rateONG(ongId: number, rating: number, comment: string) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/ongs/${ongId}/rate`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ rating, comment }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al calificar ONG:', error);
+      throw error;
+    }
+  }
+
+  async commentONG(ongId: number, content: string) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/ongs/${ongId}/comment`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ content }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al comentar ONG:', error);
       throw error;
     }
   }

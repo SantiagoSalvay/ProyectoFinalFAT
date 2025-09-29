@@ -79,11 +79,13 @@ export default function Footer() {
                   Nuestra Misión
                 </Link>
               </li>
-              <li>
-                <Link to="/ongs" className="text-gray-300 hover:text-white transition-colors">
-                  ONGs
-                </Link>
-              </li>
+              {isAuthenticated && (
+                <li>
+                  <Link to="/ongs" className="text-gray-300 hover:text-white transition-colors">
+                    ONGs
+                  </Link>
+                </li>
+              )}
               {isAuthenticated && (
                 <>
                   <li>

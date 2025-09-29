@@ -22,6 +22,7 @@ model Usuario {
   contrasena                String?
   tipo_usuario              Int
   ubicacion                 String?
+  bio                       String?
   createdAt                 DateTime         @default(now())
   email_verified            Boolean          @default(false)
   reset_token               String?

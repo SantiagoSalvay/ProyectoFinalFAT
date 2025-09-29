@@ -5,7 +5,8 @@ import session from 'express-session';
 import authRoutes from './routes/auth.js';
 import oauthRoutes from './routes/oauth.js';
 import forumRoutes from './routes/forum.js';
-import mercadopagoRoutes from '../routes/mercadopago.js';
+import ongsRoutes from './routes/ongs.js';
+import mercadopagoRoutes from './routes/mercadopago.js';
 import passport from './config/passport.js';
 
 // Cargar variables de entorno desde el directorio raíz
@@ -41,6 +42,7 @@ app.use(passport.session());
 app.use('/auth', authRoutes);
 app.use('/api/auth', oauthRoutes);
 app.use('/api/forum', forumRoutes);
+app.use('/api/ongs', ongsRoutes);
 app.use('/mercadopago', mercadopagoRoutes);
 
 // Ruta de prueba

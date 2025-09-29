@@ -47,11 +47,7 @@ function App() {
                   <MissionPage />
                 </UnauthenticatedOnlyRoute>
               } />
-              <Route path="/ongs" element={
-                <UnauthenticatedOnlyRoute>
-                  <ONGsPage />
-                </UnauthenticatedOnlyRoute>
-              } />
+              <Route path="/ongs" element={<ONGsPage />} />
               
               {/* Rutas solo para usuarios registrados */}
               <Route path="/donaciones" element={

@@ -8,13 +8,13 @@ import { useNavigate } from 'react-router-dom';
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   // Considera ONG si tipo_usuario === 2 (igual que ProfilePage)
   const isONG = user?.id_usuario && user?.tipo_usuario === 2
 
   const [tipoONG, setTipoONG] = useState<{ grupo_social?: string | null; necesidad?: string | null } | null>(null);
   const [loadingTipoONG, setLoadingTipoONG] = useState(true);
-  const navigate = useNavigate();
   const { addNotification, notifications, removeNotification } = useNotifications();
 
   useEffect(() => {
