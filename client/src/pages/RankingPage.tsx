@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import { api, User } from '../services/api'
+import React, { useState, useEffect } from 'react'
+import { api, ONG } from '../services/api'
 import { Trophy, Star, Users, Heart, TrendingUp, Award, Filter, Search, Building } from 'lucide-react'
 
 export default function RankingPage() {
-  const [ongs, setOngs] = useState<User[]>([])
+  const [ongs, setOngs] = useState<ONG[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [sortBy, setSortBy] = useState('impact')
@@ -14,11 +14,11 @@ export default function RankingPage() {
     const fetchOngs = async () => {
       try {
         setLoading(true)
-        const data = await api.getONGs()
-        setOngs(data)
+        const response = await api.getONGs()
+        setOngs(response.ongs)
         // Simulación de estadísticas
         setStats({
-          total_ongs: data.length,
+          total_ongs: response.ongs.length,
           avg_impact: 4.2,
           total_volunteers: 120,
           total_projects: 35
@@ -180,15 +180,15 @@ export default function RankingPage() {
               <div className="p-6 text-center text-gray-500">No hay ONGs registradas.</div>
             ) : (
               ongs.map((ong) => (
-                <div key={ong.id_usuario} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={ong.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
                       <Building className="w-8 h-8 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{ong.nombre || ong.usuario}</h3>
-                      <p className="text-sm text-gray-600">{ong.correo}</p>
-                      <p className="text-sm text-gray-600">{ong.ubicacion}</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{ong.name}</h3>
+                      <p className="text-sm text-gray-600">{ong.email}</p>
+                      <p className="text-sm text-gray-600">{ong.location}</p>
                     </div>
                   </div>
                 </div>
