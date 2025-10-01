@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { toast } from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { Eye, EyeOff, ArrowLeft, Heart } from 'lucide-react'
 import SocialLoginButtons from '../components/SocialLoginButtons'
+import { useLoginLoading } from '../hooks/useAuthLoading'
+import { ButtonLoading } from '../components/GlobalLoading'
+import { LoadingText } from '../components/LoadingDots'
 
 interface LoginFormData {
   email: string
@@ -13,7 +15,8 @@ interface LoginFormData {
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const { login, isLoading } = useAuth()
+  const { login } = useAuth()
+  const { isLoading, message, withLoginLoading } = useLoginLoading()
   const navigate = useNavigate()
 
   const {
@@ -22,15 +25,10 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>()
 
-  const onSubmit = async (data: LoginFormData) => {
-    try {
-      await login(data.email, data.password)
-      toast.success('¡Bienvenido de vuelta!')
-      navigate('/dashboard')
-    } catch (error) {
-      toast.error('Credenciales inválidas. Inténtalo de nuevo.')
-    }
-  }
+  const onSubmit = withLoginLoading(async (data: LoginFormData) => {
+    await login(data.email, data.password)
+    navigate('/dashboard')
+  })
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--color-bg)' }}>
@@ -123,9 +121,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg"
             >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              <ButtonLoading isLoading={isLoading} variant="dots">
+                {isLoading ? message : 'Iniciar sesión'}
+              </ButtonLoading>
             </button>
           </form>
 
