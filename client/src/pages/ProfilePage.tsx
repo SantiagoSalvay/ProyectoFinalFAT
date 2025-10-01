@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import ClickableMapModal from '../components/ClickableMapModal'
 import { useAuth } from '../contexts/AuthContext'
+import { useONGNotifications } from '../hooks/useONGNotifications'
 import { toast } from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 import { 
   User, 
   Building, 
@@ -18,11 +20,14 @@ import {
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
+  const navigate = useNavigate()
+  const { clearMissingDataNotification } = useONGNotifications()
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
-    location: ''
+    location: '',
+    bio: ''
   })
 
   // Autocompletado de ubicación con LocationIQ
@@ -36,7 +41,7 @@ export default function ProfilePage() {
   } | null>(null);
 
   // Usar la variable de entorno VITE_LOCATIONIQ_API_KEY
-  const LOCATIONIQ_API_KEY = import.meta.env.VITE_LOCATIONIQ_API_KEY
+  const LOCATIONIQ_API_KEY = (import.meta as any).env?.VITE_LOCATIONIQ_API_KEY
 
   // Debounce para evitar rate limit
   useEffect(() => {
@@ -128,7 +133,8 @@ export default function ProfilePage() {
       setProfileData({
         name: fullName,
         email: user.correo || '',
-        location: user.ubicacion || ''
+        location: user.ubicacion || '',
+        bio: user.bio || ''
       })
     }
   }, [user, isONG])
@@ -153,7 +159,8 @@ export default function ProfilePage() {
       const updateData = {
         nombre,
         apellido,
-        ubicacion: profileData.location || ''
+        ubicacion: profileData.location || '',
+        bio: profileData.bio || ''
       }
 
       console.log('📤 Datos a enviar al backend:', updateData)
@@ -161,6 +168,11 @@ export default function ProfilePage() {
       
       // Llamar a la función updateProfile del contexto
       await updateProfile(updateData)
+      
+      // Limpiar notificación de datos faltantes si se completó la biografía
+      if (updateData.bio && updateData.bio.trim() !== '') {
+        clearMissingDataNotification();
+      }
       
       console.log('✅ Perfil guardado exitosamente')
       setIsEditing(false)
@@ -189,7 +201,8 @@ export default function ProfilePage() {
       setProfileData({
         name: fullName,
         email: user.correo || '',
-        location: user.ubicacion || ''
+        location: user.ubicacion || '',
+        bio: user.bio || ''
       })
     }
     setIsEditing(false)
@@ -347,7 +360,27 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-
+                {/* Bio */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {isONG ? 'Descripción de la Organización' : 'Biografía'}
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+                      className="input-field min-h-[100px] resize-y"
+                      placeholder={isONG ? "Describe tu organización, misión y objetivos..." : "Cuéntanos sobre ti..."}
+                      rows={4}
+                    />
+                  ) : (
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-900 whitespace-pre-wrap">
+                        {profileData.bio || (isONG ? 'No hay descripción de la organización' : 'No hay biografía disponible')}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Member Since */}
                 <div>
@@ -444,7 +477,42 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Quick Actions removidas del perfil según requerimiento */}
+            {/* Quick Actions */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+              <div className="space-y-3">
+                <button 
+                  className="w-full btn-primary text-sm"
+                  onClick={() => {
+                    if (isONG) {
+                      // Para ONGs: Crear Campaña (funcionalidad futura)
+                      console.log('Crear Campaña - funcionalidad pendiente');
+                    } else {
+                      // Para usuarios: Buscar ONGs
+                      navigate('/ongs');
+                    }
+                  }}
+                >
+                  {isONG ? 'Crear Campaña' : 'Buscar ONGs'}
+                </button>
+                <button className="w-full btn-secondary text-sm"
+                  onClick={() => {
+                    if (isONG) {
+                      // Para ONGs: Gestionar Voluntarios (funcionalidad futura)
+                      console.log('Gestionar Voluntarios - funcionalidad pendiente');
+                    } else {
+                      // Para usuarios: Ver Oportunidades
+                      navigate('/forum');
+                    }
+                  }}
+                >
+                  {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades'}
+                </button>
+                <button className="w-full btn-accent text-sm">
+                  Ver Historial
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

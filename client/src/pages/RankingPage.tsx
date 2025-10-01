@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
-import { api, User } from '../services/api'
+import React, { useState, useEffect } from 'react'
+import { api, ONG } from '../services/api'
 import { Trophy, Star, Users, Heart, TrendingUp, Award, Filter, Search, Building } from 'lucide-react'
 
 export default function RankingPage() {
-  const [ongs, setOngs] = useState<User[]>([])
+  const [ongs, setOngs] = useState<ONG[]>([])
+  const [ongsWithCategories, setOngsWithCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [sortBy, setSortBy] = useState('impact')
@@ -14,11 +15,35 @@ export default function RankingPage() {
     const fetchOngs = async () => {
       try {
         setLoading(true)
-        const data = await api.getONGs()
-        setOngs(data)
+        const response = await api.getONGs()
+        setOngs(response.ongs)
+        
+        // Cargar datos de TipoONG para cada ONG y asignar categorías por defecto
+        const ongsWithCategories = await Promise.all(
+          response.ongs.map(async (ong) => {
+            try {
+              const tipoONG = await api.getTipoONGById(ong.id)
+              return {
+                ...ong,
+                grupo_social: tipoONG?.grupo_social || 'Otros',
+                necesidad: tipoONG?.necesidad || 'General'
+              }
+            } catch (error) {
+              console.error(`Error al cargar TipoONG para ONG ${ong.id}:`, error)
+              return {
+                ...ong,
+                grupo_social: 'Otros',
+                necesidad: 'General'
+              }
+            }
+          })
+        )
+        
+        setOngsWithCategories(ongsWithCategories)
+        
         // Simulación de estadísticas
         setStats({
-          total_ongs: data.length,
+          total_ongs: response.ongs.length,
           avg_impact: 4.2,
           total_volunteers: 120,
           total_projects: 35
@@ -51,6 +76,13 @@ export default function RankingPage() {
       default: return <span className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-sm font-semibold">{position}</span>
     }
   }
+
+  // Filtrado de ONGs por grupo social y ubicación
+  const filteredOngs = ongsWithCategories.filter(ong => {
+    const groupMatch = groupFilter === '' || ong.grupo_social === groupFilter
+    const locationMatch = location === '' || ong.location.toLowerCase().includes(location.toLowerCase())
+    return groupMatch && locationMatch
+  })
 
   if (loading) {
     return (
@@ -156,13 +188,13 @@ export default function RankingPage() {
                 className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">Todos los grupos</option>
-                <option value="niños">Niños</option>
-                <option value="ancianos">Ancianos</option>
-                <option value="mujeres">Mujeres</option>
-                <option value="animales">Animales</option>
-                <option value="personas con discapacidad">Personas con discapacidad</option>
-                <option value="familias">Familias</option>
-                <option value="otros">Otros</option>
+                <option value="Niños">Niños</option>
+                <option value="Gente mayor">Gente mayor</option>
+                <option value="Mujeres">Mujeres</option>
+                <option value="Animales">Animales</option>
+                <option value="Personas con discapacidad">Personas con discapacidad</option>
+                <option value="Familias">Familias</option>
+                <option value="Otros">Otros</option>
               </select>
             </div>
           </div>
@@ -176,19 +208,29 @@ export default function RankingPage() {
             </h2>
           </div>
           <div className="divide-y divide-gray-200">
-            {ongs.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">No hay ONGs registradas.</div>
+            {filteredOngs.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">No hay ONGs que coincidan con los filtros seleccionados.</div>
             ) : (
-              ongs.map((ong) => (
-                <div key={ong.id_usuario} className="p-6 hover:bg-gray-50 transition-colors">
+              filteredOngs.map((ong, index) => (
+                <div key={ong.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      <Building className="w-8 h-8 text-purple-600" />
+                      {getRankIcon(index + 1)}
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{ong.nombre || ong.usuario}</h3>
-                      <p className="text-sm text-gray-600">{ong.correo}</p>
-                      <p className="text-sm text-gray-600">{ong.ubicacion}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">{ong.name}</h3>
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {ong.grupo_social}
+                          </span>
+                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {ong.necesidad}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600">{ong.email}</p>
+                      <p className="text-sm text-gray-600">{ong.location}</p>
                     </div>
                   </div>
                 </div>

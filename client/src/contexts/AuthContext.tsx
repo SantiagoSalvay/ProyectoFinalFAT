@@ -32,6 +32,7 @@ interface UpdateProfileData {
   nombre?: string
   apellido?: string
   ubicacion?: string
+  bio?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)

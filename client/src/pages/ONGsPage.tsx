@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { api, ONG } from '../services/api'
-import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye, EyeOff } from 'lucide-react'
+import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function ONGsPage() {
   const [ongs, setOngs] = useState<ONG[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'public' | 'private'>('all')
   const [locationFilter, setLocationFilter] = useState('')
@@ -18,7 +19,8 @@ export default function ONGsPage() {
   const loadONGs = async () => {
     try {
       setLoading(true)
-      const filters: any = {}
+      setError(null)
+      const filters: { type?: string; location?: string } = {}
       
       if (typeFilter !== 'all') {
         filters.type = typeFilter
@@ -28,10 +30,14 @@ export default function ONGsPage() {
         filters.location = locationFilter
       }
       
-      const { ongs } = await api.getONGs(filters)
-      setOngs(ongs)
+      console.log('Cargando ONGs con filtros:', filters)
+      const response = await api.getONGs(filters)
+      console.log('ONGs recibidas:', response.ongs)
+      setOngs(response.ongs)
     } catch (error) {
       console.error('Error loading ONGs:', error)
+      setError('Error al cargar las ONGs. Por favor, verifica tu conexión e intenta nuevamente.')
+      setOngs([])
     } finally {
       setLoading(false)
     }
@@ -45,28 +51,56 @@ export default function ONGsPage() {
 
   const handleRateONG = async (ongId: number, rating: number, comment: string) => {
     try {
+      console.log('Calificando ONG:', { ongId, rating, comment })
       await api.rateONG(ongId, rating, comment)
+      console.log('Calificación enviada exitosamente')
       // Recargar ONGs para actualizar calificaciones
       loadONGs()
     } catch (error) {
       console.error('Error rating ONG:', error)
+      alert('Error al enviar la calificación. Por favor, intenta nuevamente.')
     }
   }
 
   const handleCommentONG = async (ongId: number, content: string) => {
     try {
+      console.log('Comentando ONG:', { ongId, content })
       await api.commentONG(ongId, content)
+      console.log('Comentario enviado exitosamente')
       // Recargar ONGs para actualizar comentarios
       loadONGs()
     } catch (error) {
       console.error('Error commenting ONG:', error)
+      alert('Error al enviar el comentario. Por favor, intenta nuevamente.')
     }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando ONGs...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p className="font-semibold">Error al cargar las ONGs</p>
+            <p className="text-sm">{error}</p>
+          </div>
+          <button
+            onClick={loadONGs}
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     )
   }
@@ -88,6 +122,17 @@ export default function ONGsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filtros y búsqueda */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Filtros y Búsqueda</h2>
+            <button
+              onClick={loadONGs}
+              disabled={loading}
+              className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Actualizar</span>
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />

@@ -11,6 +11,47 @@ import { passwordResetService } from '../../lib/password-reset-service.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Historial de donaciones realizadas por el usuario autenticado
+router.get('/donaciones/realizadas', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    const userId = decoded.userId;
+
+    // Busca las donaciones realizadas por el usuario
+    const donaciones = await prisma.PedidoDonacion.findMany({
+      where: { usuarioId: userId },
+      include: {
+        destinatario: {
+          select: { nombre: true, usuario: true, correo: true }
+        }
+      },
+      orderBy: { fecha: 'desc' }
+    });
+
+    // Formatea la respuesta
+    const result = donaciones.map(d => ({
+      id: d.id,
+      amount: d.monto,
+      date: d.fecha,
+      recipient: {
+        name: d.destinatario?.nombre || d.destinatario?.usuario || d.destinatario?.correo || '',
+        organization: d.destinatario?.usuario || undefined
+      },
+      message: d.mensaje || ''
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error al obtener donaciones realizadas:', error);
+    res.status(500).json({ error: 'Error al obtener donaciones realizadas' });
+  }
+});
+
 // Obtener datos de tipoONG, grupo_social y necesidades
 router.get('/profile/tipoong', async (req, res) => {
   try {
@@ -34,6 +75,25 @@ router.get('/profile/tipoong', async (req, res) => {
     res.json(tipoOng);
   } catch (error) {
     console.error('Error al obtener tipoONG:', error);
+    res.status(500).json({ error: 'Error al obtener tipoONG' });
+  }
+});
+
+// Obtener datos de tipoONG por ID de usuario específico
+router.get('/profile/tipoong/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: 'ID de usuario requerido' });
+    }
+
+    const tipoOng = await prisma.TipoONG.findFirst({
+      where: { usuarioId: parseInt(id) }
+    });
+
+    res.json({ tipoONG: tipoOng });
+  } catch (error) {
+    console.error('Error al obtener tipoONG por ID:', error);
     res.status(500).json({ error: 'Error al obtener tipoONG' });
   }
 });
@@ -402,6 +462,7 @@ router.get('/profile', async (req, res) => {
         usuario: true,
         correo: true,
         ubicacion: true,
+        bio: true,
         tipo_usuario: true,
         createdAt: true
       }
@@ -885,13 +946,14 @@ router.put('/profile', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     
-    const { nombre, apellido, ubicacion } = req.body;
+    const { nombre, apellido, ubicacion, bio } = req.body;
 
     // Filtrar campos undefined para evitar errores
     const updateData = {};
     if (nombre !== undefined) updateData.nombre = nombre;
     if (apellido !== undefined) updateData.apellido = apellido;
     if (ubicacion !== undefined) updateData.ubicacion = ubicacion;
+    if (bio !== undefined) updateData.bio = bio;
 
     console.log('Datos a actualizar:', updateData);
 
@@ -905,6 +967,7 @@ router.put('/profile', async (req, res) => {
         apellido: true,
         correo: true,
         ubicacion: true,
+        bio: true,
         tipo_usuario: true,
         createdAt: true
       }

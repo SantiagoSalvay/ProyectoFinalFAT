@@ -2,7 +2,7 @@
 import React from 'react'
 import Header from '../components/Header';
 import { useState, useEffect } from 'react';
-import { api, User } from '../services/api';
+import { api, ONG } from '../services/api';
 
 export default function Donaciones() {
   const [ongs, setOngs] = useState<{ id: string; name: string }[]>([]);
@@ -20,10 +20,10 @@ export default function Donaciones() {
   useEffect(() => {
     setOngsError(false);
     api.getONGs()
-      .then((data: User[]) => {
-        const mapped = data.map(ong => ({
-          id: String(ong.id_usuario),
-          name: ong.nombre || ong.usuario || ong.correo
+      .then((response) => {
+        const mapped = response.ongs.map(ong => ({
+          id: String(ong.id),
+          name: ong.name
         }));
         setOngs(mapped);
         if (mapped.length > 0) setSelectedOng(mapped[0].id);

@@ -28,6 +28,7 @@ CREATE TABLE "Foro" (
     "titulo" TEXT NOT NULL,
     "descripcion" TEXT NOT NULL,
     "fecha" TIMESTAMP(3) NOT NULL,
+    "ubicacion" TEXT,
 
     CONSTRAINT "Foro_pkey" PRIMARY KEY ("id_foro")
 );
