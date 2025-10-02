@@ -6,36 +6,41 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
-          <div className="absolute top-40 right-10 w-72 h-72 bg-emerald-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
-          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-orange-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
-        </div>
+      <section className="relative overflow-hidden min-h-screen flex items-center">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: 'url(/images/imagenhome1.jpg)',
+              filter: 'blur(1px) brightness(0.75)',
+            }}
+        ></div>
+        
+        {/* Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/40 dark:bg-black/60"></div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 z-10">
           <div className="text-center">
             <div className="mb-8">
-              <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-6" style={{ backgroundColor: 'color-mix(in oklab, var(--accent) 16%, transparent)', color: 'var(--color-fg)', border: '1px solid var(--color-border)' }}>
+              <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-6 bg-white/10 backdrop-blur-sm text-white border border-white/20">
                 <Heart className="w-4 h-4 mr-2" />
                 Conectando corazones, transformando vidas
               </div>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight" style={{ color: 'var(--color-fg)' }}>
-              <span className="bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight text-white">
+              <span className="bg-gradient-to-r from-purple-300 to-purple-400 bg-clip-text text-transparent">
                 Demos+
               </span>
               <br />
-              <span style={{ color: 'var(--color-muted)' }}>Plataforma de</span>
+              <span className="text-white/90">Plataforma de</span>
               <br />
-              <span className="bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-300 to-emerald-400 bg-clip-text text-transparent">
                 Solidaridad
               </span>
             </h1>
 
-            <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+            <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed text-white/90">
               Únete a nuestra comunidad donde las personas y organizaciones trabajan juntas 
               para crear un impacto positivo en el mundo. Donar, hacer voluntariado y 
               conectar con causas que importan.
@@ -44,14 +49,14 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 to="/register"
-                className="btn-primary text-lg px-8 py-4 flex items-center"
+                className="btn-primary text-lg px-8 py-4 flex items-center bg-purple-600 hover:bg-purple-700 text-white"
               >
                 Comenzar Ahora
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
               <Link
                 to="/mission"
-                className="btn-secondary text-lg px-8 py-4"
+                className="btn-secondary text-lg px-8 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/20"
               >
                 Conoce Nuestra Misión
               </Link>
