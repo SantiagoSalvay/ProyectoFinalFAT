@@ -625,78 +625,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Heart className="w-5 h-5 text-red-500 mr-3" />
-                    <span className="text-gray-700">
-                      {isONG ? 'Donaciones Recibidas' : 'Donaciones Realizadas'}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-gray-900">24</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Users className="w-5 h-5 text-blue-500 mr-3" />
-                    <span className="text-gray-700">
-                      {isONG ? 'Voluntarios' : 'Horas de Voluntariado'}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {isONG ? '156' : '48h'}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Award className="w-5 h-5 text-yellow-500 mr-3" />
-                    <span className="text-gray-700">Logros</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">12</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
-              <div className="space-y-3">
-                <button 
-                  className="w-full btn-primary text-sm"
-                  onClick={() => {
-                    if (isONG) {
-                      // Para ONGs: Crear Campaña (funcionalidad futura)
-                      console.log('Crear Campaña - funcionalidad pendiente');
-                    } else {
-                      // Para usuarios: Buscar ONGs
-                      navigate('/ongs');
-                    }
-                  }}
-                >
-                  {isONG ? 'Crear Campaña' : 'Buscar ONGs'}
-                </button>
-                <button className="w-full btn-secondary text-sm"
-                  onClick={() => {
-                    if (isONG) {
-                      // Para ONGs: Gestionar Voluntarios (funcionalidad futura)
-                      console.log('Gestionar Voluntarios - funcionalidad pendiente');
-                    } else {
-                      // Para usuarios: Ver Oportunidades
-                      navigate('/forum');
-                    }
-                  }}
-                >
-                  {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades'}
-                </button>
-                <button className="w-full btn-accent text-sm">
-                  Ver Historial
-                </button>
-              </div>
-            </div>
+            
           </div>
         </div>
       </div>

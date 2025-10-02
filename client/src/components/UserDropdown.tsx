@@ -69,17 +69,7 @@ export function UserDropdown({ user, onLogout, isOpen, setIsOpen }: UserDropdown
             <User className="w-4 h-4 mr-3" />
             Mi Perfil
           </Link>
-          <Link
-            to="/settings"
-            onClick={() => setIsOpenFinal(false)}
-            className="flex items-center px-4 py-2 text-sm transition-colors"
-            style={{ color: 'var(--color-fg)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'color-mix(in oklab, var(--color-fg) 8%, transparent)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'transparent' }}
-          >
-            <Settings className="w-4 h-4 mr-3" />
-            Configuración
-          </Link>
+          
           <button
             onClick={() => {
               onLogout()

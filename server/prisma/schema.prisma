@@ -71,16 +71,13 @@ model ForoCategoria {
 }
 
 model RespuestaForo {
-  id_respuesta     Int             @id @default(autoincrement())
-  id_foro          Int
-  id_usuario       Int
-  mensaje          String
-  fecha            DateTime        @default(now())
-  id_respuesta_padre Int?          // Para comentarios anidados
-  foro             Foro            @relation(fields: [id_foro], references: [id_foro])
-  usuario          Usuario         @relation(fields: [id_usuario], references: [id_usuario])
-  respuesta_padre  RespuestaForo?  @relation("RespuestaAnidada", fields: [id_respuesta_padre], references: [id_respuesta])
-  respuestas_hijas RespuestaForo[] @relation("RespuestaAnidada")
+  id_respuesta Int      @id @default(autoincrement())
+  id_foro      Int
+  id_usuario   Int
+  mensaje      String
+  fecha        DateTime
+  foro         Foro     @relation(fields: [id_foro], references: [id_foro])
+  usuario      Usuario  @relation(fields: [id_usuario], references: [id_usuario])
 }
 
 model Donacion {
