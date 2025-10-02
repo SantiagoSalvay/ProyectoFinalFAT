@@ -1,11 +1,17 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { 
+  moderationMiddleware, 
+  titleModerationMiddleware, 
+  antiFloodMiddleware 
+} from '../../lib/content-moderation.js';
+// Sistema de moderación simplificado - sin baneo ni advertencias
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Middleware de autenticación
+// Middleware de autenticación (TEMPORAL sin verificación de baneo)
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -19,7 +25,10 @@ const authenticateToken = async (req, res, next) => {
     // Buscar el usuario en la base de datos
     const usuario = await prisma.usuario.findUnique({
       where: { id_usuario: decoded.userId },
-      select: { id_usuario: true, tipo_usuario: true }
+      select: { 
+        id_usuario: true, 
+        tipo_usuario: true
+      }
     });
     
     if (!usuario) {
@@ -123,7 +132,11 @@ router.get('/publicaciones', async (req, res) => {
 });
 
 // Crear una nueva publicación (solo ONGs)
-router.post('/publicaciones', authenticateToken, async (req, res) => {
+router.post('/publicaciones', 
+  authenticateToken, 
+  titleModerationMiddleware('titulo'),
+  moderationMiddleware({ fieldName: 'descripcion', strict: true }),
+  async (req, res) => {
   try {
     const { titulo, descripcion, categorias, ubicacion, coordenadas } = req.body;
     const userId = req.user?.id_usuario;
@@ -239,8 +252,12 @@ router.get('/publicaciones/:id', async (req, res) => {
   }
 });
 
-// Crear un comentario en una publicación
-router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res) => {
+// Crear un comentario en una publicación CON VALIDACIÓN (sin guardar estado de moderación)
+router.post('/publicaciones/:id/comentarios', 
+  authenticateToken,
+  antiFloodMiddleware({ maxMessages: 5, timeWindow: 60000 }),
+  moderationMiddleware({ fieldName: 'mensaje', strict: true }), // VALIDAR ANTES DE CREAR
+  async (req, res) => {
   try {
     const { id } = req.params;
     const { mensaje } = req.body;
@@ -248,10 +265,6 @@ router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res
 
     if (!userId) {
       return res.status(401).json({ error: 'No autorizado' });
-    }
-
-    if (!mensaje || !mensaje.trim()) {
-      return res.status(400).json({ error: 'El mensaje es requerido' });
     }
 
     // Verificar que la publicación existe
@@ -263,7 +276,7 @@ router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    // Crear el comentario
+    // Crear comentario directamente (ya pasó la validación del middleware)
     const nuevoComentario = await prisma.respuestaForo.create({
       data: {
         id_foro: parseInt(id),
@@ -284,7 +297,7 @@ router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res
     });
 
     res.status(201).json({
-      message: 'Comentario creado exitosamente',
+      message: 'Comentario publicado exitosamente',
       comentario: nuevoComentario
     });
   } catch (error) {
@@ -293,11 +306,11 @@ router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res
   }
 });
 
-// Obtener comentarios de una publicación
+// Obtener comentarios de una publicación (TEMPORAL SIN MODERACIÓN)
 router.get('/publicaciones/:id/comentarios', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Verificar que la publicación existe
     const publicacion = await prisma.foro.findUnique({
       where: { id_foro: parseInt(id) }
@@ -307,6 +320,7 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
+    // Obtener TODOS los comentarios (sin filtro de moderación)
     const comentarios = await prisma.respuestaForo.findMany({
       where: { id_foro: parseInt(id) },
       include: {
@@ -319,9 +333,7 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
           }
         }
       },
-      orderBy: {
-        fecha: 'asc'
-      }
+      orderBy: { fecha: 'asc' }
     });
 
     res.json(comentarios);
@@ -374,5 +386,10 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
+// Estadísticas de moderación - DESHABILITADO (sistema de sanciones eliminado)
+// router.get('/moderation/stats', authenticateToken, async (req, res) => {
+//   res.json({ warnings: 0, infractions: [], banned: false });
+// });
 
 export default router; 

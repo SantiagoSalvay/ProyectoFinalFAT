@@ -430,7 +430,17 @@ class ApiService {
 
   async crearComentario(publicacionId: string, mensaje: string) {
     try {
-      const response = await this.request<{ message: string; comentario: any }>(
+      const response = await this.request<{ 
+        message: string; 
+        comentario: any;
+        needsApproval?: boolean;
+        status?: string;
+        warning?: {
+          count: number;
+          remaining: number;
+          message: string;
+        };
+      }>(
         `/api/forum/publicaciones/${publicacionId}/comentarios`,
         {
           method: 'POST',
@@ -440,6 +450,24 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al crear comentario:', error);
+      throw error;
+    }
+  }
+
+  async getModerationStats() {
+    try {
+      const response = await this.request<{
+        warningsCount: number;
+        maxWarnings: number;
+        isBanned: boolean;
+        bannedReason?: string;
+        bannedUntil?: string;
+        totalInfractions: number;
+        recentInfractions: any[];
+      }>('/api/forum/moderation/stats');
+      return response;
+    } catch (error) {
+      console.error('Error al obtener estadísticas de moderación:', error);
       throw error;
     }
   }

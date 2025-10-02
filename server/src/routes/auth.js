@@ -374,12 +374,31 @@ router.post('/login', async (req, res) => {
         correo: true,
         contrasena: true,
         ubicacion: true,
-        tipo_usuario: true
+        tipo_usuario: true,
+        is_banned: true,
+        banned_reason: true,
+        banned_until: true
       }
     });
 
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    // Verificar si el usuario está baneado
+    if (user.is_banned) {
+      const bannedMessage = user.banned_until
+        ? `Tu cuenta ha sido suspendida hasta el ${new Date(user.banned_until).toLocaleDateString('es-ES')}.`
+        : 'Tu cuenta ha sido baneada permanentemente.';
+      
+      return res.status(403).json({ 
+        error: 'Cuenta baneada',
+        message: bannedMessage,
+        reason: user.banned_reason || 'Violación de las normas de la comunidad',
+        bannedUntil: user.banned_until,
+        permanent: !user.banned_until,
+        userBanned: true
+      });
     }
 
     // Verificar contraseña
@@ -395,8 +414,8 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // Omitir contraseña de la respuesta
-    const { contrasena: _, ...userWithoutPassword } = user;
+    // Omitir contraseña y datos sensibles de baneo de la respuesta
+    const { contrasena: _, is_banned: __, banned_reason: ___, banned_until: ____, ...userWithoutPassword } = user;
 
     // Enviar email de notificación de inicio de sesión
     try {

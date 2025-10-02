@@ -14,32 +14,38 @@ model TipoUsuario {
 }
 
 model Usuario {
-  id_usuario                Int              @id @default(autoincrement())
+  id_usuario                Int                    @id @default(autoincrement())
   nombre                    String
   apellido                  String
-  usuario                   String           @unique
-  correo                    String           @unique
+  usuario                   String                 @unique
+  correo                    String                 @unique
   contrasena                String?
   tipo_usuario              Int
   ubicacion                 String?
-  createdAt                 DateTime         @default(now())
-  email_verified            Boolean          @default(false)
+  createdAt                 DateTime               @default(now())
+  email_verified            Boolean                @default(false)
   reset_token               String?
   reset_token_expiry        DateTime?
   verification_token        String?
   verification_token_expiry DateTime?
-  auth_provider             String           @default("email")
-  facebook_id               String?          @unique
-  google_id                 String?          @unique
+  auth_provider             String                 @default("email")
+  facebook_id               String?                @unique
+  google_id                 String?                @unique
   profile_picture           String?
-  twitter_id                String?          @unique
+  twitter_id                String?                @unique
   bio                       String?
+  banned_at                 DateTime?
+  banned_reason             String?
+  banned_until              DateTime?
+  is_banned                 Boolean                @default(false)
+  warnings_count            Int                    @default(0)
   foros                     Foro[]
+  infracciones              ModerationInfraction[]
   pedidos                   PedidoDonacion[]
   rankings                  Ranking[]
   respuestas                RespuestaForo[]
   tiposONG                  TipoONG[]
-  tipo                      TipoUsuario      @relation(fields: [tipo_usuario], references: [tipo_usuario])
+  tipo                      TipoUsuario            @relation(fields: [tipo_usuario], references: [tipo_usuario])
 }
 
 model Foro {
@@ -71,13 +77,16 @@ model ForoCategoria {
 }
 
 model RespuestaForo {
-  id_respuesta Int      @id @default(autoincrement())
-  id_foro      Int
-  id_usuario   Int
-  mensaje      String
-  fecha        DateTime
-  foro         Foro     @relation(fields: [id_foro], references: [id_foro])
-  usuario      Usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  id_respuesta      Int       @id @default(autoincrement())
+  id_foro           Int
+  id_usuario        Int
+  mensaje           String
+  fecha             DateTime
+  moderated_at      DateTime?
+  moderation_status String    @default("pending")
+  rejection_reason  String?
+  foro              Foro      @relation(fields: [id_foro], references: [id_foro])
+  usuario           Usuario   @relation(fields: [id_usuario], references: [id_usuario])
 }
 
 model Donacion {
@@ -143,4 +152,16 @@ model TipoONG {
   usuarioId    Int?
   tipo_ong     String?
   usuario      Usuario? @relation(fields: [usuarioId], references: [id_usuario])
+}
+
+model ModerationInfraction {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  infraction_type String
+  severity        String
+  content         String?
+  action_taken    String
+  created_at      DateTime  @default(now())
+  expires_at      DateTime?
+  usuario         Usuario   @relation(fields: [user_id], references: [id_usuario])
 }

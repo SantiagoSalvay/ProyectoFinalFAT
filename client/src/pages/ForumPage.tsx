@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast'
 import { api } from '../services/api'
 import ClickableMapModal from '../components/ClickableMapModal'
 import InlineComments from '../components/InlineComments'
+import { usePostValidation } from '../hooks/useContentModeration'
 import { 
   MessageCircle, 
   Heart, 
@@ -18,7 +19,8 @@ import {
   Building,
   LogIn,
   UserPlus,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
 
 interface Post {
@@ -49,6 +51,7 @@ interface Categoria {
 export default function ForumPage() {
   const { user } = useAuth()
   const { addNotification } = useNotifications()
+  const { validatePost } = usePostValidation()
   const [posts, setPosts] = useState<Post[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,6 +172,14 @@ export default function ForumPage() {
       return
     }
 
+    // Validar el contenido con el sistema de moderación
+    const isValid = validatePost(newPost.title.trim(), newPost.content.trim())
+    
+    if (!isValid) {
+      // Los errores ya fueron mostrados por el hook
+      return
+    }
+
     try {
       setCreatingPost(true)
       await api.crearPublicacion({
@@ -185,9 +196,15 @@ export default function ForumPage() {
       
       // Recargar las publicaciones
       await loadData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear publicación:', error)
-      toast.error('Error al crear la publicación')
+      
+      // Manejar errores específicos de moderación del servidor
+      if (error.response?.status === 400) {
+        toast.error(error.response.data.error || 'La publicación contiene contenido no permitido')
+      } else {
+        toast.error('Error al crear la publicación')
+      }
     } finally {
       setCreatingPost(false)
     }

@@ -1,0 +1,360 @@
+/**
+ * Sistema de Moderación de Contenido
+ * Filtra palabras ofensivas, spam y contenido inapropiado
+ */
+
+// Lista de palabras prohibidas - EXPANDIDA
+const PALABRAS_PROHIBIDAS = [
+  // Insultos comunes
+  'idiota', 'estúpido', 'estupido', 'imbécil', 'imbecil', 'tonto', 'tonta',
+  'pendejo', 'pendeja', 'pelotudo', 'pelotuda', 'boludo', 'boluda', 'gil', 'tarado', 'tarada',
+  'cretino', 'cretina', 'subnormal', 'mongólico', 'mongolico', 'mogólico', 'mogolico',
+  
+  // Insultos relacionados con discapacidad (discriminatorios)
+  'retrasado', 'retrasada', 'retardado', 'retardada', 'retard',
+  'retrasado mental', 'retardado mental', 'discapacitado mental',
+  'autista', 'autistic', 'down', 'síndrome de down', 'sindrome de down',
+  'deficiente', 'deficiente mental', 'anormal', 'loco', 'loca', 'demente',
+  
+  // Insultos machistas y sexistas
+  'puta', 'puto', 'putita', 'putito', 'zorra', 'zorro', 'prostituta', 'ramera',
+  'golfa', 'cualquiera', 'furcia', 'guarra', 'guarro', 'guarrilla',
+  'hijo de puta', 'hdp', 'hija de puta', 'hp', 'hijo de su puta madre',
+  'cabrón', 'cabron', 'cabrona', 'cabronazo', 'cornudo', 'cornuda',
+  
+  // Insultos vulgares fuertes
+  'mierda', 'mierd@', 'm1erda', 'cagada', 'carajo', 'coño', 'cono', 'joder',
+  'jodete', 'jódete', 'chingar', 'chingas', 'chingada', 'chingado',
+  'verga', 'vrga', 'v3rga', 'pija', 'pij@', 'p1ja',
+  'concha', 'conchudo', 'conchuda', 'culiao', 'culiado', 'culero', 'culera',
+  'marica', 'maricon', 'maricón', 'maricona', 'maricones',
+  'mariconazo', 'maricada', 'mamaguevo', 'malparido', 'malparida',
+  
+  // Insultos racistas, xenófobos y antisemitas
+  'negro de mierda', 'sudaca', 'indio', 'india', 'cholo', 'chola',
+  'negro', 'negra', 'negrito', 'negrita', 'morenito', 'morenita',
+  'racista', 'nazi', 'nazis', 'fascista', 'fascistas', 'facho',
+  'terrorista', 'terroristas', 'mono', 'mona', 'simio',
+  'judio', 'judío', 'judia', 'judía', 'judios', 'judíos', 'judias', 'judías',
+  'judio de mierda', 'judío de mierda',
+  
+  // Insultos de inteligencia
+  'burro', 'burra', 'bruto', 'bruta', 'ignorante', 'analfabeto', 'analfabeta',
+  'inútil', 'inutil', 'incompetente', 'mediocre', 'fracasado', 'fracasada',
+  'perdedor', 'perdedora', 'loser', 'looser',
+  
+  // Insultos de apariencia
+  'feo', 'fea', 'horrible', 'asqueroso', 'asquerosa', 'repugnante',
+  'gordo', 'gorda', 'gordo de mierda', 'gorda de mierda',
+  'flaco', 'flaca', 'enano', 'enana', 'petiso', 'petisa',
+  
+  // Insultos homofóbicos
+  'maricón', 'maricon', 'puto', 'puta', 'marica', 'gay de mierda',
+  'lesbiana de mierda', 'travesti', 'trolo', 'trola', 'putito',
+  'sodomita', 'invertido', 'invertida',
+  
+  // Insultos a la familia
+  'tu madre', 'tu mamá', 'tu mama', 'tu vieja', 'tu viejo',
+  'la puta que te parió', 'la concha de tu madre', 'la concha de tu hermana',
+  
+  // Amenazas y violencia
+  'te mato', 'te voy a matar', 'matarte', 'morir', 'muérete', 'muere',
+  'ojalá te mueras', 'ojalá mueras', 'te rompo', 'te parto',
+  'te violo', 'violarte', 'te cagas', 'cállate', 'callate', 'cierra el pico',
+  
+  // Spam común
+  'compra ahora', 'haz clic aquí', 'haz clic aqui', 'click here', 'click aqui',
+  'gana dinero', 'ganar dinero facil', 'dinero fácil', 'dinero facil',
+  'oferta limitada', 'promoción exclusiva', 'promocion exclusiva',
+  'compra ya', 'oferta única', 'oferta unica', 'no te lo pierdas',
+  
+  // Palabras relacionadas con contenido sexual
+  'porno', 'pornografia', 'pornografía', 'xxx', 'sexo gratis',
+  'pene', 'vagina', 'tetas', 'culo', 'trasero',
+  'masturbación', 'masturbacion', 'pajero', 'pajera',
+  
+  // Variantes con símbolos y números (evasión)
+  'p3ndejo', 'p3ndejas', 'put@', 'put0', 'c0ño', 'mierda',
+  'idiót@', 'idiot@', 'est00pido', 'ret@rd@do',
+  
+  // Insultos en inglés
+  'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard',
+  'motherfucker', 'cunt', 'dick', 'pussy', 'whore', 'slut',
+  'stupid', 'idiot', 'moron', 'dumb', 'retard', 'retarded',
+  
+  // Otras palabras ofensivas
+  'maldito', 'maldita', 'desgraciado', 'desgraciada', 'miserable',
+  'basura', 'escoria', 'parásito', 'parasito', 'rata', 'cucaracha'
+]
+
+// Patrones sospechosos
+const PATRONES_SPAM = [
+  /https?:\/\/[^\s]+/gi, // URLs (se pueden permitir con moderación)
+  /\b\d{10,}\b/g, // Números de teléfono largos
+  /(.)\1{4,}/g, // Repetición excesiva de caracteres (aaaaa)
+  /[A-Z]{5,}/g, // Muchas mayúsculas consecutivas
+]
+
+// Palabras que requieren contexto (no siempre son malas)
+// NOTA: Estas palabras solo se permiten en contextos específicos
+const PALABRAS_CONTEXTUALES = [
+  // Ya no incluimos palabras discriminatorias aquí - todas se bloquean
+]
+
+export interface ModerationResult {
+  isValid: boolean
+  errors: string[]
+  warnings: string[]
+  sanitizedContent?: string
+  severity: 'none' | 'low' | 'medium' | 'high'
+}
+
+/**
+ * Valida y modera el contenido de texto
+ */
+export function moderateContent(content: string, strict: boolean = false): ModerationResult {
+  const errors: string[] = []
+  const warnings: string[] = []
+  let severity: 'none' | 'low' | 'medium' | 'high' = 'none'
+
+  // Normalizar el contenido
+  const normalizedContent = content.toLowerCase().trim()
+
+  // 1. Validar longitud
+  if (normalizedContent.length === 0) {
+    errors.push('El contenido no puede estar vacío')
+    return { isValid: false, errors, warnings, severity: 'high' }
+  }
+
+  if (normalizedContent.length < 3) {
+    errors.push('El contenido es demasiado corto (mínimo 3 caracteres)')
+    severity = 'medium'
+  }
+
+  if (normalizedContent.length > 5000) {
+    errors.push('El contenido es demasiado largo (máximo 5000 caracteres)')
+    severity = 'high'
+  }
+
+  // 2. Detectar palabras prohibidas
+  const palabrasEncontradas: string[] = []
+  
+  PALABRAS_PROHIBIDAS.forEach(palabra => {
+    // Buscar la palabra completa (con límites de palabra)
+    const regex = new RegExp(`\\b${palabra}\\b`, 'gi')
+    if (regex.test(normalizedContent)) {
+      palabrasEncontradas.push(palabra)
+    }
+  })
+
+  if (palabrasEncontradas.length > 0) {
+    // Verificar si son palabras contextuales
+    const palabrasGraves = palabrasEncontradas.filter(
+      p => !PALABRAS_CONTEXTUALES.includes(p.toLowerCase())
+    )
+
+    if (palabrasGraves.length > 0) {
+      errors.push(`Contenido inapropiado detectado. Por favor, usa un lenguaje respetuoso.`)
+      severity = 'high'
+    } else if (!strict) {
+      warnings.push('Se detectaron palabras que podrían ser inapropiadas. Por favor, mantén un tono respetuoso.')
+      severity = 'low'
+    } else {
+      errors.push('El contenido contiene lenguaje inapropiado')
+      severity = 'medium'
+    }
+  }
+
+  // 3. Detectar patrones de spam
+  let spamDetected = false
+
+  // URLs excesivas
+  const urlMatches = content.match(/https?:\/\/[^\s]+/gi)
+  if (urlMatches && urlMatches.length > 2) {
+    warnings.push('Demasiados enlaces detectados. Esto podría ser considerado spam.')
+    severity = severity === 'none' ? 'low' : severity
+    spamDetected = true
+  }
+
+  // Repetición excesiva de caracteres
+  if (/(.)\1{6,}/.test(content)) {
+    errors.push('Evita la repetición excesiva de caracteres')
+    severity = 'medium'
+    spamDetected = true
+  }
+
+  // Mayúsculas excesivas (más del 50% del texto)
+  const uppercaseCount = (content.match(/[A-Z]/g) || []).length
+  const letterCount = (content.match(/[a-zA-Z]/g) || []).length
+  if (letterCount > 20 && uppercaseCount / letterCount > 0.5) {
+    warnings.push('Evita escribir todo en mayúsculas. Puede interpretarse como gritar.')
+    severity = severity === 'none' ? 'low' : severity
+  }
+
+  // 4. Detectar contenido vacío o sin sentido
+  const palabras = content.split(/\s+/).filter(p => p.length > 0)
+  if (palabras.length < 2 && content.length > 10) {
+    warnings.push('El contenido parece incompleto')
+    severity = 'low'
+  }
+
+  // 5. Detectar números de teléfono o emails (potencial spam)
+  const phonePattern = /\b\d{8,}\b/g
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+  
+  if (phonePattern.test(content)) {
+    warnings.push('Se detectó un posible número de teléfono. Evita compartir información personal pública.')
+  }
+
+  if (emailPattern.test(content) && !content.includes('@demos')) {
+    warnings.push('Se detectó un email. Evita compartir información personal pública.')
+  }
+
+  // Resultado final
+  const isValid = errors.length === 0
+
+  return {
+    isValid,
+    errors,
+    warnings,
+    sanitizedContent: isValid ? content.trim() : undefined,
+    severity
+  }
+}
+
+/**
+ * Sanitiza el contenido removiendo o reemplazando palabras prohibidas
+ */
+export function sanitizeContent(content: string): string {
+  let sanitized = content
+
+  PALABRAS_PROHIBIDAS.forEach(palabra => {
+    const regex = new RegExp(`\\b${palabra}\\b`, 'gi')
+    sanitized = sanitized.replace(regex, '***')
+  })
+
+  return sanitized
+}
+
+/**
+ * Verifica si el contenido es spam
+ */
+export function isSpam(content: string): boolean {
+  const normalizedContent = content.toLowerCase()
+
+  // Palabras clave de spam
+  const spamKeywords = [
+    'compra ahora',
+    'haz clic',
+    'gana dinero',
+    'oferta limitada',
+    'promoción exclusiva',
+    'click here',
+    'buy now'
+  ]
+
+  const hasSpamKeywords = spamKeywords.some(keyword => 
+    normalizedContent.includes(keyword)
+  )
+
+  // URLs múltiples
+  const urlCount = (content.match(/https?:\/\//g) || []).length
+  const hasMultipleUrls = urlCount > 2
+
+  // Repetición excesiva
+  const hasExcessiveRepetition = /(.{3,})\1{3,}/.test(content)
+
+  return hasSpamKeywords || hasMultipleUrls || hasExcessiveRepetition
+}
+
+/**
+ * Verifica si el usuario está haciendo flood (múltiples mensajes rápidos)
+ */
+interface FloodCheck {
+  userId: string
+  timestamp: number
+}
+
+const recentMessages: FloodCheck[] = []
+
+export function checkFlood(userId: string, maxMessages: number = 5, timeWindow: number = 60000): boolean {
+  const now = Date.now()
+  
+  // Limpiar mensajes antiguos
+  const validMessages = recentMessages.filter(
+    msg => now - msg.timestamp < timeWindow
+  )
+  
+  // Actualizar array
+  recentMessages.length = 0
+  recentMessages.push(...validMessages)
+  
+  // Contar mensajes del usuario
+  const userMessages = recentMessages.filter(msg => msg.userId === userId)
+  
+  if (userMessages.length >= maxMessages) {
+    return true // Es flood
+  }
+  
+  // Agregar mensaje actual
+  recentMessages.push({ userId, timestamp: now })
+  
+  return false
+}
+
+/**
+ * Obtiene sugerencias para mejorar el contenido
+ */
+export function getContentSuggestions(content: string): string[] {
+  const suggestions: string[] = []
+  
+  if (content.length < 10) {
+    suggestions.push('Intenta ser más descriptivo en tu mensaje')
+  }
+  
+  if (!/[.!?]$/.test(content.trim())) {
+    suggestions.push('Considera terminar tu mensaje con puntuación apropiada')
+  }
+  
+  const uppercaseCount = (content.match(/[A-Z]/g) || []).length
+  const letterCount = (content.match(/[a-zA-Z]/g) || []).length
+  if (letterCount > 0 && uppercaseCount / letterCount > 0.3) {
+    suggestions.push('Evita el uso excesivo de mayúsculas')
+  }
+  
+  return suggestions
+}
+
+/**
+ * Valida el título de una publicación
+ */
+export function validateTitle(title: string): ModerationResult {
+  const errors: string[] = []
+  const warnings: string[] = []
+  
+  if (!title || title.trim().length === 0) {
+    errors.push('El título no puede estar vacío')
+    return { isValid: false, errors, warnings, severity: 'high' }
+  }
+  
+  if (title.trim().length < 5) {
+    errors.push('El título debe tener al menos 5 caracteres')
+  }
+  
+  if (title.length > 200) {
+    errors.push('El título es demasiado largo (máximo 200 caracteres)')
+  }
+  
+  // Verificar palabras prohibidas en el título
+  const contentCheck = moderateContent(title, true)
+  
+  return {
+    isValid: errors.length === 0 && contentCheck.isValid,
+    errors: [...errors, ...contentCheck.errors],
+    warnings: [...warnings, ...contentCheck.warnings],
+    sanitizedContent: contentCheck.isValid ? title.trim() : undefined,
+    severity: contentCheck.severity
+  }
+}
+
+
