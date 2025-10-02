@@ -22,7 +22,6 @@ model Usuario {
   contrasena                String?
   tipo_usuario              Int
   ubicacion                 String?
-  bio                       String?
   createdAt                 DateTime         @default(now())
   email_verified            Boolean          @default(false)
   reset_token               String?
@@ -34,6 +33,7 @@ model Usuario {
   google_id                 String?          @unique
   profile_picture           String?
   twitter_id                String?          @unique
+  bio                       String?
   foros                     Foro[]
   pedidos                   PedidoDonacion[]
   rankings                  Ranking[]
