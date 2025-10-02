@@ -8,6 +8,8 @@ import { User, Building, Eye, EyeOff, ArrowLeft, MapPin } from 'lucide-react'
 import { UserRole } from '../contexts/AuthContext'
 import ClickableMapModal from '../components/ClickableMapModal'
 import SocialLoginButtons from '../components/SocialLoginButtons'
+import { useRegisterLoading } from '../hooks/useAuthLoading'
+import { ButtonLoading } from '../components/GlobalLoading'
 
 interface RegisterFormData {
   email: string
@@ -113,7 +115,8 @@ export default function RegisterPage() {
   const [showVerificationMessage, setShowVerificationMessage] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   // ...sin integración Google Maps...
-  const { register: registerUser, isLoading } = useAuth()
+  const { register: registerUser } = useAuth()
+  const { isLoading, message, withRegisterLoading } = useRegisterLoading()
   const navigate = useNavigate()
 
   const {
@@ -126,50 +129,48 @@ export default function RegisterPage() {
 
   const password = watch('password')
 
-  const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit = withRegisterLoading(async (data: RegisterFormData) => {
     if (data.password !== data.confirmPassword) {
       toast.error('Las contraseñas no coinciden')
-      return
+      throw new Error('Las contraseñas no coinciden')
     }
 
-    try {
-      // Determinar tipo_usuario y datos según el tipo seleccionado
-      let tipo_usuario = 1;
-      let firstName = data.firstName;
-      let lastName = data.lastName;
-      let organization = data.organization;
-      
-      if (selectedRole === 'ong') {
-        tipo_usuario = 2;
-        // Para ONG, el nombre de la organización va en firstName y el nombre legal en organization
-        firstName = data.firstName;
-        lastName = ''; // Las ONGs no tienen apellido
-        organization = data.organization || '';
-      }
-      
-      const response = await registerUser({
-        email: data.email,
-        password: data.password,
-        firstName,
-        lastName,
-        role: selectedRole,
-        organization,
-        location: data.location,
-        tipo_usuario,
-      });
-      // Si requiere verificación, mostrar mensaje
-      if (response?.requiresVerification) {
-        setUserEmail(data.email);
-        setShowVerificationMessage(true);
-        return;
-      }
-      // Si no requiere verificación (flujo anterior)
-      toast.success('¡Registro exitoso! Bienvenido a Demos+')
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error('Error al registrarse. Inténtalo de nuevo.');
+    // Determinar tipo_usuario y datos según el tipo seleccionado
+    let tipo_usuario = 1;
+    let firstName = data.firstName;
+    let lastName = data.lastName;
+    let organization = data.organization;
+    
+    if (selectedRole === 'ong') {
+      tipo_usuario = 2;
+      // Para ONG, el nombre de la organización va en firstName y el nombre legal en organization
+      firstName = data.firstName;
+      lastName = ''; // Las ONGs no tienen apellido
+      organization = data.organization || '';
     }
-  }
+    
+    const response = await registerUser({
+      email: data.email,
+      password: data.password,
+      firstName,
+      lastName,
+      role: selectedRole,
+      organization,
+      location: data.location,
+      tipo_usuario,
+    });
+    
+    // Si requiere verificación, mostrar mensaje
+    if (response?.requiresVerification) {
+      setUserEmail(data.email);
+      setShowVerificationMessage(true);
+      return;
+    }
+    
+    // Si no requiere verificación (flujo anterior)
+    toast.success('¡Registro exitoso! Bienvenido a Demos+')
+    navigate('/dashboard');
+  })
 
   // Si se mostró el mensaje de verificación, renderizar esa pantalla
   if (showVerificationMessage) {
@@ -512,9 +513,11 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg"
             >
-              {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
+              <ButtonLoading isLoading={isLoading} variant="dots">
+                {isLoading ? message : 'Crear cuenta'}
+              </ButtonLoading>
             </button>
           </form>
 

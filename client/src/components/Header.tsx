@@ -95,29 +95,84 @@ export default function Header() {
                   )}
                 </button>
                 {showNotifications && (
-                  <div style={{position: 'fixed', right: '32px', top: '64px', width: '320px', zIndex: 1000}} className="bg-white border border-gray-200 rounded-lg shadow-lg">
-                    <div className="p-4 border-b font-bold text-gray-900">Notificaciones</div>
+                  <div
+                    style={{
+                      position: 'fixed',
+                      right: '32px',
+                      top: '64px',
+                      width: '320px',
+                      zIndex: 1000,
+                      backgroundColor: 'var(--color-card)',
+                      color: 'var(--color-fg)',
+                      borderColor: 'var(--color-border)'
+                    }}
+                    className="rounded-lg shadow-lg border"
+                  >
+                    <div
+                      className="p-4 border-b font-bold"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-fg)' }}
+                    >
+                      Notificaciones
+                    </div>
                     {notifications.length === 0 ? (
-                      <div className="p-4 text-gray-500 text-center">No tienes notificaciones nuevas.</div>
+                      <div className="p-4 text-center" style={{ color: 'var(--color-muted)' }}>
+                        No tienes notificaciones nuevas.
+                      </div>
                     ) : (
                       <ul className="max-h-96 overflow-y-auto">
                         {notifications.map(n => (
-                          <li key={n.id} className={`px-4 py-3 border-b flex items-start gap-2 ${n.read ? 'bg-gray-100' : 'bg-yellow-50 border-l-4 border-yellow-400'}`}>
+                          <li
+                            key={n.id}
+                            className="px-4 py-3 border-b flex items-start gap-2"
+                            style={{
+                              borderColor: 'var(--color-border)',
+                              background:
+                                n.read
+                                  ? 'var(--color-card)'
+                                  : 'color-mix(in oklab, var(--accent) 12%, var(--color-card))',
+                              boxShadow: n.read ? undefined : 'inset 4px 0 0 0 var(--accent)'
+                            }}
+                          >
                             <div className="flex-1">
-                              <div className="font-semibold text-base">{n.title}</div>
-                              <div className="text-gray-700 text-sm mb-1">{n.message}</div>
+                              <div className="font-semibold text-base" style={{ color: 'var(--color-fg)' }}>{n.title}</div>
+                              <div className="text-sm mb-1" style={{ color: 'var(--color-muted)' }}>{n.message}</div>
                               {n.link && (
-                                <Link to={n.link} className="text-purple-600 hover:underline font-medium text-xs" onClick={() => setShowNotifications(false)}>
+                                <Link
+                                  to={n.link}
+                                  className="hover:underline font-medium text-xs"
+                                  style={{ color: 'var(--link)' }}
+                                  onClick={() => setShowNotifications(false)}
+                                >
                                   Acceder
                                 </Link>
                               )}
-                              <div className="text-xs text-gray-400 mt-1">{typeof n.timestamp === 'string' ? n.timestamp : n.timestamp.toLocaleString()}</div>
+                              <div className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                                {typeof n.timestamp === 'string' ? n.timestamp : n.timestamp.toLocaleString()}
+                              </div>
                             </div>
                             <div className="flex flex-col items-end gap-1">
                               {!n.read && (
-                                <button onClick={() => markAsRead(n.id)} className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700">Leída</button>
+                                <button
+                                  onClick={() => markAsRead(n.id)}
+                                  className="text-xs px-2 py-1 rounded"
+                                  style={{
+                                    background: 'var(--accent)',
+                                    color: 'var(--accent-contrast)'
+                                  }}
+                                >
+                                  Leída
+                                </button>
                               )}
-                              <button onClick={() => removeNotification(n.id)} className="text-xs bg-gray-300 text-gray-700 px-2 py-1 rounded hover:bg-gray-400">Eliminar</button>
+                              <button
+                                onClick={() => removeNotification(n.id)}
+                                className="text-xs px-2 py-1 rounded"
+                                style={{
+                                  background: 'color-mix(in oklab, var(--color-fg) 10%, transparent)',
+                                  color: 'var(--color-fg)'
+                                }}
+                              >
+                                Eliminar
+                              </button>
                             </div>
                           </li>
                         ))}
