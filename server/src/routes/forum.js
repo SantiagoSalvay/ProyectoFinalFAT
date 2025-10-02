@@ -61,6 +61,19 @@ router.get('/categorias', async (req, res) => {
 // Obtener todas las publicaciones del foro
 router.get('/publicaciones', async (req, res) => {
   try {
+    // Intentar obtener el usuario actual (opcional)
+    const authHeader = req.headers.authorization;
+    let userId = null;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+        userId = decoded.userId;
+      } catch (error) {
+        // Token inválido, continuar sin userId
+      }
+    }
+
     const publicaciones = await prisma.foro.findMany({
       include: {
         usuario: {
@@ -80,6 +93,11 @@ router.get('/publicaciones', async (req, res) => {
         respuestas: {
           select: {
             id_respuesta: true
+          }
+        },
+        likes: {
+          select: {
+            id_usuario: true
           }
         }
       },
@@ -117,10 +135,10 @@ router.get('/publicaciones', async (req, res) => {
         },
         tags: publicacion.foroCategorias.map(fc => fc.categoria.etiqueta),
         location: location,
-        likes: 0, // Por ahora no implementamos likes
+        likes: publicacion.likes?.length || 0,
         comments: publicacion.respuestas.length,
         createdAt: publicacion.fecha,
-        isLiked: false
+        isLiked: publicacion.likes?.some(like => like.id_usuario === userId) || false
       };
     });
 
@@ -237,6 +255,11 @@ router.get('/publicaciones/:id', async (req, res) => {
           orderBy: {
             fecha: 'asc'
           }
+        },
+        likes: {
+          select: {
+            id_usuario: true
+          }
         }
       }
     });
@@ -252,10 +275,9 @@ router.get('/publicaciones/:id', async (req, res) => {
   }
 });
 
-// Crear un comentario en una publicación CON VALIDACIÓN (sin guardar estado de moderación)
+// Crear un comentario en una publicación CON VALIDACIÓN (sin cooldown en backend)
 router.post('/publicaciones/:id/comentarios', 
   authenticateToken,
-  antiFloodMiddleware({ maxMessages: 5, timeWindow: 60000 }),
   moderationMiddleware({ fieldName: 'mensaje', strict: true }), // VALIDAR ANTES DE CREAR
   async (req, res) => {
   try {
@@ -383,6 +405,126 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Comentario eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar comentario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Dar/quitar "me gusta" a una publicación
+router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id_usuario;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    // Verificar que la publicación existe
+    const publicacion = await prisma.foro.findUnique({
+      where: { id_foro: parseInt(id) }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    // Verificar si ya existe el like
+    const likeExistente = await prisma.meGustaForo.findUnique({
+      where: {
+        id_foro_id_usuario: {
+          id_foro: parseInt(id),
+          id_usuario: userId
+        }
+      }
+    });
+
+    if (likeExistente) {
+      // Si ya existe, eliminar el like (toggle)
+      await prisma.meGustaForo.delete({
+        where: {
+          id_megusta: likeExistente.id_megusta
+        }
+      });
+
+      // Contar likes actualizados
+      const totalLikes = await prisma.meGustaForo.count({
+        where: { id_foro: parseInt(id) }
+      });
+
+      return res.json({
+        message: 'Me gusta eliminado',
+        liked: false,
+        totalLikes
+      });
+    } else {
+      // Si no existe, crear el like
+      await prisma.meGustaForo.create({
+        data: {
+          id_foro: parseInt(id),
+          id_usuario: userId
+        }
+      });
+
+      // Contar likes actualizados
+      const totalLikes = await prisma.meGustaForo.count({
+        where: { id_foro: parseInt(id) }
+      });
+
+      return res.json({
+        message: 'Me gusta agregado',
+        liked: true,
+        totalLikes
+      });
+    }
+  } catch (error) {
+    console.error('Error al dar me gusta:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Obtener estado de likes de una publicación
+router.get('/publicaciones/:id/like', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const authHeader = req.headers.authorization;
+    let userId = null;
+
+    // Intentar obtener el usuario actual (opcional)
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+        userId = decoded.userId;
+      } catch (error) {
+        // Token inválido, continuar sin userId
+      }
+    }
+
+    // Contar total de likes
+    const totalLikes = await prisma.meGustaForo.count({
+      where: { id_foro: parseInt(id) }
+    });
+
+    // Verificar si el usuario actual le dio like
+    let isLiked = false;
+    if (userId) {
+      const like = await prisma.meGustaForo.findUnique({
+        where: {
+          id_foro_id_usuario: {
+            id_foro: parseInt(id),
+            id_usuario: userId
+          }
+        }
+      });
+      isLiked = !!like;
+    }
+
+    res.json({
+      totalLikes,
+      isLiked
+    });
+  } catch (error) {
+    console.error('Error al obtener likes:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

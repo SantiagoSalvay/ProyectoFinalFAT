@@ -45,6 +45,7 @@ model Usuario {
   rankings                  Ranking[]
   respuestas                RespuestaForo[]
   tiposONG                  TipoONG[]
+  likes                     MeGustaForo[]
   tipo                      TipoUsuario            @relation(fields: [tipo_usuario], references: [tipo_usuario])
 }
 
@@ -59,6 +60,7 @@ model Foro {
   foroCategorias  ForoCategoria[]
   pedidosDonacion PedidoDonacion[]
   respuestas      RespuestaForo[]
+  likes           MeGustaForo[]
 }
 
 model Categoria {
@@ -164,4 +166,15 @@ model ModerationInfraction {
   created_at      DateTime  @default(now())
   expires_at      DateTime?
   usuario         Usuario   @relation(fields: [user_id], references: [id_usuario])
+}
+
+model MeGustaForo {
+  id_megusta Int      @id @default(autoincrement())
+  id_foro    Int
+  id_usuario Int
+  fecha      DateTime @default(now())
+  foro       Foro     @relation(fields: [id_foro], references: [id_foro], onDelete: Cascade)
+  usuario    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  
+  @@unique([id_foro, id_usuario])
 }

@@ -119,23 +119,37 @@ export default function ForumPage() {
   // Considera ONG si tipo_usuario === 2 (igual que en ProfilePage y DashboardPage)
   const isONG = user?.tipo_usuario === 2
 
-  const handleLike = (postId: string) => {
+  const handleLike = async (postId: string) => {
     if (!user) {
       setShowAuthModal(true)
       return
     }
 
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const isLiked = post.isLiked
-        return {
-          ...post,
-          likes: isLiked ? post.likes - 1 : post.likes + 1,
-          isLiked: !isLiked
+    try {
+      // Llamar al API para dar/quitar like
+      const response = await api.toggleLike(postId)
+      
+      // Actualizar el estado local con la respuesta del servidor
+      setPosts(prev => prev.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            likes: response.totalLikes,
+            isLiked: response.liked
+          }
         }
-      }
-      return post
-    }))
+        return post
+      }))
+
+      // Mostrar mensaje
+      toast.success(response.liked ? '¡Te gusta esta publicación!' : 'Ya no te gusta esta publicación', {
+        duration: 2000,
+        icon: response.liked ? '💜' : '🤍'
+      })
+    } catch (error) {
+      console.error('Error al dar me gusta:', error)
+      toast.error('Error al actualizar el me gusta')
+    }
   }
 
   const handleToggleComments = (postId: string) => {

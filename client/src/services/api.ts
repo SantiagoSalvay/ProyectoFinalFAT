@@ -487,6 +487,45 @@ class ApiService {
     }
   }
 
+  // Dar/quitar "me gusta" a una publicación
+  async toggleLike(publicacionId: string) {
+    try {
+      const response = await this.request<{ 
+        message: string; 
+        liked: boolean;
+        totalLikes: number;
+      }>(
+        `/api/forum/publicaciones/${publicacionId}/like`,
+        {
+          method: 'POST',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al dar/quitar me gusta:', error);
+      throw error;
+    }
+  }
+
+  // Obtener estado de likes de una publicación
+  async getLikes(publicacionId: string) {
+    try {
+      const response = await this.request<{ 
+        totalLikes: number;
+        isLiked: boolean;
+      }>(
+        `/api/forum/publicaciones/${publicacionId}/like`,
+        {
+          method: 'GET',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener likes:', error);
+      throw error;
+    }
+  }
+
   // Métodos para ONGs
   async rateONG(ongId: number, rating: number, comment: string) {
     try {
