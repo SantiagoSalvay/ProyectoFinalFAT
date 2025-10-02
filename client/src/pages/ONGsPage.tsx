@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { api, ONG } from '../services/api'
 import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { getAllONGsImages, loadImageDictionary } from '../services/imageDictionary'
 
 export default function ONGsPage() {
   const [ongs, setOngs] = useState<ONG[]>([])
@@ -12,9 +13,21 @@ export default function ONGsPage() {
   const [locationFilter, setLocationFilter] = useState('')
   const { isAuthenticated } = useAuth()
 
+  // Estado para las imágenes de ONGs
+  const [ongImages, setOngImages] = useState<Array<{userId: number, imageUrl: string, fileName: string}>>([])
+
   useEffect(() => {
     loadONGs()
   }, [typeFilter, locationFilter])
+
+  // Cargar imágenes del diccionario local
+  useEffect(() => {
+    loadImageDictionary().then(() => {
+      const images = getAllONGsImages();
+      setOngImages(images);
+      console.log('🖼️ Imágenes de ONGs cargadas:', images);
+    });
+  }, [])
 
   const loadONGs = async () => {
     try {
@@ -42,6 +55,12 @@ export default function ONGsPage() {
       setLoading(false)
     }
   }
+
+  // Función para obtener la imagen de una ONG específica
+  const getONGImage = (ongId: number): string | null => {
+    const imageData = ongImages.find(img => img.userId === ongId);
+    return imageData ? imageData.imageUrl : null;
+  };
 
   const filteredONGs = ongs.filter(ong => {
     const matchesSearch = ong.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -229,6 +248,7 @@ export default function ONGsPage() {
               isAuthenticated={isAuthenticated}
               onRate={handleRateONG}
               onComment={handleCommentONG}
+              getImage={getONGImage}
             />
           ))}
         </div>
@@ -250,9 +270,10 @@ interface ONGCardProps {
   isAuthenticated: boolean
   onRate: (ongId: number, rating: number, comment: string) => void
   onComment: (ongId: number, content: string) => void
+  getImage: (ongId: number) => string | null
 }
 
-function ONGCard({ ong, isAuthenticated, onRate, onComment }: ONGCardProps) {
+function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardProps) {
   const [showDetails, setShowDetails] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
@@ -274,8 +295,31 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment }: ONGCardProps) {
     }
   }
 
+  // Obtener la imagen de la ONG
+  const ongImage = getImage(ong.id);
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+      {/* Imagen de la ONG */}
+      {ongImage && (
+        <div className="relative h-48 w-full">
+          <img
+            src={ongImage}
+            alt={`Imagen de ${ong.name}`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-2 right-2">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              ong.type === 'public' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {ong.type === 'public' ? 'Pública' : 'Privada'}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
@@ -284,13 +328,6 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment }: ONGCardProps) {
               <MapPin className="w-4 h-4 text-gray-400" />
               <span className="text-sm text-gray-600">{ong.location}</span>
             </div>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              ong.type === 'public' 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-red-100 text-red-800'
-            }`}>
-              {ong.type === 'public' ? 'Pública' : 'Privada'}
-            </span>
           </div>
           
           <button

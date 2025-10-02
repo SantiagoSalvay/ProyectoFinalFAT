@@ -412,6 +412,53 @@ class ApiService {
     }
   }
 
+  // Métodos para comentarios
+  async getComentarios(publicacionId: string) {
+    try {
+      const response = await this.request<any[]>(
+        `/api/forum/publicaciones/${publicacionId}/comentarios`,
+        {
+          method: 'GET'
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener comentarios:', error);
+      throw error;
+    }
+  }
+
+  async crearComentario(publicacionId: string, mensaje: string) {
+    try {
+      const response = await this.request<{ message: string; comentario: any }>(
+        `/api/forum/publicaciones/${publicacionId}/comentarios`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ mensaje }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al crear comentario:', error);
+      throw error;
+    }
+  }
+
+  async eliminarComentario(comentarioId: string) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/forum/comentarios/${comentarioId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al eliminar comentario:', error);
+      throw error;
+    }
+  }
+
   // Métodos para ONGs
   async rateONG(ongId: number, rating: number, comment: string) {
     try {

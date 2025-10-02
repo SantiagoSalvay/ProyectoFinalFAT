@@ -4,6 +4,7 @@ import { useNotifications } from '../contexts/NotificationContext'
 import { toast } from 'react-hot-toast'
 import { api } from '../services/api'
 import ClickableMapModal from '../components/ClickableMapModal'
+import InlineComments from '../components/InlineComments'
 import { 
   MessageCircle, 
   Heart, 
@@ -60,6 +61,7 @@ export default function ForumPage() {
 
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
 
@@ -133,14 +135,16 @@ export default function ForumPage() {
     }))
   }
 
-  const handleComment = (postId: string) => {
-    if (!user) {
-      setShowAuthModal(true)
-      return
-    }
-    
-    // Aquí iría la lógica para comentar
-    toast.success('Función de comentarios próximamente')
+  const handleToggleComments = (postId: string) => {
+    setExpandedComments(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(postId)) {
+        newSet.delete(postId)
+      } else {
+        newSet.add(postId)
+      }
+      return newSet
+    })
   }
 
   const handleCreatePost = async () => {
@@ -513,7 +517,7 @@ export default function ForumPage() {
                     </button>
                     
                     <button 
-                      onClick={() => handleComment(post.id)}
+                      onClick={() => handleToggleComments(post.id)}
                       className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
                     >
                       <MessageCircle className="w-5 h-5" />
@@ -527,6 +531,13 @@ export default function ForumPage() {
                   </div>
                 </div>
               </div>
+              
+              {/* Comentarios inline */}
+              <InlineComments
+                publicacionId={post.id}
+                isExpanded={expandedComments.has(post.id)}
+                onToggle={() => handleToggleComments(post.id)}
+              />
             </div>
             ))
           )}
@@ -547,6 +558,7 @@ export default function ForumPage() {
           onLocationSelect={handleLocationSelect}
           initialLocation={newPost.location}
         />
+
       </div>
     </div>
   )

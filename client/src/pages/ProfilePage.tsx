@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useONGNotifications } from '../hooks/useONGNotifications'
 import { toast } from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
+import { uploadImageToVPS, getUserImageUrl, loadImageDictionary, clearAllImages } from '../services/imageDictionary'
 import { 
   User, 
   Building, 
@@ -15,7 +16,10 @@ import {
   X,
   Heart,
   Users,
-  Award
+  Award,
+  Upload,
+  Image,
+  Trash2
 } from 'lucide-react'
 
 export default function ProfilePage() {
@@ -29,6 +33,12 @@ export default function ProfilePage() {
     location: '',
     bio: ''
   })
+
+  // Estado para manejar la imagen de la ONG
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null)
 
   // Autocompletado de ubicación con LocationIQ
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
@@ -136,6 +146,14 @@ export default function ProfilePage() {
         location: user.ubicacion || '',
         bio: user.bio || ''
       })
+
+      // Cargar imagen desde el diccionario local si es ONG
+      if (isONG && user.id_usuario) {
+        loadImageDictionary().then(() => {
+          const imageUrl = getUserImageUrl(user.id_usuario);
+          setCurrentImageUrl(imageUrl);
+        });
+      }
     }
   }, [user, isONG])
 
@@ -206,6 +224,68 @@ export default function ProfilePage() {
       })
     }
     setIsEditing(false)
+  }
+
+  // Función para manejar la selección de imagen
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        toast.error('Por favor selecciona un archivo de imagen válido')
+        return
+      }
+      
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('La imagen debe ser menor a 5MB')
+        return
+      }
+      
+      setSelectedImage(file)
+      
+      // Crear preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Función para subir la imagen
+  const handleImageUpload = async () => {
+    if (!selectedImage || !user?.id_usuario) {
+      toast.error('Por favor selecciona una imagen')
+      return
+    }
+
+    setIsUploadingImage(true)
+    try {
+      // Subir imagen localmente usando el servicio de diccionario
+      const imageUrl = await uploadImageToVPS(selectedImage, user.id_usuario)
+      
+      // Actualizar el estado local con la nueva URL
+      setCurrentImageUrl(imageUrl)
+      
+      toast.success('Imagen guardada exitosamente (almacenamiento local)')
+      setSelectedImage(null)
+      setImagePreview(null)
+      
+      console.log('✅ Imagen guardada localmente:', imageUrl)
+      
+    } catch (error) {
+      console.error('Error al subir imagen localmente:', error)
+      toast.error('Error al guardar la imagen localmente. Inténtalo de nuevo.')
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  // Función para cancelar la subida de imagen
+  const handleImageCancel = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
   }
 
   return (
@@ -419,6 +499,110 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+
+            {/* Sección de Imagen de ONG - Solo visible para usuarios ONG */}
+            {isONG && (
+              <div className="card p-6 mt-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Imagen de la Organización
+                  </h2>
+                  {/* Botón de prueba para limpiar imágenes (solo en desarrollo) */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <button
+                      onClick={() => {
+                        clearAllImages();
+                        setCurrentImageUrl(null);
+                        toast.success('Imágenes limpiadas (solo para testing)');
+                      }}
+                      className="text-xs text-red-600 hover:text-red-800 underline"
+                    >
+                      Limpiar todas las imágenes
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {/* Vista previa de la imagen actual */}
+                  {currentImageUrl && !imagePreview && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Imagen Actual
+                      </label>
+                      <div className="relative inline-block">
+                        <img
+                          src={currentImageUrl}
+                          alt="Imagen de la organización"
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vista previa de la nueva imagen */}
+                  {imagePreview && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Vista Previa
+                      </label>
+                      <div className="relative inline-block">
+                        <img
+                          src={imagePreview}
+                          alt="Vista previa"
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Botón para seleccionar imagen */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {imagePreview ? 'Cambiar Imagen' : currentImageUrl ? 'Actualizar Imagen' : 'Subir Imagen'}
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Image className="w-4 h-4 mr-2" />
+                        Seleccionar Archivo
+                      </label>
+                      
+                      {imagePreview && (
+                        <>
+                          <button
+                            onClick={handleImageUpload}
+                            disabled={isUploadingImage}
+                            className="btn-primary flex items-center disabled:opacity-50"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {isUploadingImage ? 'Subiendo...' : 'Subir Imagen'}
+                          </button>
+                          <button
+                            onClick={handleImageCancel}
+                            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Cancelar
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 5MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
