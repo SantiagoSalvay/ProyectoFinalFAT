@@ -277,7 +277,7 @@ interface FloodCheck {
 
 const recentMessages: FloodCheck[] = []
 
-export function checkFlood(userId: string, maxMessages: number = 5, timeWindow: number = 60000): boolean {
+export function checkFlood(userId: string, maxMessages: number = 1, timeWindow: number = 10000): boolean {
   const now = Date.now()
   
   // Limpiar mensajes antiguos
@@ -300,6 +300,29 @@ export function checkFlood(userId: string, maxMessages: number = 5, timeWindow: 
   recentMessages.push({ userId, timestamp: now })
   
   return false
+}
+
+/**
+ * Obtiene el tiempo restante del cooldown en segundos
+ */
+export function getCooldownRemaining(userId: string, timeWindow: number = 10000): number {
+  const now = Date.now()
+  
+  // Buscar el último mensaje del usuario
+  const userMessages = recentMessages.filter(
+    msg => msg.userId === userId && now - msg.timestamp < timeWindow
+  )
+  
+  if (userMessages.length === 0) {
+    return 0 // No hay cooldown
+  }
+  
+  // Obtener el timestamp del último mensaje
+  const lastMessage = userMessages[userMessages.length - 1]
+  const timeElapsed = now - lastMessage.timestamp
+  const timeRemaining = timeWindow - timeElapsed
+  
+  return Math.ceil(timeRemaining / 1000) // Convertir a segundos
 }
 
 /**

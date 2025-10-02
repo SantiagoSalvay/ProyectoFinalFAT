@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
 import { toast } from 'react-hot-toast'
 import { useCommentValidation } from '../hooks/useContentModeration'
+import { getCooldownRemaining } from '../utils/contentModeration'
 import { 
   Send, 
   MessageCircle, 
@@ -48,6 +49,7 @@ export default function InlineComments({
   const [nuevoComentario, setNuevoComentario] = useState('')
   const [loading, setLoading] = useState(false)
   const [enviando, setEnviando] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
 
   // Cargar comentarios cuando se expande
   useEffect(() => {
@@ -55,6 +57,18 @@ export default function InlineComments({
       cargarComentarios()
     }
   }, [isExpanded, publicacionId])
+
+  // Actualizar el contador de cooldown cada segundo
+  useEffect(() => {
+    if (!user) return
+
+    const interval = setInterval(() => {
+      const remaining = getCooldownRemaining(user.id_usuario.toString())
+      setCooldownSeconds(remaining)
+    }, 100) // Actualizar cada 100ms para más precisión
+
+    return () => clearInterval(interval)
+  }, [user, comentarios.length]) // Actualizar cuando cambie el número de comentarios
 
   const cargarComentarios = async () => {
     try {
@@ -102,11 +116,12 @@ export default function InlineComments({
       console.error('Error al crear comentario:', error)
       
       // Manejar errores específicos de moderación del servidor
-      if (error.response?.status === 429) {
-        toast.error(error.response.data.error || 'Estás enviando comentarios demasiado rápido', {
-          duration: 5000
-        })
-      } else if (error.response?.status === 400) {
+       if (error.response?.status === 429) {
+         toast.error('Debes esperar 10 segundos entre mensajes.', {
+           duration: 3000,
+           icon: '⏱️'
+         })
+       } else if (error.response?.status === 400) {
         const errorData = error.response.data
         toast.error(errorData.error || 'El comentario contiene contenido inapropiado', {
           duration: 5000
@@ -265,18 +280,28 @@ export default function InlineComments({
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={handleEnviarComentario}
-                  disabled={enviando || !nuevoComentario.trim()}
-                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm transition-colors"
-                >
-                  {enviando ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  <span>{enviando ? 'Enviando...' : 'Enviar'}</span>
-                </button>
+                 <button
+                   onClick={handleEnviarComentario}
+                   disabled={enviando || !nuevoComentario.trim() || cooldownSeconds > 0}
+                   className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm transition-colors min-w-[100px]"
+                 >
+                   {enviando ? (
+                     <>
+                       <Loader2 className="w-4 h-4 animate-spin" />
+                       <span>Enviando...</span>
+                     </>
+                   ) : cooldownSeconds > 0 ? (
+                     <>
+                       <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                       <span>{cooldownSeconds}s</span>
+                     </>
+                   ) : (
+                     <>
+                       <Send className="w-4 h-4" />
+                       <span>Enviar</span>
+                     </>
+                   )}
+                 </button>
               </div>
             </div>
           ) : (

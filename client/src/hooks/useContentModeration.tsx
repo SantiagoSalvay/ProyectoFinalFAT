@@ -156,9 +156,9 @@ export function useContentModeration(
     const isFlooding = checkFlood(userId)
     
     if (isFlooding && showToasts) {
-      toast.error('Estás enviando mensajes demasiado rápido. Por favor, espera un momento.', {
+      toast.error('Debes esperar 10 segundos entre mensajes.', {
         icon: '⏱️',
-        duration: 5000
+        duration: 3000
       })
     }
 
