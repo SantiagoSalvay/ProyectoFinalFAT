@@ -239,4 +239,140 @@ router.get('/publicaciones/:id', async (req, res) => {
   }
 });
 
+// Crear un comentario en una publicación
+router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { mensaje } = req.body;
+    const userId = req.user?.id_usuario;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    if (!mensaje || !mensaje.trim()) {
+      return res.status(400).json({ error: 'El mensaje es requerido' });
+    }
+
+    // Verificar que la publicación existe
+    const publicacion = await prisma.foro.findUnique({
+      where: { id_foro: parseInt(id) }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    // Crear el comentario
+    const nuevoComentario = await prisma.respuestaForo.create({
+      data: {
+        id_foro: parseInt(id),
+        id_usuario: userId,
+        mensaje: mensaje.trim(),
+        fecha: new Date()
+      },
+      include: {
+        usuario: {
+          select: {
+            id_usuario: true,
+            nombre: true,
+            apellido: true,
+            tipo_usuario: true
+          }
+        }
+      }
+    });
+
+    res.status(201).json({
+      message: 'Comentario creado exitosamente',
+      comentario: nuevoComentario
+    });
+  } catch (error) {
+    console.error('Error al crear comentario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Obtener comentarios de una publicación
+router.get('/publicaciones/:id/comentarios', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar que la publicación existe
+    const publicacion = await prisma.foro.findUnique({
+      where: { id_foro: parseInt(id) }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    const comentarios = await prisma.respuestaForo.findMany({
+      where: { id_foro: parseInt(id) },
+      include: {
+        usuario: {
+          select: {
+            id_usuario: true,
+            nombre: true,
+            apellido: true,
+            tipo_usuario: true
+          }
+        }
+      },
+      orderBy: {
+        fecha: 'asc'
+      }
+    });
+
+    res.json(comentarios);
+  } catch (error) {
+    console.error('Error al obtener comentarios:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Eliminar un comentario (solo el autor o admin)
+router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id_usuario;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    // Buscar el comentario
+    const comentario = await prisma.respuestaForo.findUnique({
+      where: { id_respuesta: parseInt(id) },
+      include: {
+        usuario: {
+          select: {
+            id_usuario: true,
+            tipo_usuario: true
+          }
+        }
+      }
+    });
+
+    if (!comentario) {
+      return res.status(404).json({ error: 'Comentario no encontrado' });
+    }
+
+    // Verificar que el usuario es el autor del comentario
+    if (comentario.id_usuario !== userId) {
+      return res.status(403).json({ error: 'No tienes permisos para eliminar este comentario' });
+    }
+
+    // Eliminar el comentario
+    await prisma.respuestaForo.delete({
+      where: { id_respuesta: parseInt(id) }
+    });
+
+    res.json({ message: 'Comentario eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar comentario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 export default router; 

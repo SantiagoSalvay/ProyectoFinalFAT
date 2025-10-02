@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { Bell, Menu, X, Heart, Moon, Sun } from 'lucide-react'
-import UserDropdown from './UserDropdown'
+import { UserDropdown } from './UserDropdown'
 import { useTheme } from '../contexts/ThemeContext'
 
 export default function Header() {
@@ -12,6 +12,7 @@ export default function Header() {
   const { notifications, unreadCount, markAsRead, removeNotification } = useNotifications()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
   const bellRef = useRef<HTMLButtonElement>(null)
   const { theme, toggleTheme } = useTheme()
 
@@ -86,7 +87,12 @@ export default function Header() {
                 <button
                   ref={bellRef}
                   className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors"
-                  onClick={() => setShowNotifications(v => !v)}>
+                  onClick={() => {
+                    setShowNotifications(v => {
+                      if (!v) setShowUserDropdown(false)
+                      return !v
+                    })
+                  }}>
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
@@ -182,7 +188,15 @@ export default function Header() {
                 )}
 
                 {/* User Dropdown */}
-                <UserDropdown user={user!} onLogout={logout} />
+                <UserDropdown
+                  user={user!}
+                  onLogout={logout}
+                  isOpen={showUserDropdown}
+                  setIsOpen={open => {
+                    setShowUserDropdown((open as boolean))
+                    if (open) setShowNotifications(false)
+                  }}
+                />
               </>
             ) : (
               <div className="flex items-center space-x-4">
