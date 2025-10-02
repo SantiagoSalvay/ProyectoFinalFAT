@@ -76,7 +76,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div
+          className="grid gap-6 mb-8"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
+          }}
+        >
           <div className="card p-6">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
@@ -95,28 +100,12 @@ export default function DashboardPage() {
 
           <div className="card p-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  {isONG ? 'Total Recaudado' : 'Donaciones Totales'}
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {isONG ? '15600$' : '48'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">
-                  {isONG ? 'no se me ocurre otra mentira para datos de interes' : 'Total Donado'}
+                  {isONG ? 'Total Recaudados' : 'Total Donado'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">$12,450</p>
               </div>
@@ -130,7 +119,7 @@ export default function DashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">
-                  {isONG ? 'menos se me va a ocurrir' : 'Total Donado'}
+                  {isONG ? 'menos se me va a ocurrir' : 'puntos actuales'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">1354pt</p>
               </div>
@@ -276,30 +265,34 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Upcoming Events */}
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Próximos Eventos
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center p-3 bg-orange-50 rounded-lg">
-                  <Calendar className="w-5 h-5 text-orange-600 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Campaña de Donación</p>
-                    <p className="text-xs text-gray-600">15 de Diciembre</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center p-3 bg-emerald-50 rounded-lg">
-                  <Users className="w-5 h-5 text-emerald-600 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Sesión de Voluntariado</p>
-                    <p className="text-xs text-gray-600">20 de Diciembre</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Upcoming Events como notificaciones tipo noticia */}
+            {/* Al montar la página, agregar notificaciones de eventos si no existen */}
+            {/* Notificaciones de eventos solo una vez por usuario al iniciar sesión */}
+            {(() => {
+              useEffect(() => {
+                if (!user?.id_usuario) return;
+                const eventosKey = `eventos-enviados-${user.id_usuario}`;
+                const enviados = localStorage.getItem(eventosKey);
+                const yaEstaCampana = notifications.some(n => n.id === 'evento-campana');
+                const yaEstaVoluntariado = notifications.some(n => n.id === 'evento-voluntariado');
+                if (!enviados && !yaEstaCampana && !yaEstaVoluntariado) {
+                  addNotification({
+                    id: 'evento-campana',
+                    type: 'info',
+                    title: 'Próximo Evento: Campaña de Donación',
+                    message: 'No te pierdas la campaña de donación el 15 de Diciembre.',
+                  });
+                  addNotification({
+                    id: 'evento-voluntariado',
+                    type: 'info',
+                    title: 'Próximo Evento: Sesión de Voluntariado',
+                    message: 'Participa en la sesión de voluntariado el 20 de Diciembre.',
+                  });
+                  localStorage.setItem(eventosKey, 'true');
+                }
+              }, [addNotification, user?.id_usuario, notifications]);
+              return null;
+            })()}
           </div>
         </div>
       </div>
