@@ -1,31 +1,47 @@
 classDiagram
     TipoUsuario <-- Usuario: tiene
-    Usuario <-- PedidoDonacion : tiene
-    Usuario <-- Foro: tiene
-    Foro --o ForoCategoria: depende
-    ForoCategoria --> Categoria
-    PedidoDonacion --> ForoCategoria
-    PedidoDonacion --> Donacion
-    RespuestaForo --> Usuario
-    RespuestaForo --o Foro
+    Usuario <-- DetalleUsuario: tiene
+    Usuario <-- Publicacion: crea
+    Usuario <-- PedidoDonacion : realiza
+    Usuario <-- CalificacionONG: califica
+    Usuario <-- Infracciones: tiene
+    Usuario <-- TipoONG: configura
+    
+    Publicacion --o PublicacionEtiqueta: tiene
+    PublicacionEtiqueta --> Etiqueta
+    Publicacion --> RespuestaPublicacion
+    RespuestaPublicacion --> RespuestaPublicacion: respuesta_padre
+    
+    PedidoDonacion --> PublicacionEtiqueta
+    PedidoDonacion --> TipoDonacion
+    PedidoDonacion --> Usuario: evaluador_ong
+    
     Usuario <-- Ranking
     PedidoDonacion <-- Ranking
     Ranking --> TipoRanking
+    
+    Infracciones --> TipoInfraccion
 
     class TipoUsuario{
-        int tipo_usuario
-        varchar nombre_tipo_usuario
+        +int id_tipo_usuario
+        +string tipo_usuario
 
         +new()
         +get()
         +set()
     }
     note for TipoUsuario "Metodos get, set, new son creados y extendidos a la demas clases"
+    
     class Usuario {
-        + int id_usuario
-        + varchar usuario
-        + varchar correo
-        - varchar contrasena
+        +int id_usuario
+        +string nombre
+        +string apellido
+        +string biografia
+        +string email
+        -string contrasena
+        +int id_tipo_usuario
+        +string ubicacion
+        +date createdAt
 
         +conocerTipoUsuario()
         +identificarUsuario()
@@ -33,80 +49,174 @@ classDiagram
         +reestrablecerContrasena()
         +verificarMail()
         +verificarONG()
-        
+        +calificarONG()
+        +realizarDonacion()
+        +crearPublicacion()
     }
+    
+    class DetalleUsuario {
+        +int id_detalle_usuario
+        +int id_usuario
+        +boolean email_verified
+        +string auth_provider
+        +string facebook_id
+        +string google_id
+        +string profile_picture
+        +string twitter_id
+        +int puntosActuales
+        +date ultima_fecha_actualizacion
+
+        +actualizarPuntos()
+        +verificarEmail()
+        +configurarOAuth()
+    }
+    
+    class Publicacion {
+        +int id_publicacion
+        +int id_usuario
+        +string titulo
+        +string descripcion_publicacion
+        +int num_megusta
+        +date fecha_publicacion
+        +date ultima_fecha_actualizacion
+        +string ubicacion
+
+        +conocerUsuario()
+        +editarPublicacion()
+        +aumentarMeGusta()
+        +restarMeGusta()
+    }
+    
+    class Etiqueta {
+        +int id_etiqueta
+        +string etiqueta
+
+        +getEtiquetas()
+        +crearEtiqueta()
+    }
+    
+    class PublicacionEtiqueta {
+        +int id_publicacion_etiqueta
+        +int id_publicacion
+        +int id_etiqueta
+
+        +asignarEtiqueta()
+        +removerEtiqueta()
+        +obtenerEtiquetas()
+    }
+    
+    class TipoDonacion {
+        +int id_tipo_donacion
+        +string tipo_donacion
+        +string descripcion
+        +int puntos
+
+        +calcularPuntos()
+        +obtenerTipos()
+    }
+    
+    class PedidoDonacion {
+        +int id_pedido
+        +int id_publicacion_etiqueta
+        +int id_usuario
+        +int id_tipo_donacion
+        +int cantidad
+        +int id_ong_evaluadora
+        +string descripcion_voluntariado
+        +int horas_donadas
+        +string estado_evaluacion
+        +int puntos_otorgados
+        +date fecha_evaluacion
+        +date fecha_donacion
+
+        +conocerUsuario()
+        +conocerPublicacion()
+        +conocerDonacion()
+        +calcularPuntos()
+        +evaluarVoluntariado()
+        +actualizarEstado()
+    }
+    
+    class CalificacionONG {
+        +int id_calificacion
+        +int id_ong
+        +int id_usuario
+        +float puntuacion
+        +string comentario
+        +date fecha_calificacion
+
+        +calificarONG()
+        +obtenerCalificaciones()
+        +promediarPuntuacion()
+    }
+    
+    class Infracciones {
+        +int id_infraccion
+        +int id_usuario
+        +string contenido
+        +int id_tipo_infraccion
+        +date fecha_infraccion
+        +date fecha_expiracion
+
+        +registrarInfraccion()
+        +verificarExpiración()
+        +obtenerHistorial()
+    }
+    
+    class TipoInfraccion {
+        +int id_tipo_infraccion
+        +string tipo_infraccion
+        +string severidad
+
+        +obtenerTipos()
+        +calcularSeveridad()
+    }
+    
+    class TipoONG {
+        +int id_tipo_ong
+        +string grupo_social
+        +string necesidad
+        +int id_usuario
+
+        +configurarPerfil()
+        +obtenerFiltros()
+        +actualizarNecesidades()
+    }
+    
+    class RespuestaPublicacion {
+        +int id_respuesta
+        +int id_respuesta_padre
+        +int id_publicacion
+        +int id_usuario
+        +string mensaje
+        +date fecha_respuesta
+        +date moderated_at
+        +string moderation_status
+        +string rejection_reason
+
+        +conocerPublicacion()
+        +conocerUsuario()
+        +responderRespuesta()
+        +moderarRespuesta()
+    }
+    
     class Ranking{
-        int id_ranking
-        int id_tipo_ranking
-        int id_pedido 
-        int puesto
-        int puntos
+        +int id_ranking
+        +int id_tipo_ranking
+        +int id_usuario
+        +int puesto
+        +int puntos
 
         +conocerTipoRanking()
         +identificarRanking()
         +calcularPuntos()
         +reordenarPuestos()
     }
+    
     class TipoRanking{
-        int id_tipo_ranking
-        varchar tipo_ranking
-    }
-    class Donacion {
-        int id_donacion 
-        varchar tipo_donacion
-        varchar descripcion
-        int puntos
-    }
-    class Foro {
-        int id_foro 
-        int id_usuario 
-        varchar titulo
-        varchar descripcion
-        date fecha
+        +int id_tipo_ranking
+        +string tipo_ranking
 
-        +conocerUsuario()
-        +editarAnuncio()
-
-    }
-    class Categoria {
-        int id_categoria 
-        varchar etiqueta
-    }
-    class ForoCategoria {
-        int id_foro_categoria 
-        int id_foro 
-        int id_categoria
-        int num_me_gusta 
-
-        +editarCategorias()
-        +ordenarporCategoria()
-        +conocerForo()
-        +conocerCategoria()
-        +AumentarMeGusta()
-        +RestarMeGusta()
-    }
-    class RespuestaForo {
-        int id_respuesta 
-        int id_foro 
-        int id_usuario 
-        varchar mensaje
-        date fecha
-
-        +conocerForo()
-        +conocerUsuario()
-        +editarRta()
-    }
-    class PedidoDonacion {
-        int id_pedido 
-        int id_foro 
-        int id_usuario 
-        int id_donacion 
-        varchar descripcion
-        int cantidad
-        date fecha
-
-        +conocerUsuario()
-        +conocerForoCategoria()
-        +conocerDonacion()
-        +calcularPuntos()
+        +obtenerTipos()
+        +configurarRanking()
     }

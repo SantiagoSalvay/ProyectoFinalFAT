@@ -27,10 +27,10 @@ router.get('/dashboard/summary', async (req, res) => {
       where: { id_usuario: userId },
       select: {
         id_pedido: true,
-        fecha: true,
+        fecha_donacion: true,
         cantidad: true,
       },
-      orderBy: { fecha: 'desc' },
+      orderBy: { fecha_donacion: 'desc' },
       take: 10,
     });
 
@@ -48,10 +48,10 @@ router.get('/dashboard/summary', async (req, res) => {
     const puntos = puntosAgg._sum.puntos || 0;
 
     // Actividad reciente: últimas donaciones y últimas respuestas de foro del usuario
-    const respuestas = await prisma.respuestaForo.findMany({
+    const respuestas = await prisma.respuestaPublicacion.findMany({
       where: { id_usuario: userId },
-      select: { id_respuesta: true, mensaje: true, fecha: true, id_foro: true },
-      orderBy: { fecha: 'desc' },
+      select: { id_respuesta: true, mensaje: true, fecha_respuesta: true, id_publicacion: true },
+      orderBy: { fecha_respuesta: 'desc' },
       take: 10,
     });
 
@@ -60,15 +60,15 @@ router.get('/dashboard/summary', async (req, res) => {
       ...donaciones.map(d => ({
         type: 'donation',
         id: `don-${d.id_pedido}`,
-        date: d.fecha,
+        date: d.fecha_donacion,
         amount: d.cantidad,
       })),
       ...respuestas.map(r => ({
         type: 'forum-reply',
         id: `rep-${r.id_respuesta}`,
-        date: r.fecha,
+        date: r.fecha_respuesta,
         message: r.mensaje,
-        postId: r.id_foro,
+        postId: r.id_publicacion,
       })),
     ]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -98,26 +98,34 @@ router.get('/donaciones/realizadas', async (req, res) => {
     const userId = decoded.userId;
 
     // Busca las donaciones realizadas por el usuario
-    const donaciones = await prisma.PedidoDonacion.findMany({
-      where: { usuarioId: userId },
+    const donaciones = await prisma.pedidoDonacion.findMany({
+      where: { id_usuario: userId },
       include: {
-        destinatario: {
-          select: { nombre: true, usuario: true, correo: true }
+        publicacionEtiqueta: {
+          include: {
+            publicacion: {
+              include: {
+                usuario: {
+                  select: { nombre: true, usuario: true, correo: true }
+                }
+              }
+            }
+          }
         }
       },
-      orderBy: { fecha: 'desc' }
+      orderBy: { fecha_donacion: 'desc' }
     });
 
     // Formatea la respuesta
     const result = donaciones.map(d => ({
-      id: d.id,
-      amount: d.monto,
-      date: d.fecha,
+      id: d.id_pedido,
+      amount: d.cantidad,
+      date: d.fecha_donacion,
       recipient: {
-        name: d.destinatario?.nombre || d.destinatario?.usuario || d.destinatario?.correo || '',
-        organization: d.destinatario?.usuario || undefined
+        name: d.publicacionEtiqueta?.publicacion?.usuario?.nombre || d.publicacionEtiqueta?.publicacion?.usuario?.usuario || '',
+        organization: d.publicacionEtiqueta?.publicacion?.usuario?.usuario || undefined
       },
-      message: d.mensaje || ''
+      message: d.descripcion_voluntariado || ''
     }));
 
     res.json(result);
@@ -137,8 +145,8 @@ router.get('/profile/tipoong', async (req, res) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     // Buscar el registro TipoONG vinculado al usuario
-  const tipoOng = await prisma.TipoONG.findFirst({
-      where: { usuarioId: decoded.userId },
+  const tipoOng = await prisma.tipoONG.findFirst({
+      where: { id_usuario: decoded.userId },
       select: {
         grupo_social: true,
         necesidad: true
@@ -162,8 +170,8 @@ router.get('/profile/tipoong/:id', async (req, res) => {
       return res.status(400).json({ error: 'ID de usuario requerido' });
     }
 
-    const tipoOng = await prisma.TipoONG.findFirst({
-      where: { usuarioId: parseInt(id) }
+    const tipoOng = await prisma.tipoONG.findFirst({
+      where: { id_usuario: parseInt(id) }
     });
 
     res.json({ tipoONG: tipoOng });
@@ -184,16 +192,16 @@ router.post('/profile/tipoong', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     const { grupo_social, necesidad } = req.body;
     // Buscar si ya existe registro TipoONG para el usuario
-  const existing = await prisma.TipoONG.findFirst({ where: { usuarioId: decoded.userId } });
+  const existing = await prisma.tipoONG.findFirst({ where: { id_usuario: decoded.userId } });
     let tipoOng;
     if (existing) {
-  tipoOng = await prisma.TipoONG.update({
-        where: { ID_tipo: existing.ID_tipo },
+  tipoOng = await prisma.tipoONG.update({
+        where: { id_tipo_ong: existing.id_tipo_ong },
         data: { grupo_social, necesidad }
       });
     } else {
-  tipoOng = await prisma.TipoONG.create({
-        data: { grupo_social, necesidad, usuarioId: decoded.userId }
+  tipoOng = await prisma.tipoONG.create({
+        data: { grupo_social, necesidad, id_usuario: decoded.userId }
       });
     }
     res.json({ message: 'Datos guardados exitosamente', grupo_social: tipoOng.grupo_social, necesidad: tipoOng.necesidad });
@@ -207,7 +215,7 @@ router.post('/profile/tipoong', async (req, res) => {
 router.get('/ongs', async (req, res) => {
   try {
     const ongs = await prisma.usuario.findMany({
-      where: { tipo_usuario: 2 },
+      where: { id_tipo_usuario: 2 },
       select: {
         id_usuario: true,
         nombre: true,
@@ -249,7 +257,7 @@ router.post('/register', async (req, res) => {
   });
 
     // Validar que todos los campos requeridos estén presentes
-    // Para ONGs (tipo_usuario = 2), el apellido puede estar vacío
+    // Para ONGs (id_tipo_usuario = 2), el apellido puede estar vacío
     const isONG = parseInt(tipo_usuario) === 2;
     if (!nombre || (!apellido && !isONG) || !correo || !contrasena || !usuario || !tipo_usuario) {
       return res.status(400).json({ 
@@ -312,7 +320,7 @@ router.post('/register', async (req, res) => {
     let tipoUsuarioFinal = parseInt(tipo_usuario, 10);
     
     const tipoUsuarioExiste = await prisma.tipoUsuario.findUnique({
-      where: { tipo_usuario: tipoUsuarioFinal }
+      where: { id_tipo_usuario: tipoUsuarioFinal }
     });
     
     if (!tipoUsuarioExiste) {
@@ -333,7 +341,7 @@ router.post('/register', async (req, res) => {
         console.log('✅ [REGISTRO] Tipo de usuario por defecto creado:', tipoUsuarioDefault);
       }
       
-      tipoUsuarioFinal = tipoUsuarioDefault.tipo_usuario;
+      tipoUsuarioFinal = tipoUsuarioDefault.id_tipo_usuario;
       console.log('🔄 [REGISTRO] Usando tipo de usuario:', tipoUsuarioFinal);
     }
     
@@ -449,10 +457,7 @@ router.post('/login', async (req, res) => {
         correo: true,
         contrasena: true,
         ubicacion: true,
-        tipo_usuario: true,
-        is_banned: true,
-        banned_reason: true,
-        banned_until: true
+        id_tipo_usuario: true
       }
     });
 
@@ -460,21 +465,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Verificar si el usuario está baneado
-    if (user.is_banned) {
-      const bannedMessage = user.banned_until
-        ? `Tu cuenta ha sido suspendida hasta el ${new Date(user.banned_until).toLocaleDateString('es-ES')}.`
-        : 'Tu cuenta ha sido baneada permanentemente.';
-      
-      return res.status(403).json({ 
-        error: 'Cuenta baneada',
-        message: bannedMessage,
-        reason: user.banned_reason || 'Violación de las normas de la comunidad',
-        bannedUntil: user.banned_until,
-        permanent: !user.banned_until,
-        userBanned: true
-      });
-    }
+    // Verificar si el usuario está baneado - TEMPORALMENTE DESHABILITADO
+    // TODO: Implementar sistema de baneo con la nueva estructura
 
     // Verificar contraseña
     const isValidPassword = await bcrypt.compare(contrasena, user.contrasena);
@@ -489,8 +481,8 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // Omitir contraseña y datos sensibles de baneo de la respuesta
-    const { contrasena: _, is_banned: __, banned_reason: ___, banned_until: ____, ...userWithoutPassword } = user;
+    // Omitir contraseña de la respuesta
+    const { contrasena: _, ...userWithoutPassword } = user;
 
     // Enviar email de notificación de inicio de sesión
     try {
@@ -572,7 +564,7 @@ router.get('/profile', async (req, res) => {
 
     // Si es persona y no tiene ubicación, incluir advertencia
     let warnings = [];
-    if (user.tipo_usuario === 1 && (!user.ubicacion || user.ubicacion === '')) {
+    if (user.id_tipo_usuario === 1 && (!user.ubicacion || user.ubicacion === '')) {
       warnings.push({
         type: 'warning',
         title: 'Completa tu ubicación',

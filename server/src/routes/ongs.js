@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     
     // Construir filtros
     const whereClause = {
-      tipo_usuario: 2 // Solo usuarios tipo ONG
+      id_tipo_usuario: 2 // Solo usuarios tipo ONG
     };
 
     // Aplicar filtros si se proporcionan
@@ -90,7 +90,7 @@ router.get('/:id', async (req, res) => {
     const ong = await prisma.usuario.findUnique({
       where: { 
         id_usuario: parseInt(id),
-        tipo_usuario: 2
+        id_tipo_usuario: 2
       },
       select: {
         id_usuario: true,
@@ -163,7 +163,7 @@ router.post('/:id/calificar', authenticateToken, async (req, res) => {
     const ong = await prisma.usuario.findUnique({
       where: { 
         id_usuario: parseInt(id),
-        tipo_usuario: 2
+        id_tipo_usuario: 2
       }
     });
 
@@ -185,14 +185,14 @@ router.post('/:id/calificar', authenticateToken, async (req, res) => {
         }
       },
       update: {
-        puntuacion: parseInt(puntuacion),
+        puntuacion: parseFloat(puntuacion),
         comentario: comentario || null,
-        fecha: new Date()
+        fecha_calificacion: new Date()
       },
       create: {
         id_ong: parseInt(id),
         id_usuario: userId,
-        puntuacion: parseInt(puntuacion),
+        puntuacion: parseFloat(puntuacion),
         comentario: comentario || null
       }
     });
@@ -240,7 +240,7 @@ router.get('/:id/mi-calificacion', authenticateToken, async (req, res) => {
       hasRated: true,
       puntuacion: calificacion.puntuacion,
       comentario: calificacion.comentario,
-      fecha: calificacion.fecha
+      fecha: calificacion.fecha_calificacion
     });
   } catch (error) {
     console.error('Error al obtener calificación:', error);

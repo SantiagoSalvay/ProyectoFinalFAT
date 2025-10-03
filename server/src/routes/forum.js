@@ -46,7 +46,7 @@ const authenticateToken = async (req, res, next) => {
 // Obtener todas las categorías
 router.get('/categorias', async (req, res) => {
   try {
-    const categorias = await prisma.categoria.findMany({
+    const categorias = await prisma.etiqueta.findMany({
       orderBy: {
         etiqueta: 'asc'
       }
@@ -74,35 +74,30 @@ router.get('/publicaciones', async (req, res) => {
       }
     }
 
-    const publicaciones = await prisma.foro.findMany({
+    const publicaciones = await prisma.publicacion.findMany({
       include: {
         usuario: {
           select: {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true,
+            id_tipo_usuario: true,
             ubicacion: true
           }
         },
-        foroCategorias: {
+        publicacionEtiquetas: {
           include: {
-            categoria: true
+            etiqueta: true
           }
         },
         respuestas: {
           select: {
             id_respuesta: true
           }
-        },
-        likes: {
-          select: {
-            id_usuario: true
-          }
         }
       },
       orderBy: {
-        fecha: 'desc'
+        fecha_publicacion: 'desc'
       }
     });
 
@@ -123,22 +118,22 @@ router.get('/publicaciones', async (req, res) => {
       }
       
       return {
-        id: publicacion.id_foro.toString(),
+        id: publicacion.id_publicacion.toString(),
         title: publicacion.titulo,
-        content: publicacion.descripcion,
+        content: publicacion.descripcion_publicacion,
         author: {
           id: publicacion.usuario.id_usuario.toString(),
           name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
-          role: publicacion.usuario.tipo_usuario === 2 ? 'ong' : 'person',
-          organization: publicacion.usuario.tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
+          role: publicacion.usuario.id_tipo_usuario === 2 ? 'ong' : 'person',
+          organization: publicacion.usuario.id_tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
           avatar: undefined
         },
-        tags: publicacion.foroCategorias.map(fc => fc.categoria.etiqueta),
+        tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
         location: location,
-        likes: publicacion.likes?.length || 0,
+        likes: publicacion.num_megusta || 0,
         comments: publicacion.respuestas.length,
-        createdAt: publicacion.fecha,
-        isLiked: publicacion.likes?.some(like => like.id_usuario === userId) || false
+        createdAt: publicacion.fecha_publicacion,
+        isLiked: false // TODO: Implementar sistema de likes
       };
     });
 
@@ -166,10 +161,10 @@ router.post('/publicaciones',
     // Verificar que el usuario sea ONG
     const usuario = await prisma.usuario.findUnique({
       where: { id_usuario: userId },
-      select: { tipo_usuario: true }
+      select: { id_tipo_usuario: true }
     });
 
-    if (!usuario || usuario.tipo_usuario !== 2) {
+    if (!usuario || usuario.id_tipo_usuario !== 2) {
       return res.status(403).json({ error: 'Solo las ONGs pueden crear publicaciones' });
     }
 
@@ -187,23 +182,23 @@ router.post('/publicaciones',
     }
 
     // Crear la publicación
-    const nuevaPublicacion = await prisma.foro.create({
+    const nuevaPublicacion = await prisma.publicacion.create({
       data: {
         id_usuario: userId,
         titulo,
-        descripcion,
-        fecha: new Date(),
+        descripcion_publicacion: descripcion,
+        fecha_publicacion: new Date(),
         ubicacion: ubicacionData
       }
     });
 
-    // Asociar las categorías
+    // Asociar las etiquetas
     if (categorias && categorias.length > 0) {
       for (const categoriaId of categorias) {
-        await prisma.foroCategoria.create({
+        await prisma.publicacionEtiqueta.create({
           data: {
-            id_foro: nuevaPublicacion.id_foro,
-            id_categoria: parseInt(categoriaId)
+            id_publicacion: nuevaPublicacion.id_publicacion,
+            id_etiqueta: parseInt(categoriaId)
           }
         });
       }
@@ -212,7 +207,7 @@ router.post('/publicaciones',
 
     res.status(201).json({ 
       message: 'Publicación creada exitosamente',
-      id: nuevaPublicacion.id_foro 
+      id: nuevaPublicacion.id_publicacion 
     });
   } catch (error) {
     console.error('Error al crear publicación:', error);
@@ -238,31 +233,26 @@ router.get('/publicaciones/:id', async (req, res) => {
       }
     }
     
-    const publicacion = await prisma.foro.findUnique({
-      where: { id_foro: parseInt(id) },
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) },
       include: {
         usuario: {
           select: {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true,
+            id_tipo_usuario: true,
             ubicacion: true
           }
         },
-        foroCategorias: {
+        publicacionEtiquetas: {
           include: {
-            categoria: true
+            etiqueta: true
           }
         },
         respuestas: {
           select: {
             id_respuesta: true
-          }
-        },
-        likes: {
-          select: {
-            id_usuario: true
           }
         }
       }
@@ -287,22 +277,22 @@ router.get('/publicaciones/:id', async (req, res) => {
 
     // Formatear la respuesta igual que en /publicaciones
     const publicacionFormateada = {
-      id: publicacion.id_foro.toString(),
+      id: publicacion.id_publicacion.toString(),
       title: publicacion.titulo,
-      content: publicacion.descripcion,
+      content: publicacion.descripcion_publicacion,
       author: {
         id: publicacion.usuario.id_usuario.toString(),
         name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
-        role: publicacion.usuario.tipo_usuario === 2 ? 'ong' : 'person',
-        organization: publicacion.usuario.tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
+        role: publicacion.usuario.id_tipo_usuario === 2 ? 'ong' : 'person',
+        organization: publicacion.usuario.id_tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
         avatar: undefined
       },
-      tags: publicacion.foroCategorias.map(fc => fc.categoria.etiqueta),
+      tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
       location: location,
-      likes: publicacion.likes?.length || 0,
+      likes: publicacion.num_megusta || 0,
       comments: publicacion.respuestas.length,
-      createdAt: publicacion.fecha,
-      isLiked: publicacion.likes?.some(like => like.id_usuario === userId) || false
+      createdAt: publicacion.fecha_publicacion,
+      isLiked: false // TODO: Implementar sistema de likes
     };
 
     res.json(publicacionFormateada);
@@ -327,8 +317,8 @@ router.post('/publicaciones/:id/comentarios',
     }
 
     // Verificar que la publicación existe
-    const publicacion = await prisma.foro.findUnique({
-      where: { id_foro: parseInt(id) }
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) }
     });
 
     if (!publicacion) {
@@ -336,12 +326,12 @@ router.post('/publicaciones/:id/comentarios',
     }
 
     // Crear comentario directamente (ya pasó la validación del middleware)
-    const nuevoComentario = await prisma.respuestaForo.create({
+    const nuevoComentario = await prisma.respuestaPublicacion.create({
       data: {
-        id_foro: parseInt(id),
+        id_publicacion: parseInt(id),
         id_usuario: userId,
         mensaje: mensaje.trim(),
-        fecha: new Date()
+        fecha_respuesta: new Date()
       },
       include: {
         usuario: {
@@ -349,7 +339,7 @@ router.post('/publicaciones/:id/comentarios',
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true
+            id_tipo_usuario: true
           }
         }
       }
@@ -371,8 +361,8 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
     const { id } = req.params;
 
     // Verificar que la publicación existe
-    const publicacion = await prisma.foro.findUnique({
-      where: { id_foro: parseInt(id) }
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) }
     });
 
     if (!publicacion) {
@@ -380,19 +370,19 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
     }
 
     // Obtener TODOS los comentarios (sin filtro de moderación)
-    const comentarios = await prisma.respuestaForo.findMany({
-      where: { id_foro: parseInt(id) },
+    const comentarios = await prisma.respuestaPublicacion.findMany({
+      where: { id_publicacion: parseInt(id) },
       include: {
         usuario: {
           select: {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true
+            id_tipo_usuario: true
           }
         }
       },
-      orderBy: { fecha: 'asc' }
+      orderBy: { fecha_respuesta: 'asc' }
     });
 
     res.json(comentarios);
@@ -413,13 +403,13 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     }
 
     // Buscar el comentario
-    const comentario = await prisma.respuestaForo.findUnique({
+    const comentario = await prisma.respuestaPublicacion.findUnique({
       where: { id_respuesta: parseInt(id) },
       include: {
         usuario: {
           select: {
             id_usuario: true,
-            tipo_usuario: true
+            id_tipo_usuario: true
           }
         }
       }
@@ -435,7 +425,7 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     }
 
     // Eliminar el comentario
-    await prisma.respuestaForo.delete({
+    await prisma.respuestaPublicacion.delete({
       where: { id_respuesta: parseInt(id) }
     });
 
@@ -446,119 +436,31 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Dar/quitar "me gusta" a una publicación
+// Dar/quitar "me gusta" a una publicación - TEMPORALMENTE DESHABILITADO
+// TODO: Implementar sistema de likes con la nueva estructura
 router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
+  res.status(501).json({ error: 'Sistema de likes temporalmente deshabilitado durante migración' });
+});
+
+// Obtener estado de likes de una publicación - TEMPORALMENTE DESHABILITADO
+// TODO: Implementar sistema de likes con la nueva estructura
+router.get('/publicaciones/:id/like', async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id_usuario;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'No autorizado' });
-    }
-
-    // Verificar que la publicación existe
-    const publicacion = await prisma.foro.findUnique({
-      where: { id_foro: parseInt(id) }
+    
+    // Obtener el número de likes desde la publicación
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) },
+      select: { num_megusta: true }
     });
 
     if (!publicacion) {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    // Verificar si ya existe el like
-    const likeExistente = await prisma.meGustaForo.findUnique({
-      where: {
-        id_foro_id_usuario: {
-          id_foro: parseInt(id),
-          id_usuario: userId
-        }
-      }
-    });
-
-    if (likeExistente) {
-      // Si ya existe, eliminar el like (toggle)
-      await prisma.meGustaForo.delete({
-        where: {
-          id_megusta: likeExistente.id_megusta
-        }
-      });
-
-      // Contar likes actualizados
-      const totalLikes = await prisma.meGustaForo.count({
-        where: { id_foro: parseInt(id) }
-      });
-
-      return res.json({
-        message: 'Me gusta eliminado',
-        liked: false,
-        totalLikes
-      });
-    } else {
-      // Si no existe, crear el like
-      await prisma.meGustaForo.create({
-        data: {
-          id_foro: parseInt(id),
-          id_usuario: userId
-        }
-      });
-
-      // Contar likes actualizados
-      const totalLikes = await prisma.meGustaForo.count({
-        where: { id_foro: parseInt(id) }
-      });
-
-      return res.json({
-        message: 'Me gusta agregado',
-        liked: true,
-        totalLikes
-      });
-    }
-  } catch (error) {
-    console.error('Error al dar me gusta:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-
-// Obtener estado de likes de una publicación
-router.get('/publicaciones/:id/like', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const authHeader = req.headers.authorization;
-    let userId = null;
-
-    // Intentar obtener el usuario actual (opcional)
-    if (authHeader) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
-        userId = decoded.userId;
-      } catch (error) {
-        // Token inválido, continuar sin userId
-      }
-    }
-
-    // Contar total de likes
-    const totalLikes = await prisma.meGustaForo.count({
-      where: { id_foro: parseInt(id) }
-    });
-
-    // Verificar si el usuario actual le dio like
-    let isLiked = false;
-    if (userId) {
-      const like = await prisma.meGustaForo.findUnique({
-        where: {
-          id_foro_id_usuario: {
-            id_foro: parseInt(id),
-            id_usuario: userId
-          }
-        }
-      });
-      isLiked = !!like;
-    }
-
     res.json({
-      totalLikes,
-      isLiked
+      totalLikes: publicacion.num_megusta || 0,
+      isLiked: false // TODO: Implementar verificación de likes del usuario
     });
   } catch (error) {
     console.error('Error al obtener likes:', error);

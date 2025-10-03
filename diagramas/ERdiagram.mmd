@@ -1,85 +1,140 @@
 erDiagram
 
-    RolUsuario{
-        int id_rol PK
-        int id_usuario FK
-        string nombre_RolUsuario
+    TIPO_ONG }|--|| USUARIO: tiene
+    TIPO_USUARIO ||--|{USUARIO: tiene
+    USUARIO ||--|{ CALIFICACION_ONG: tiene
+    USUARIO ||--|{ DETALLE_USUARIO: tiene
+    USUARIO ||--|{ PUBLICACION: crea
+    INFRACCIONES }|--|| USUARIO: tiene
+    TIPO_INFRACCION ||--|{ INFRACCIONES: tiene
+
+    PUBLICACION||--|{PUBLICACION_ETIQUETA: tiene
+    PUBLICACION_ETIQUETA }|--|| ETIQUETA: tiene
+    PUBLICACION ||--|{ RESPUESTA_PUBLICACION: tiene
+    RESPUESTA_PUBLICACION ||--|{ RESPUESTA_PUBLICACION : tiene
+
+
+    PUBLICACION_ETIQUETA ||--|{ PEDIDO_DONACION: tiene
+    DETALLE_USUARIO ||--|{ PEDIDO_DONACION: "Persona Dona"
+    TIPO_DONACION ||--|{ PEDIDO_DONACION: tiene
+
+    PEDIDO_DONACION ||--|{ RANKING: actualiza
+    TIPO_RANKING ||--|{RANKING: tiene
+
+    ETIQUETA{
+        int id_etiqueta PK
+        str etiqueta
     }
-    Usuario{
-        int id_usuario PK
-        string usuario
-        string telefono
-        string correo
-        string contrasena
-    }
-    ONGxToken{
-        int id_token PK
-        int id_usuario FK
-        string token
-    }
-    Ranking{
-        int id_ranking PK
-        int id_tipo_ranking
-        int id_pedido FK
-        int puesto
+    TIPO_DONACION{
+        int id_tipo_donacion PK
+        str tipo_donacion
+        str descripcion 
         int puntos
     }
-    TipoRanking{
-        int id_tipo_ranking
-        string tipo_ranking
-    }
-    Donacion {
-        int id_donacion PK
-        string tipo_donacion
-        string descripcion
-        int puntos
-    }
-    Publicacion {
+    PUBLICACION{
         int id_publicacion PK
         int id_usuario FK
-        string direccion_pick_up
-        string titulo
-        string descripcion
-        date fechaAlta
-        date fechaBaja
-        img imagen
+        str titulo
+        str descripcion_publicacion
+        int num_megusta
+        date fecha_publicacion
+        date ultima_fecha_actualizacion
+        str ubicacion 
     }
-    Categoria {
-        int id_categoria PK
-        string etiqueta
-    }
-    PublicacionCategoria {
-        int id_publicacion_categoria PK
+    PUBLICACION_ETIQUETA{
+        int id_publicacion_etiqueta PK
         int id_publicacion FK
-        int id_categoria FK
+        int id_etiqueta FK
     }
-    RespuestaPublicacion {
+    INFRACCIONES{
+        int id_infraccion PK
+        int id_usuario FK
+        str contenido 
+        int id_tipo_infraccion FK
+        date fecha_infraccion
+        date fecha_expiracion
+    }
+    TIPO_INFRACCION{
+        int id_tipo_infraccion PK
+        str tipo_infraccion
+        str severidad
+    }
+    CALIFICACION_ONG{
+        int id_calificacion PK
+        int id_ong 
+        int id_usuario FK
+        float puntuacion
+        str comentario
+        date fecha_calificacion
+    }
+    PEDIDO_DONACION{
+        int id_pedido PK
+        int id_publicacion_etiqueta FK
+        int id_usuario FK
+        int id_tipo_donacion FK
+        int cantidad
+
+        int id_ong_evaluadora FK       
+        str descripcion_voluntariado      
+        int horas_donadas                   
+        str estado_evaluacion              
+        int puntos_otorgados               
+        date fecha_evaluacion
+        date fecha_donacion
+    }
+    RANKING{
+        int id_ranking PK
+        int id_tipo_ranking FK
+        int id_usuario FK
+        int puesto 
+        int puntos
+    }
+    RESPUESTA_PUBLICACION{
         int id_respuesta PK
+        int id_respuesta_padre FK
         int id_publicacion FK
         int id_usuario FK
-        string mensaje
-        date fecha
-    }
-    PedidoDonacion {
-        int id_pedido PK
-        int id_publicacion_categoria FK
-        int id_rol FK
-        int id_donacion FK
-        string descripcion
-        int cantidad
-        date fecha
-    }
+        str mensaje
+        date fecha_respuesta
+        date moderated_at
+        str moderation_status
+        str rejection_reason
 
-    
-    RolUsuario ||--|{ ONGxToken: tiene
-    RolUsuario ||-- || Usuario: "tiene un"
-    RolUsuario ||--|{ Publicacion : publica
-    Publicacion ||--|{ PublicacionCategoria : tiene
-    Categoria ||--|{ PublicacionCategoria : clasifica
-    PublicacionCategoria ||--|{ PedidoDonacion : tiene
-    RespuestaPublicacion }|--|| PublicacionCategoria : tiene
-    RolUsuario ||--|{ RespuestaPublicacion: tiene
-    RolUsuario ||--|{ PedidoDonacion : realiza
-    PedidoDonacion }|--|| Donacion : clasifica
-    PedidoDonacion ||--|{ Ranking : clasifica
-    TipoRanking ||--|{Ranking: tiene
+    }
+    TIPO_ONG{
+        int id_tipo_ong PK
+        str grupo_social
+        str necesidad
+        int id_usuario FK
+    }
+    TIPO_RANKING{
+        int id_tipo_ranking PK
+        str tipo_ranking
+    }
+    TIPO_USUARIO{
+        int id_tipo_usuario PK
+        str tipo_usuario
+    }
+    DETALLE_USUARIO{
+        int id_detalle_usuario PK
+        int id_usuario FK
+        boolean email_verified
+        str auth_provider 
+        str facebook_id
+        str google_id
+        str profile_picture
+        str twitter_id
+        int puntosActuales
+        date ultima_fecha_actualizacion
+    }
+    USUARIO{
+        int id_usuario PK
+        str nombre
+        str apellido
+        str biografia
+        email email
+        str contrasena
+        int id_tipo_usuario FK
+        str ubicacion
+        date createdAt
+    }
