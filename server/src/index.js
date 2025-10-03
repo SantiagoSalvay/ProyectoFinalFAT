@@ -15,9 +15,16 @@ dotenv.config({ path: '../.env' });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configurar CORS
+// Configurar CORS para permitir frontend en 3000 y 3002
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3002'];
 app.use(cors({
-  origin: 'http://localhost:3000', // URL del frontend
+  origin: (origin, callback) => {
+    // Permitir requests de herramientas (sin origin) y de orígenes permitidos
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS not allowed'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']

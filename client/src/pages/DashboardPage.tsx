@@ -218,17 +218,11 @@ export default function DashboardPage() {
                   className="w-full btn-accent text-sm"
                   onClick={() => {
                     if (!isONG) {
-                      navigate('/donations-history');
+                      navigate('/acciones/mi-historial');
                     }
                   }}
                 >
                   {isONG ? 'Ver Reportes' : 'Ver Mi Historial'}
-                </button>
-                <button
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
-                  onClick={() => navigate(isONG ? '/acciones/historial-donaciones' : '/acciones/mis-donaciones')}
-                >
-                  {isONG ? 'Historial Donaciones' : 'Administrar Mis Donaciones'}
                 </button>
               </div>
             </div>
