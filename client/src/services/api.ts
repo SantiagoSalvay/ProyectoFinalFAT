@@ -542,6 +542,47 @@ class ApiService {
   }
 
   // Métodos para ONGs
+  async calificarONG(ongId: number, puntuacion: number, comentario?: string) {
+    try {
+      const response = await this.request<{ 
+        message: string; 
+        calificacion: any;
+        nuevoPromedio: number;
+        totalCalificaciones: number;
+      }>(
+        `/api/ongs/${ongId}/calificar`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ puntuacion, comentario }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al calificar ONG:', error);
+      throw error;
+    }
+  }
+
+  async obtenerMiCalificacion(ongId: number) {
+    try {
+      const response = await this.request<{
+        hasRated: boolean;
+        puntuacion?: number;
+        comentario?: string;
+        fecha?: string;
+      }>(
+        `/api/ongs/${ongId}/mi-calificacion`,
+        {
+          method: 'GET',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener calificación:', error);
+      throw error;
+    }
+  }
+
   async rateONG(ongId: number, rating: number, comment: string) {
     try {
       const response = await this.request<{ message: string }>(

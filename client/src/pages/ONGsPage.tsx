@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { api, ONG } from '../services/api'
-import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye, EyeOff, RefreshCw, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { toast } from 'react-hot-toast'
 import { getAllONGsImages, loadImageDictionary } from '../services/imageDictionary'
 
 export default function ONGsPage() {
@@ -191,12 +192,12 @@ export default function ONGsPage() {
         </div>
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center">
               <Building className="w-8 h-8 text-purple-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total ONGs</p>
+                <p className="text-sm font-medium text-gray-600">Total ONGs Registradas</p>
                 <p className="text-2xl font-bold text-gray-900">{ongs.length}</p>
               </div>
             </div>
@@ -204,11 +205,11 @@ export default function ONGsPage() {
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center">
-                <Building className="w-8 h-8 text-green-600" />
+              <Star className="w-8 h-8 text-yellow-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Públicas</p>
+                <p className="text-sm font-medium text-gray-600">ONGs con Calificación</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {ongs.filter(ong => ong.type === 'public').length}
+                  {ongs.filter(ong => ong.rating > 0).length}
                 </p>
               </div>
             </div>
@@ -216,23 +217,11 @@ export default function ONGsPage() {
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center">
-                <Building className="w-8 h-8 text-red-600" />
+              <Heart className="w-8 h-8 text-red-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Privadas</p>
+                <p className="text-sm font-medium text-gray-600">Proyectos Activos</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {ongs.filter(ong => ong.type === 'private').length}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center">
-              <Users className="w-8 h-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Voluntarios</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {ongs.reduce((sum, ong) => sum + ong.volunteers_count, 0)}
+                  {ongs.reduce((sum, ong) => sum + ong.projects_count, 0)}
                 </p>
               </div>
             </div>
@@ -277,14 +266,56 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardP
   const [showDetails, setShowDetails] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
-  const [showRatingForm, setShowRatingForm] = useState(false)
+  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [hoveredStar, setHoveredStar] = useState(0)
+  const [hasRated, setHasRated] = useState(false)
+  const [existingRating, setExistingRating] = useState<{ puntuacion: number; comentario?: string } | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleRate = () => {
-    if (rating > 0) {
-      onRate(ong.id, rating, comment)
-      setRating(0)
-      setComment('')
-      setShowRatingForm(false)
+  // Verificar si el usuario ya calificó esta ONG
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkExistingRating()
+    }
+  }, [isAuthenticated, ong.id])
+
+  const checkExistingRating = async () => {
+    try {
+      const response = await api.obtenerMiCalificacion(ong.id)
+      if (response.hasRated) {
+        setHasRated(true)
+        setExistingRating({
+          puntuacion: response.puntuacion!,
+          comentario: response.comentario
+        })
+        setRating(response.puntuacion!)
+        setComment(response.comentario || '')
+      }
+    } catch (error) {
+      console.error('Error al verificar calificación:', error)
+    }
+  }
+
+  const handleRate = async () => {
+    if (rating === 0) {
+      toast.error('Por favor selecciona una calificación')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const response = await api.calificarONG(ong.id, rating, comment.trim() || undefined)
+      toast.success(hasRated ? 'Calificación actualizada exitosamente' : 'Calificación enviada exitosamente')
+      setShowRatingModal(false)
+      setHasRated(true)
+      
+      // Recargar la página para actualizar el rating
+      window.location.reload()
+    } catch (error: any) {
+      console.error('Error al calificar:', error)
+      toast.error(error?.response?.data?.error || 'Error al enviar la calificación')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -342,49 +373,60 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardP
           {ong.description}
         </p>
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="text-center">
-            <div className="flex items-center justify-center">
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <span className="ml-1 font-semibold">{ong.rating.toFixed(1)}</span>
-            </div>
-            <p className="text-xs text-gray-500">Calificación</p>
+        {(ong.rating > 0 || ong.volunteers_count > 0 || ong.projects_count > 0) && (
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {ong.rating > 0 && (
+              <div className="text-center">
+                <div className="flex items-center justify-center">
+                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                  <span className="ml-1 font-semibold">{ong.rating.toFixed(1)}</span>
+                </div>
+                <p className="text-xs text-gray-500">Calificación</p>
+              </div>
+            )}
+            
+            {ong.volunteers_count > 0 && (
+              <div className="text-center">
+                <div className="flex items-center justify-center">
+                  <Users className="w-4 h-4 text-blue-500" />
+                  <span className="ml-1 font-semibold">{ong.volunteers_count}</span>
+                </div>
+                <p className="text-xs text-gray-500">Voluntarios</p>
+              </div>
+            )}
+            
+            {ong.projects_count > 0 && (
+              <div className="text-center">
+                <div className="flex items-center justify-center">
+                  <Heart className="w-4 h-4 text-red-500" />
+                  <span className="ml-1 font-semibold">{ong.projects_count}</span>
+                </div>
+                <p className="text-xs text-gray-500">Proyectos</p>
+              </div>
+            )}
           </div>
-          
-          <div className="text-center">
-            <div className="flex items-center justify-center">
-              <Users className="w-4 h-4 text-blue-500" />
-              <span className="ml-1 font-semibold">{ong.volunteers_count}</span>
-            </div>
-            <p className="text-xs text-gray-500">Voluntarios</p>
-          </div>
-          
-          <div className="text-center">
-            <div className="flex items-center justify-center">
-              <Heart className="w-4 h-4 text-red-500" />
-              <span className="ml-1 font-semibold">{ong.projects_count}</span>
-            </div>
-            <p className="text-xs text-gray-500">Proyectos</p>
-          </div>
-        </div>
+        )}
 
         <div className="flex space-x-2 mb-4">
-          <a
-            href={ong.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors text-sm"
-          >
-            <ExternalLink className="w-4 h-4 inline mr-1" />
-            Sitio web
-          </a>
+          {ong.website && (
+            <a
+              href={ong.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors text-sm"
+            >
+              <ExternalLink className="w-4 h-4 inline mr-1" />
+              Sitio web
+            </a>
+          )}
           
           {isAuthenticated && (
             <button
-              onClick={() => setShowRatingForm(!showRatingForm)}
-              className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+              onClick={() => setShowRatingModal(true)}
+              className={`${ong.website ? '' : 'flex-1'} ${hasRated ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'} py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors text-sm flex items-center justify-center`}
             >
-              Calificar
+              <Star className={`w-4 h-4 mr-1 ${hasRated ? 'fill-current' : ''}`} />
+              {hasRated ? 'Editar calificación' : 'Calificar'}
             </button>
           )}
         </div>
@@ -396,7 +438,7 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardP
               <h4 className="font-semibold text-gray-900 mb-2">Información de contacto</h4>
               <div className="space-y-1 text-sm text-gray-600">
                 <p>📧 {ong.email}</p>
-                <p>📞 {ong.phone}</p>
+                {ong.phone && <p>📞 {ong.phone}</p>}
               </div>
             </div>
 
@@ -422,54 +464,106 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardP
               </div>
             )}
 
-            {/* Formulario de calificación */}
-            {showRatingForm && isAuthenticated && (
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Calificar ONG</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => setRating(star)}
-                        className={`w-6 h-6 ${
-                          star <= rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                        }`}
-                      >
-                        <Star className="w-full h-full" />
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <textarea
-                    placeholder="Comentario opcional..."
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    rows={2}
-                  />
-                  
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={handleRate}
-                      disabled={rating === 0}
-                      className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50"
-                    >
-                      Enviar calificación
-                    </button>
-                    <button
-                      onClick={() => setShowRatingForm(false)}
-                      className="bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-200"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
+
+      {/* Modal de Calificación */}
+      {showRatingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setShowRatingModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                {hasRated ? 'Editar tu calificación' : 'Calificar ONG'}
+              </h3>
+              <p className="text-gray-600">{ong.name}</p>
+            </div>
+
+            {/* Estrellas */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Tu calificación
+              </label>
+              <div className="flex items-center justify-center space-x-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoveredStar(star)}
+                    onMouseLeave={() => setHoveredStar(0)}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`w-10 h-10 transition-colors ${
+                        star <= (hoveredStar || rating)
+                          ? 'text-yellow-500 fill-yellow-500'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              {rating > 0 && (
+                <p className="text-center text-sm text-gray-600 mt-2">
+                  {rating === 1 && 'Muy mala'}
+                  {rating === 2 && 'Mala'}
+                  {rating === 3 && 'Regular'}
+                  {rating === 4 && 'Buena'}
+                  {rating === 5 && 'Excelente'}
+                </p>
+              )}
+            </div>
+
+            {/* Comentario */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Comentario (opcional)
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Comparte tu experiencia con esta organización..."
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                rows={4}
+              />
+            </div>
+
+            {/* Botones */}
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowRatingModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRate}
+                disabled={rating === 0 || submitting}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  hasRated ? 'Actualizar calificación' : 'Enviar calificación'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

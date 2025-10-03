@@ -46,6 +46,8 @@ model Usuario {
   respuestas                RespuestaForo[]
   tiposONG                  TipoONG[]
   likes                     MeGustaForo[]
+  calificacionesRecibidas   CalificacionONG[]      @relation("ONGCalificada")
+  calificacionesRealizadas  CalificacionONG[]      @relation("UsuarioCalificador")
   tipo                      TipoUsuario            @relation(fields: [tipo_usuario], references: [tipo_usuario])
 }
 
@@ -177,4 +179,17 @@ model MeGustaForo {
   usuario    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
   
   @@unique([id_foro, id_usuario])
+}
+
+model CalificacionONG {
+  id_calificacion Int      @id @default(autoincrement())
+  id_ong          Int
+  id_usuario      Int
+  puntuacion      Int
+  comentario      String?
+  fecha           DateTime @default(now())
+  ong             Usuario  @relation("ONGCalificada", fields: [id_ong], references: [id_usuario], onDelete: Cascade)
+  usuario         Usuario  @relation("UsuarioCalificador", fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  
+  @@unique([id_ong, id_usuario])
 }
