@@ -524,7 +524,8 @@ export default function ForumPage() {
             filteredPosts.map(post => (
             <div 
               key={post.id}
-              className="card p-6"
+              className="card p-6 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handlePostClick(post.id)}
             >
               <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center">
@@ -537,10 +538,7 @@ export default function ForumPage() {
                 
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <h3 
-                      onClick={() => handlePostClick(post.id)}
-                      className="text-lg font-semibold text-gray-900 hover:text-purple-600 cursor-pointer transition-colors"
-                    >
+                    <h3 className="text-lg font-semibold text-gray-900">
                       {post.title}
                     </h3>
                     {post.author.role === 'ong' && (
@@ -583,7 +581,7 @@ export default function ForumPage() {
                     </div>
                   )}
                   
-                  <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-6" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => handleLike(post.id)}
                       className={`flex items-center space-x-2 ${
@@ -614,11 +612,13 @@ export default function ForumPage() {
               </div>
               
               {/* Comentarios inline */}
-              <InlineComments
-                publicacionId={post.id}
-                isExpanded={expandedComments.has(post.id)}
-                onToggle={() => handleToggleComments(post.id)}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <InlineComments
+                  publicacionId={post.id}
+                  isExpanded={expandedComments.has(post.id)}
+                  onToggle={() => handleToggleComments(post.id)}
+                />
+              </div>
             </div>
             ))
           )}
