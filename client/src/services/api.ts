@@ -390,6 +390,21 @@ class ApiService {
     }
   }
 
+  async getPublicacion(publicacionId: string) {
+    try {
+      const response = await this.request<any>(
+        `/api/forum/publicaciones/${publicacionId}`,
+        {
+          method: 'GET'
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener publicación:', error);
+      throw error;
+    }
+  }
+
   async crearPublicacion(data: {
     titulo: string;
     descripcion: string;

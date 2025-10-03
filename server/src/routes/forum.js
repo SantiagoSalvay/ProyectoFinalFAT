@@ -225,6 +225,19 @@ router.get('/publicaciones/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
+    // Intentar obtener el usuario actual (opcional)
+    const authHeader = req.headers.authorization;
+    let userId = null;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+        userId = decoded.userId;
+      } catch (error) {
+        // Token inválido, continuar sin userId
+      }
+    }
+    
     const publicacion = await prisma.foro.findUnique({
       where: { id_foro: parseInt(id) },
       include: {
@@ -233,7 +246,8 @@ router.get('/publicaciones/:id', async (req, res) => {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true
+            tipo_usuario: true,
+            ubicacion: true
           }
         },
         foroCategorias: {
@@ -242,18 +256,8 @@ router.get('/publicaciones/:id', async (req, res) => {
           }
         },
         respuestas: {
-          include: {
-            usuario: {
-              select: {
-                id_usuario: true,
-                nombre: true,
-                apellido: true,
-                tipo_usuario: true
-              }
-            }
-          },
-          orderBy: {
-            fecha: 'asc'
+          select: {
+            id_respuesta: true
           }
         },
         likes: {
@@ -268,7 +272,40 @@ router.get('/publicaciones/:id', async (req, res) => {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    res.json(publicacion);
+    // Parsear ubicación si es JSON
+    let location = publicacion.ubicacion;
+    if (location && typeof location === 'string') {
+      try {
+        const parsedLocation = JSON.parse(location);
+        if (parsedLocation.address) {
+          location = parsedLocation.address;
+        }
+      } catch (e) {
+        // Si no es JSON válido, usar el string tal como está
+      }
+    }
+
+    // Formatear la respuesta igual que en /publicaciones
+    const publicacionFormateada = {
+      id: publicacion.id_foro.toString(),
+      title: publicacion.titulo,
+      content: publicacion.descripcion,
+      author: {
+        id: publicacion.usuario.id_usuario.toString(),
+        name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
+        role: publicacion.usuario.tipo_usuario === 2 ? 'ong' : 'person',
+        organization: publicacion.usuario.tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
+        avatar: undefined
+      },
+      tags: publicacion.foroCategorias.map(fc => fc.categoria.etiqueta),
+      location: location,
+      likes: publicacion.likes?.length || 0,
+      comments: publicacion.respuestas.length,
+      createdAt: publicacion.fecha,
+      isLiked: publicacion.likes?.some(like => like.id_usuario === userId) || false
+    };
+
+    res.json(publicacionFormateada);
   } catch (error) {
     console.error('Error al obtener publicación:', error);
     res.status(500).json({ error: 'Error interno del servidor' });

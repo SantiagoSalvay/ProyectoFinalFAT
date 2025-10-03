@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { toast } from 'react-hot-toast'
@@ -49,6 +50,7 @@ interface Categoria {
 }
 
 export default function ForumPage() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { addNotification } = useNotifications()
   const { validatePost } = usePostValidation()
@@ -67,7 +69,6 @@ export default function ForumPage() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
-  const [highlightedPost, setHighlightedPost] = useState<string | null>(null)
 
   // Leer filtro desde query param al montar
   useEffect(() => {
@@ -80,32 +81,6 @@ export default function ForumPage() {
       setSelectedFilter('donations');
     }
   }, []);
-
-  // Detectar y hacer scroll al post compartido
-  useEffect(() => {
-    if (!loading && posts.length > 0) {
-      const params = new URLSearchParams(window.location.search);
-      const postId = params.get('post');
-      
-      if (postId) {
-        // Resaltar el post
-        setHighlightedPost(postId);
-        
-        // Hacer scroll al post después de un pequeño delay para asegurar que el DOM esté renderizado
-        setTimeout(() => {
-          const element = document.getElementById(`post-${postId}`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 100);
-
-        // Remover el resaltado después de 3 segundos
-        setTimeout(() => {
-          setHighlightedPost(null);
-        }, 3000);
-      }
-    }
-  }, [loading, posts]);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -192,7 +167,7 @@ export default function ForumPage() {
   }
 
   const handleShare = async (postId: string, postTitle: string) => {
-    const shareUrl = `${window.location.origin}/forum?post=${postId}`
+    const shareUrl = `${window.location.origin}/forum/${postId}`
     
     // Intentar usar la API de Web Share si está disponible (móviles y algunos navegadores modernos)
     if (navigator.share) {
@@ -222,6 +197,10 @@ export default function ForumPage() {
         toast.error('No se pudo copiar el link')
       }
     }
+  }
+
+  const handlePostClick = (postId: string) => {
+    navigate(`/forum/${postId}`)
   }
 
   const handleCreatePost = async () => {
@@ -544,11 +523,8 @@ export default function ForumPage() {
           ) : (
             filteredPosts.map(post => (
             <div 
-              key={post.id} 
-              id={`post-${post.id}`}
-              className={`card p-6 transition-all duration-300 ${
-                highlightedPost === post.id ? 'ring-4 ring-purple-500 shadow-lg' : ''
-              }`}
+              key={post.id}
+              className="card p-6"
             >
               <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center">
@@ -561,7 +537,12 @@ export default function ForumPage() {
                 
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{post.title}</h3>
+                    <h3 
+                      onClick={() => handlePostClick(post.id)}
+                      className="text-lg font-semibold text-gray-900 hover:text-purple-600 cursor-pointer transition-colors"
+                    >
+                      {post.title}
+                    </h3>
                     {post.author.role === 'ong' && (
                       <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full">
                         ONG
