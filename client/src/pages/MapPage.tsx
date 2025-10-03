@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api'
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
 import { api, ONG } from '../services/api'
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC33z7pXbXF16KbIDIXX-ZhBOLRNWqVAoo'
 import { Heart, MapPin, Building, Users, Star, ExternalLink } from 'lucide-react'
@@ -290,20 +290,7 @@ export default function MapPage() {
                       scaledSize: new google.maps.Size(32, 32),
                       anchor: new google.maps.Point(16, 16)
                     }}
-                  >
-                    {selectedONG?.id === ong.id && (
-                      <InfoWindow onCloseClick={() => setSelectedONG(null)}>
-                    <div className="p-2">
-                      <h3 className="font-semibold text-gray-900">{ong.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{ong.location}</p>
-                      <div className="flex items-center mt-2">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm ml-1">{ong.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                      </InfoWindow>
-                    )}
-                </Marker>
+                />
               ) : null
             ))}
             </GoogleMap>
