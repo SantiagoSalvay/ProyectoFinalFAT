@@ -8,21 +8,22 @@ datasource db {
 }
 
 model TipoUsuario {
-  tipo_usuario        Int       @id @default(autoincrement())
-  nombre_tipo_usuario String
-  usuarios            Usuario[]
+  id_tipo_usuario Int      @id @default(autoincrement())
+  tipo_usuario    String
+  usuarios        Usuario[]
 }
 
 model Usuario {
   id_usuario                Int                    @id @default(autoincrement())
   nombre                    String
   apellido                  String
-  usuario                   String                 @unique
-  correo                    String                 @unique
+  biografia                 String?
+  email                     String                 @unique
   contrasena                String?
-  tipo_usuario              Int
+  id_tipo_usuario           Int
   ubicacion                 String?
   createdAt                 DateTime               @default(now())
+<<<<<<< HEAD
   email_verified            Boolean                @default(false)
   reset_token               String?
   reset_token_expiry        DateTime?
@@ -63,68 +64,174 @@ model Foro {
   likes           MeGustaForo[]
   pedidosDonacion PedidoDonacion[]
   respuestas      RespuestaForo[]
+=======
+  
+  // Relaciones
+  tipo                      TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
+  detalleUsuario            DetalleUsuario?
+  publicaciones             Publicacion[]
+  calificacionesRecibidas   CalificacionONG[]      @relation("ONGCalificada")
+  calificacionesRealizadas  CalificacionONG[]      @relation("UsuarioCalificador")
+  infracciones              Infracciones[]
+  pedidosRealizados         PedidoDonacion[]       @relation("UsuarioDonador")
+  pedidosEvaluados          PedidoDonacion[]       @relation("ONGEvaluadora")
+  rankings                  Ranking[]
+  respuestas                RespuestaPublicacion[]
+  tiposONG                  TipoONG[]
 }
 
-model Categoria {
-  id_categoria   Int             @id @default(autoincrement())
-  etiqueta       String
-  foroCategorias ForoCategoria[]
+model DetalleUsuario {
+  id_detalle_usuario        Int      @id @default(autoincrement())
+  id_usuario                Int      @unique
+  email_verified            Boolean  @default(false)
+  auth_provider             String   @default("email")
+  facebook_id               String?  @unique
+  google_id                 String?  @unique
+  profile_picture           String?
+  twitter_id                String?  @unique
+  puntosActuales            Int      @default(0)
+  ultima_fecha_actualizacion DateTime @default(now())
+  
+  // Relaciones
+  usuario                   Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+>>>>>>> 5852541dee2db0f050d3c69eb5c350463cc64c64
 }
 
-model ForoCategoria {
-  id_foro_categoria Int              @id @default(autoincrement())
-  id_foro           Int
-  id_categoria      Int
-  categoria         Categoria        @relation(fields: [id_categoria], references: [id_categoria])
-  foro              Foro             @relation(fields: [id_foro], references: [id_foro])
-  pedidos           PedidoDonacion[]
+model Publicacion {
+  id_publicacion                Int                    @id @default(autoincrement())
+  id_usuario                    Int
+  titulo                        String
+  descripcion_publicacion       String
+  num_megusta                   Int                    @default(0)
+  fecha_publicacion             DateTime               @default(now())
+  ultima_fecha_actualizacion    DateTime               @default(now())
+  ubicacion                     String?
+  
+  // Relaciones
+  usuario                       Usuario                @relation(fields: [id_usuario], references: [id_usuario])
+  publicacionEtiquetas          PublicacionEtiqueta[]
+  respuestas                    RespuestaPublicacion[]
 }
 
-model RespuestaForo {
-  id_respuesta      Int       @id @default(autoincrement())
-  id_foro           Int
-  id_usuario        Int
-  mensaje           String
-  fecha             DateTime
-  moderated_at      DateTime?
-  moderation_status String    @default("pending")
-  rejection_reason  String?
-  foro              Foro      @relation(fields: [id_foro], references: [id_foro])
-  usuario           Usuario   @relation(fields: [id_usuario], references: [id_usuario])
+model Etiqueta {
+  id_etiqueta Int                   @id @default(autoincrement())
+  etiqueta    String
+  publicacionEtiquetas PublicacionEtiqueta[]
 }
 
-model Donacion {
-  id_donacion   Int              @id @default(autoincrement())
-  tipo_donacion String
-  descripcion   String
-  puntos        Int
-  pedidos       PedidoDonacion[]
+model PublicacionEtiqueta {
+  id_publicacion_etiqueta Int       @id @default(autoincrement())
+  id_publicacion          Int
+  id_etiqueta             Int
+  
+  // Relaciones
+  publicacion             Publicacion @relation(fields: [id_publicacion], references: [id_publicacion], onDelete: Cascade)
+  etiqueta                Etiqueta    @relation(fields: [id_etiqueta], references: [id_etiqueta], onDelete: Cascade)
+  pedidosDonacion         PedidoDonacion[]
+}
+
+model TipoDonacion {
+  id_tipo_donacion Int             @id @default(autoincrement())
+  tipo_donacion    String
+  descripcion      String
+  puntos           Int
+  pedidosDonacion  PedidoDonacion[]
 }
 
 model PedidoDonacion {
-  id_pedido         Int           @id @default(autoincrement())
-  id_foro_categoria Int
+  id_pedido                  Int                   @id @default(autoincrement())
+  id_publicacion_etiqueta    Int
+  id_usuario                 Int
+  id_tipo_donacion           Int
+  cantidad                   Int
+  fecha_donacion             DateTime              @default(now())
+  
+  // Campos específicos para voluntariado
+  id_ong_evaluadora          Int?
+  descripcion_voluntariado   String?
+  horas_donadas              Int?
+  estado_evaluacion          String                @default("pendiente")
+  puntos_otorgados           Int?
+  fecha_evaluacion           DateTime?
+  
+  // Relaciones
+  publicacionEtiqueta        PublicacionEtiqueta   @relation(fields: [id_publicacion_etiqueta], references: [id_publicacion_etiqueta])
+  usuario                    Usuario               @relation("UsuarioDonador", fields: [id_usuario], references: [id_usuario])
+  tipoDonacion               TipoDonacion          @relation(fields: [id_tipo_donacion], references: [id_tipo_donacion])
+  ongEvaluadora              Usuario?              @relation("ONGEvaluadora", fields: [id_ong_evaluadora], references: [id_usuario])
+}
+
+model CalificacionONG {
+  id_calificacion   Int      @id @default(autoincrement())
+  id_ong            Int
   id_usuario        Int
-  id_donacion       Int
-  id_foro           Int
-  descripcion       String
-  cantidad          Int
-  fecha             DateTime
-  foro              Foro          @relation(fields: [id_foro], references: [id_foro], map: "PedidoDonacion_foro")
-  foroCategoria     ForoCategoria @relation(fields: [id_foro_categoria], references: [id_foro_categoria], map: "PedidoDonacion_foroCategoria")
-  donacion          Donacion      @relation(fields: [id_donacion], references: [id_donacion])
-  usuario           Usuario       @relation(fields: [id_usuario], references: [id_usuario])
-  rankings          Ranking[]
+  puntuacion        Float
+  comentario        String?
+  fecha_calificacion DateTime @default(now())
+  
+  // Relaciones
+  ong               Usuario  @relation("ONGCalificada", fields: [id_ong], references: [id_usuario], onDelete: Cascade)
+  usuario           Usuario  @relation("UsuarioCalificador", fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  
+  @@unique([id_ong, id_usuario])
+}
+
+model Infracciones {
+  id_infraccion        Int              @id @default(autoincrement())
+  id_usuario           Int
+  contenido            String
+  id_tipo_infraccion   Int
+  fecha_infraccion     DateTime         @default(now())
+  fecha_expiracion     DateTime?
+  
+  // Relaciones
+  usuario              Usuario          @relation(fields: [id_usuario], references: [id_usuario])
+  tipoInfraccion       TipoInfraccion   @relation(fields: [id_tipo_infraccion], references: [id_tipo_infraccion])
+}
+
+model TipoInfraccion {
+  id_tipo_infraccion Int           @id @default(autoincrement())
+  tipo_infraccion    String
+  severidad          String
+  infracciones       Infracciones[]
+}
+
+model TipoONG {
+  id_tipo_ong    Int     @id @default(autoincrement())
+  grupo_social   String
+  necesidad      String
+  id_usuario     Int
+  
+  // Relaciones
+  usuario        Usuario @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+model RespuestaPublicacion {
+  id_respuesta         Int                   @id @default(autoincrement())
+  id_respuesta_padre   Int?
+  id_publicacion       Int
+  id_usuario           Int
+  mensaje              String
+  fecha_respuesta      DateTime              @default(now())
+  moderated_at         DateTime?
+  moderation_status    String                @default("pending")
+  rejection_reason     String?
+  
+  // Relaciones
+  respuestaPadre       RespuestaPublicacion? @relation("RespuestaPadre", fields: [id_respuesta_padre], references: [id_respuesta])
+  respuestasHijas      RespuestaPublicacion[] @relation("RespuestaPadre")
+  publicacion          Publicacion           @relation(fields: [id_publicacion], references: [id_publicacion], onDelete: Cascade)
+  usuario              Usuario               @relation(fields: [id_usuario], references: [id_usuario])
 }
 
 model Ranking {
   id_ranking      Int            @id @default(autoincrement())
   id_tipo_ranking Int
-  id_pedido       Int
   id_usuario      Int
   puesto          Int
   puntos          Int
-  pedido          PedidoDonacion @relation(fields: [id_pedido], references: [id_pedido])
+  
+  // Relaciones
   tipoRanking     TipoRanking    @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
   usuario         Usuario        @relation(fields: [id_usuario], references: [id_usuario])
 }
@@ -135,6 +242,7 @@ model TipoRanking {
   rankings        Ranking[]
 }
 
+// Modelo para registros pendientes de verificación de email
 model RegistroPendiente {
   id                 Int      @id @default(autoincrement())
   nombre             String
@@ -147,6 +255,7 @@ model RegistroPendiente {
   token_expiry       DateTime
   createdAt          DateTime @default(now())
   tipo_usuario       Int
+<<<<<<< HEAD
 }
 
 model TipoONG {
@@ -193,3 +302,6 @@ model CalificacionONG {
 
   @@unique([id_ong, id_usuario])
 }
+=======
+}
+>>>>>>> 5852541dee2db0f050d3c69eb5c350463cc64c64

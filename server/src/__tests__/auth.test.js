@@ -19,7 +19,7 @@ describe('Auth Routes', () => {
       // Mock Prisma responses
       global.mockPrisma.usuario.findFirst.mockResolvedValue(null);
       global.mockPrisma.registroPendiente.findFirst.mockResolvedValue(null);
-      global.mockPrisma.tipoUsuario.findUnique.mockResolvedValue({ tipo_usuario: 1 });
+      global.mockPrisma.tipoUsuario.findUnique.mockResolvedValue({ id_tipo_usuario: 1 });
       global.mockPrisma.registroPendiente.create.mockResolvedValue({
         id: 1,
         correo: 'test@example.com',
@@ -92,7 +92,7 @@ describe('Auth Routes', () => {
     it('debería permitir registro de ONG sin apellido', async () => {
       global.mockPrisma.usuario.findFirst.mockResolvedValue(null);
       global.mockPrisma.registroPendiente.findFirst.mockResolvedValue(null);
-      global.mockPrisma.tipoUsuario.findUnique.mockResolvedValue({ tipo_usuario: 2 });
+      global.mockPrisma.tipoUsuario.findUnique.mockResolvedValue({ id_tipo_usuario: 2 });
       global.mockPrisma.registroPendiente.create.mockResolvedValue({
         id: 1,
         correo: 'ong@example.com',
@@ -128,7 +128,7 @@ describe('Auth Routes', () => {
         correo: 'test@example.com',
         contrasena: 'hashed-password',
         ubicacion: 'Buenos Aires',
-        tipo_usuario: 1
+        id_tipo_usuario: 1
       };
 
       global.mockPrisma.usuario.findFirst.mockResolvedValue(mockUser);
@@ -191,7 +191,7 @@ describe('Auth Routes', () => {
         correo: 'test@example.com',
         ubicacion: 'Buenos Aires',
         bio: 'Mi biografía',
-        tipo_usuario: 1,
+        id_tipo_usuario: 1,
         createdAt: new Date()
       };
 
@@ -223,7 +223,7 @@ describe('Auth Routes', () => {
         correo: 'test@example.com',
         ubicacion: '', // Sin ubicación
         bio: null,
-        tipo_usuario: 1, // Persona
+        id_tipo_usuario: 1, // Persona
         createdAt: new Date()
       };
 
@@ -322,7 +322,7 @@ describe('Auth Routes', () => {
         usuario: 'testuser',
         correo: 'test@example.com',
         contrasena: 'hashed-password',
-        tipo_usuario: 1,
+        id_tipo_usuario: 1,
         ubicacion: 'Buenos Aires',
         verification_token: 'valid-token'
       };
@@ -334,7 +334,7 @@ describe('Auth Routes', () => {
         usuario: 'testuser',
         correo: 'test@example.com',
         contrasena: 'hashed-password',
-        tipo_usuario: 1,
+        id_tipo_usuario: 1,
         ubicacion: 'Buenos Aires',
         email_verified: true
       };
@@ -442,7 +442,7 @@ describe('Auth Routes', () => {
         correo: 'test@example.com',
         ubicacion: 'Córdoba',
         bio: 'Nueva biografía',
-        tipo_usuario: 1,
+        id_tipo_usuario: 1,
         createdAt: new Date()
       };
 

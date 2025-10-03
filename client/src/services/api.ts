@@ -13,7 +13,7 @@ export interface User {
   ubicacion?: string;
   bio?: string;
   createdAt?: Date;
-  tipo_usuario?: number;
+  id_tipo_usuario?: number;
 }
 
 export interface ONG {
@@ -94,7 +94,7 @@ class ApiService {
   // Guardar datos de TipoONG para el usuario autenticado
   async saveTipoONG(data: { grupo_social: string; necesidad: string }) {
     try {
-      const response = await this.request<{ tipoONG: any }>(
+      const response = await this.request<{ message: string; grupo_social: string; necesidad: string }>(
         '/auth/profile/tipoong',
         {
           method: 'POST',
@@ -105,7 +105,7 @@ class ApiService {
           body: JSON.stringify(data)
         }
       );
-      return response.tipoONG;
+      return response;
     } catch (error) {
       console.error('Error al guardar datos de TipoONG:', error);
       throw error;
@@ -143,7 +143,7 @@ class ApiService {
     // Obtener datos de TipoONG para el usuario autenticado
     async getTipoONG() {
       try {
-        const response = await this.request<{ tipoONG: { ID_tipo: number; grupo_social: string | null; necesidad: string | null } | null }>(
+        const response = await this.request<{ tipoONG: { id_tipo_ong: number; grupo_social: string | null; necesidad: string | null } | null }>(
           '/auth/profile/tipoong',
           {
             method: 'GET',
@@ -388,7 +388,7 @@ class ApiService {
   // Métodos del foro
   async getCategorias() {
     try {
-      const response = await this.request<{ id_categoria: number; etiqueta: string }[]>(
+      const response = await this.request<{ id_etiqueta: number; etiqueta: string }[]>(
         '/api/forum/categorias',
         {
           method: 'GET'
