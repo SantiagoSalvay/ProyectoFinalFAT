@@ -11,6 +11,81 @@ import { passwordResetService } from '../../lib/password-reset-service.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Resumen del dashboard para el usuario autenticado
+router.get('/dashboard/summary', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    const userId = decoded.userId;
+
+    // Donaciones del usuario (PedidoDonacion.id_usuario)
+    const donaciones = await prisma.pedidoDonacion.findMany({
+      where: { id_usuario: userId },
+      select: {
+        id_pedido: true,
+        fecha: true,
+        cantidad: true,
+      },
+      orderBy: { fecha: 'desc' },
+      take: 10,
+    });
+
+    const donationsCount = await prisma.pedidoDonacion.count({ where: { id_usuario: userId } });
+    const totalDonated = await prisma.pedidoDonacion.aggregate({
+      _sum: { cantidad: true },
+      where: { id_usuario: userId },
+    });
+
+    // Puntos actuales: suma de Ranking.puntos del usuario
+    const puntosAgg = await prisma.ranking.aggregate({
+      _sum: { puntos: true },
+      where: { id_usuario: userId },
+    });
+    const puntos = puntosAgg._sum.puntos || 0;
+
+    // Actividad reciente: últimas donaciones y últimas respuestas de foro del usuario
+    const respuestas = await prisma.respuestaForo.findMany({
+      where: { id_usuario: userId },
+      select: { id_respuesta: true, mensaje: true, fecha: true, id_foro: true },
+      orderBy: { fecha: 'desc' },
+      take: 10,
+    });
+
+    // Unificar actividad (tomar 5 últimos eventos combinados)
+    const recentActivity = [
+      ...donaciones.map(d => ({
+        type: 'donation',
+        id: `don-${d.id_pedido}`,
+        date: d.fecha,
+        amount: d.cantidad,
+      })),
+      ...respuestas.map(r => ({
+        type: 'forum-reply',
+        id: `rep-${r.id_respuesta}`,
+        date: r.fecha,
+        message: r.mensaje,
+        postId: r.id_foro,
+      })),
+    ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+
+    res.json({
+      donationsCount,
+      totalDonated: totalDonated._sum.cantidad || 0,
+      puntos,
+      recentActivity,
+    });
+  } catch (error) {
+    console.error('Error en dashboard/summary:', error);
+    res.status(500).json({ error: 'Error al obtener resumen del dashboard' });
+  }
+});
+
 // Historial de donaciones realizadas por el usuario autenticado
 router.get('/donaciones/realizadas', async (req, res) => {
   try {

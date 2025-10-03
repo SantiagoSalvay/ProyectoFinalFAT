@@ -32,6 +32,32 @@ export interface ONG {
 
 // Clase API
 class ApiService {
+  // Resumen del dashboard para el usuario autenticado
+  async getDashboardSummary() {
+    try {
+      const response = await this.request<{
+        donationsCount: number;
+        totalDonated: number;
+        puntos: number;
+        recentActivity: Array<
+          | { type: 'donation'; id: string; date: string; amount: number }
+          | { type: 'forum-reply'; id: string; date: string; message: string; postId: number }
+        >;
+      }>(
+        '/auth/dashboard/summary',
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`
+          }
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener resumen del dashboard:', error);
+      throw error;
+    }
+  }
   // Obtener donaciones realizadas por el usuario autenticado
   async getDonacionesRealizadas() {
     try {

@@ -1,5 +1,5 @@
 import { useAuth } from '../contexts/AuthContext'
-import { Heart, Users, DollarSign, Calendar, TrendingUp, Award, MapPin, Building } from 'lucide-react'
+import { Heart, Users, DollarSign, Calendar, TrendingUp, Award, MapPin, Building, Loader2 } from 'lucide-react'
 
 import React, { useEffect, useState } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -18,6 +18,22 @@ export default function DashboardPage() {
   const [loadingTipoONG, setLoadingTipoONG] = useState(true);
   const { addNotification, notifications, removeNotification } = useNotifications();
   const { isONG: isONGUser } = useONGNotifications();
+
+  // Dashboard summary state
+  const [summary, setSummary] = useState<{
+    donationsCount: number;
+    totalDonated: number;
+    puntos: number;
+    recentActivity: Array<
+      | { type: 'donation'; id: string; date: string; amount: number }
+      | { type: 'forum-reply'; id: string; date: string; message: string; postId: number }
+    >;
+  } | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState<boolean>(true);
+  // Expandable panels state
+  const [expandDonations, setExpandDonations] = useState(false);
+  const [expandTotal, setExpandTotal] = useState(false);
+  const [expandPoints, setExpandPoints] = useState(false);
 
   useEffect(() => {
     const fetchTipoONG = async () => {
@@ -42,6 +58,22 @@ export default function DashboardPage() {
     };
     fetchTipoONG();
   }, [isONG]);
+
+  // Fetch dashboard summary
+  useEffect(() => {
+    const run = async () => {
+      setLoadingSummary(true);
+      try {
+        const data = await api.getDashboardSummary();
+        setSummary(data);
+      } catch (e) {
+        setSummary({ donationsCount: 0, totalDonated: 0, puntos: 0, recentActivity: [] });
+      } finally {
+        setLoadingSummary(false);
+      }
+    };
+    run();
+  }, []);
 
   // Notificación para persona sin ubicación
   useEffect(() => {
@@ -82,7 +114,14 @@ export default function DashboardPage() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
           }}
         >
-          <div className="card p-6">
+          <div
+            className="card p-6 cursor-pointer hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+            role="button"
+            tabIndex={0}
+            aria-expanded={expandDonations}
+            onClick={() => setExpandDonations(v => !v)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandDonations(v => !v) } }}
+          >
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
                 <Heart className="w-6 h-6 text-white" />
@@ -92,38 +131,106 @@ export default function DashboardPage() {
                   {isONG ? 'Donaciones Recibidas' : 'Donaciones Realizadas'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {isONG ? '10' : '30'}
+                  {loadingSummary ? '—' : (summary?.donationsCount ?? 0)}
                   </p>
               </div>
             </div>
+            {expandDonations && (
+              <div className="mt-4 text-sm text-gray-700">
+                {loadingSummary ? (
+                  <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /> Cargando...</div>
+                ) : (summary?.recentActivity.filter(a => a.type === 'donation').length ?? 0) === 0 ? (
+                  <div className="text-gray-500">Aún no hay donaciones registradas.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {summary!.recentActivity.filter(a => a.type === 'donation').slice(0,3).map((d:any) => (
+                      <div key={d.id} className="flex items-center justify-between bg-gray-50 rounded-md px-3 py-2">
+                        <span className="text-gray-600">{new Date(d.date).toLocaleString()}</span>
+                        <span className="font-semibold text-purple-700">${d.amount}</span>
+                      </div>
+                    ))}
+                    <div className="text-xs text-gray-500">Mostrando últimas 3 donaciones.</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="card p-6">
+          <div
+            className="card p-6 cursor-pointer hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+            role="button"
+            tabIndex={0}
+            aria-expanded={expandTotal}
+            onClick={() => setExpandTotal(v => !v)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandTotal(v => !v) } }}
+          >
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">
-                  {isONG ? 'Total Recaudados' : 'Total Donado'}
+                  {isONG ? 'Total Recaudado' : 'Total Donado'}
                 </p>
-                <p className="text-2xl font-bold text-gray-900">$12,450</p>
+                <p className="text-2xl font-bold text-gray-900">{loadingSummary ? '—' : `$${(summary?.totalDonated ?? 0).toLocaleString()}`}</p>
               </div>
             </div>
+            {expandTotal && (
+              <div className="mt-4 text-sm text-gray-700">
+                {loadingSummary ? (
+                  <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /> Cargando...</div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between bg-gray-50 rounded-md px-3 py-2">
+                      <span className="text-gray-600">Promedio por donación</span>
+                      <span className="font-semibold">${((summary!.totalDonated || 0) / Math.max(1, summary!.donationsCount || 0)).toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-gray-50 rounded-md px-3 py-2">
+                      <span className="text-gray-600">Cantidad de donaciones</span>
+                      <span className="font-semibold">{summary!.donationsCount}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="card p-6">
+          <div
+            className="card p-6 cursor-pointer hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            role="button"
+            tabIndex={0}
+            aria-expanded={expandPoints}
+            onClick={() => setExpandPoints(v => !v)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandPoints(v => !v) } }}
+          >
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">
-                  {isONG ? 'menos se me va a ocurrir' : 'puntos actuales'}
+                  {isONG ? 'Puntos de la ONG' : 'Puntos actuales'}
                 </p>
-                <p className="text-2xl font-bold text-gray-900">1354pt</p>
+                <p className="text-2xl font-bold text-gray-900">{loadingSummary ? '—' : `${summary?.puntos ?? 0}pt`}</p>
               </div>
             </div>
+            {expandPoints && (
+              <div className="mt-4 text-sm text-gray-700">
+                {loadingSummary ? (
+                  <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /> Cargando...</div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="bg-gray-50 rounded-md px-3 py-2">
+                      Los puntos se calculan en base a tus actividades (donaciones, participación en foros, etc.).
+                    </div>
+                    <div className="flex items-center justify-between bg-gray-50 rounded-md px-3 py-2">
+                      <span className="text-gray-600">Puntos actuales</span>
+                      <span className="font-semibold">{summary!.puntos} pt</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -132,56 +239,42 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div className="lg:col-span-2">
             <div className="card p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Actividad Reciente
-              </h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="ml-4 flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {isONG ? 'Nueva donación recibida' : 'Donación realizada'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {isONG ? 'María García donó $50' : 'Donaste $50 a Fundación Ayuda'}
-                    </p>
-                    <p className="text-xs text-gray-500">Hace 2 horas</p>
-                  </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Actividad Reciente</h2>
+              {loadingSummary ? (
+                <div className="text-center py-12 text-gray-600">
+                  <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin" />
+                  Cargando actividad...
                 </div>
-
-                <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="ml-4 flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {isONG ? 'Nuevo voluntario registrado' : 'Sesión de voluntariado completada'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {isONG ? 'Juan Pérez se unió como voluntario' : 'Completaste 4 horas de voluntariado'}
-                    </p>
-                    <p className="text-xs text-gray-500">Hace 1 día</p>
-                  </div>
+              ) : (summary?.recentActivity?.length ?? 0) === 0 ? (
+                <div className="text-center py-12 text-gray-600">Sin actividad reciente</div>
+              ) : (
+                <div className="space-y-4">
+                  {summary!.recentActivity.map((item) => (
+                    <div key={item.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center ">
+                        {item.type === 'donation' ? (
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <Heart className="w-5 h-5 text-green-600" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {item.type === 'donation' ? 'Donación realizada' : 'Respuesta en el foro'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {item.type === 'donation' ? `$${(item as any).amount}` : (item as any).message}
+                        </p>
+                        <p className="text-xs text-gray-500">{new Date(item.date).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Award className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div className="ml-4 flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {isONG ? 'Meta alcanzada' : 'Logro desbloqueado'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {isONG ? 'Alcanzaste tu meta mensual de donaciones' : 'Completaste 10 donaciones'}
-                    </p>
-                    <p className="text-xs text-gray-500">Hace 3 días</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
