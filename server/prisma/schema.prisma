@@ -39,15 +39,15 @@ model Usuario {
   banned_until              DateTime?
   is_banned                 Boolean                @default(false)
   warnings_count            Int                    @default(0)
+  calificacionesRecibidas   CalificacionONG[]      @relation("ONGCalificada")
+  calificacionesRealizadas  CalificacionONG[]      @relation("UsuarioCalificador")
   foros                     Foro[]
+  likes                     MeGustaForo[]
   infracciones              ModerationInfraction[]
   pedidos                   PedidoDonacion[]
   rankings                  Ranking[]
   respuestas                RespuestaForo[]
   tiposONG                  TipoONG[]
-  likes                     MeGustaForo[]
-  calificacionesRecibidas   CalificacionONG[]      @relation("ONGCalificada")
-  calificacionesRealizadas  CalificacionONG[]      @relation("UsuarioCalificador")
   tipo                      TipoUsuario            @relation(fields: [tipo_usuario], references: [tipo_usuario])
 }
 
@@ -60,9 +60,9 @@ model Foro {
   ubicacion       String?
   usuario         Usuario          @relation(fields: [id_usuario], references: [id_usuario])
   foroCategorias  ForoCategoria[]
+  likes           MeGustaForo[]
   pedidosDonacion PedidoDonacion[]
   respuestas      RespuestaForo[]
-  likes           MeGustaForo[]
 }
 
 model Categoria {
@@ -177,7 +177,7 @@ model MeGustaForo {
   fecha      DateTime @default(now())
   foro       Foro     @relation(fields: [id_foro], references: [id_foro], onDelete: Cascade)
   usuario    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
-  
+
   @@unique([id_foro, id_usuario])
 }
 
@@ -190,6 +190,6 @@ model CalificacionONG {
   fecha           DateTime @default(now())
   ong             Usuario  @relation("ONGCalificada", fields: [id_ong], references: [id_usuario], onDelete: Cascade)
   usuario         Usuario  @relation("UsuarioCalificador", fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
-  
+
   @@unique([id_ong, id_usuario])
 }
