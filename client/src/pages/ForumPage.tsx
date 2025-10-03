@@ -67,6 +67,7 @@ export default function ForumPage() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
+  const [highlightedPost, setHighlightedPost] = useState<string | null>(null)
 
   // Leer filtro desde query param al montar
   useEffect(() => {
@@ -79,6 +80,32 @@ export default function ForumPage() {
       setSelectedFilter('donations');
     }
   }, []);
+
+  // Detectar y hacer scroll al post compartido
+  useEffect(() => {
+    if (!loading && posts.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const postId = params.get('post');
+      
+      if (postId) {
+        // Resaltar el post
+        setHighlightedPost(postId);
+        
+        // Hacer scroll al post después de un pequeño delay para asegurar que el DOM esté renderizado
+        setTimeout(() => {
+          const element = document.getElementById(`post-${postId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+
+        // Remover el resaltado después de 3 segundos
+        setTimeout(() => {
+          setHighlightedPost(null);
+        }, 3000);
+      }
+    }
+  }, [loading, posts]);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -162,6 +189,39 @@ export default function ForumPage() {
       }
       return newSet
     })
+  }
+
+  const handleShare = async (postId: string, postTitle: string) => {
+    const shareUrl = `${window.location.origin}/forum?post=${postId}`
+    
+    // Intentar usar la API de Web Share si está disponible (móviles y algunos navegadores modernos)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: postTitle,
+          text: `Mira esta publicación: ${postTitle}`,
+          url: shareUrl
+        })
+        toast.success('¡Compartido exitosamente!')
+      } catch (error: any) {
+        // Si el usuario cancela, no mostramos error
+        if (error.name !== 'AbortError') {
+          console.error('Error al compartir:', error)
+        }
+      }
+    } else {
+      // Fallback: copiar al portapapeles
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        toast.success('¡Link copiado al portapapeles!', {
+          duration: 3000,
+          icon: '🔗'
+        })
+      } catch (error) {
+        console.error('Error al copiar al portapapeles:', error)
+        toast.error('No se pudo copiar el link')
+      }
+    }
   }
 
   const handleCreatePost = async () => {
@@ -483,7 +543,13 @@ export default function ForumPage() {
             </div>
           ) : (
             filteredPosts.map(post => (
-            <div key={post.id} className="card p-6">
+            <div 
+              key={post.id} 
+              id={`post-${post.id}`}
+              className={`card p-6 transition-all duration-300 ${
+                highlightedPost === post.id ? 'ring-4 ring-purple-500 shadow-lg' : ''
+              }`}
+            >
               <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center">
                   {post.author.role === 'ong' ? (
@@ -555,7 +621,10 @@ export default function ForumPage() {
                       <span>{post.comments}</span>
                     </button>
                     
-                    <button className="flex items-center space-x-2 text-gray-500 hover:text-purple-600">
+                    <button 
+                      onClick={() => handleShare(post.id, post.title)}
+                      className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
+                    >
                       <Share2 className="w-5 h-5" />
                       <span>Compartir</span>
                     </button>
