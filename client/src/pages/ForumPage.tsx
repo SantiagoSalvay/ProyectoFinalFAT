@@ -21,7 +21,8 @@ import {
   LogIn,
   UserPlus,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react'
 
 interface Post {
@@ -35,6 +36,7 @@ interface Post {
     organization?: string
     avatar?: string
   }
+  id_usuario?: number
   image?: string
   tags: string[]
   location?: string
@@ -130,6 +132,31 @@ export default function ForumPage() {
 
   // Considera ONG si tipo_usuario === 2 (igual que en ProfilePage y DashboardPage)
   const isONG = user?.tipo_usuario === 2
+  
+  // Log para debugging
+  console.log('🔍 [FORUM] Usuario:', user)
+  console.log('🔍 [FORUM] tipo_usuario:', user?.tipo_usuario)
+  console.log('🔍 [FORUM] isONG:', isONG)
+
+  const handleEliminarPublicacion = async (postId: string) => {
+    if (!user) {
+      toast.error('Debes iniciar sesión')
+      return
+    }
+
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
+      return
+    }
+
+    try {
+      await api.eliminarPublicacion(postId)
+      setPosts(prev => prev.filter(post => post.id !== postId))
+      toast.success('Publicación eliminada exitosamente')
+    } catch (error) {
+      console.error('Error al eliminar publicación:', error)
+      toast.error('Error al eliminar la publicación')
+    }
+  }
 
   const handleLike = async (postId: string) => {
     if (!user) {
@@ -245,6 +272,15 @@ export default function ForumPage() {
 
     try {
       setCreatingPost(true)
+      
+      console.log('📝 [CREATE POST] Datos a enviar:', {
+        titulo: newPost.title.trim(),
+        descripcion: newPost.content.trim(),
+        categorias: newPost.categorias,
+        ubicacion: newPost.location.trim() || undefined,
+        coordenadas: newPost.coordinates || undefined
+      })
+      
       await api.crearPublicacion({
         titulo: newPost.title.trim(),
         descripcion: newPost.content.trim(),
@@ -535,20 +571,28 @@ export default function ForumPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Categorías</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
                     {categorias.map(categoria => (
-                      <label key={categoria.id_categoria} className="flex items-center space-x-2 cursor-pointer">
+                      <label 
+                        key={categoria.id_categoria} 
+                        className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
+                          id={`categoria-${categoria.id_categoria}`}
+                          name={`categoria-${categoria.id_categoria}`}
                           checked={newPost.categorias.includes(categoria.id_categoria)}
                           onChange={(e) => {
+                            e.stopPropagation();
+                            const categoriaId = categoria.id_categoria;
                             if (e.target.checked) {
                               setNewPost(prev => ({
                                 ...prev,
-                                categorias: [...prev.categorias, categoria.id_categoria]
+                                categorias: [...prev.categorias, categoriaId]
                               }))
                             } else {
                               setNewPost(prev => ({
                                 ...prev,
-                                categorias: prev.categorias.filter(id => id !== categoria.id_categoria)
+                                categorias: prev.categorias.filter(id => id !== categoriaId)
                               }))
                             }
                           }}
@@ -694,32 +738,46 @@ export default function ForumPage() {
                     </div>
                   )}
                   
-                  <div className="flex items-center space-x-6" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => handleLike(post.id)}
-                      className={`flex items-center space-x-2 ${
-                        post.isLiked ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
-                      }`}
-                    >
-                      <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} />
-                      <span>{post.likes}</span>
-                    </button>
+                  <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center space-x-6">
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        className={`flex items-center space-x-2 ${
+                          post.isLiked ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
+                        }`}
+                      >
+                        <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} />
+                        <span>{post.likes}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleToggleComments(post.id)}
+                        className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        <span>{post.comments}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleShare(post.id, post.title)}
+                        className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
+                      >
+                        <Share2 className="w-5 h-5" />
+                        <span>Compartir</span>
+                      </button>
+                    </div>
                     
-                    <button 
-                      onClick={() => handleToggleComments(post.id)}
-                      className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                      <span>{post.comments}</span>
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleShare(post.id, post.title)}
-                      className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
-                    >
-                      <Share2 className="w-5 h-5" />
-                      <span>Compartir</span>
-                    </button>
+                    {/* Botón eliminar - solo visible para el autor */}
+                    {user && post.id_usuario === user.id_usuario && (
+                      <button
+                        onClick={() => handleEliminarPublicacion(post.id)}
+                        className="flex items-center space-x-2 text-red-500 hover:text-red-700 transition-colors"
+                        title="Eliminar publicación"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        <span className="text-sm">Eliminar</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

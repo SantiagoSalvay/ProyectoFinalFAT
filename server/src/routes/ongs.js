@@ -29,11 +29,10 @@ router.get('/', async (req, res) => {
         id_usuario: true,
         nombre: true,
         apellido: true,
-        correo: true,
+        email: true,
         ubicacion: true,
-        usuario: true,
         createdAt: true,
-        bio: true,
+        biografia: true,
         calificacionesRecibidas: {
           select: {
             puntuacion: true
@@ -55,15 +54,15 @@ router.get('/', async (req, res) => {
 
       return {
         id: ong.id_usuario,
-        name: ong.nombre || ong.usuario,
-        description: ong.bio || 'Sin descripción disponible',
+        name: ong.nombre || 'ONG',
+        description: ong.biografia || 'Sin descripción disponible',
         location: ong.ubicacion || 'Ubicación no especificada',
-        email: ong.correo,
+        email: ong.email,
         type: 'public',
         rating: parseFloat(rating.toFixed(1)),
         volunteers_count: 0,
         projects_count: 0,
-        website: ong.usuario ? `https://${ong.usuario}.org` : '',
+        website: '',
         phone: '',
         totalRatings: calificaciones.length
       };
@@ -87,7 +86,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const ong = await prisma.usuario.findUnique({
+    const ong = await prisma.usuario.findFirst({
       where: { 
         id_usuario: parseInt(id),
         id_tipo_usuario: 2
@@ -96,11 +95,10 @@ router.get('/:id', async (req, res) => {
         id_usuario: true,
         nombre: true,
         apellido: true,
-        correo: true,
+        email: true,
         ubicacion: true,
-        usuario: true,
         createdAt: true,
-        bio: true
+        biografia: true
       }
     });
 
@@ -110,15 +108,15 @@ router.get('/:id', async (req, res) => {
 
     const ongFormateada = {
       id: ong.id_usuario,
-      name: ong.nombre || ong.usuario,
-      description: ong.bio || 'Sin descripción disponible',
+      name: ong.nombre || 'ONG',
+      description: ong.biografia || 'Sin descripción disponible',
       location: ong.ubicacion || 'Ubicación no especificada',
-      email: ong.correo,
+      email: ong.email,
       type: 'public',
       rating: 0,
       volunteers_count: 0,
       projects_count: 0,
-      website: ong.usuario ? `https://${ong.usuario}.org` : '',
+      website: '',
       phone: ''
     };
 

@@ -27,7 +27,7 @@ const authenticateToken = async (req, res, next) => {
       where: { id_usuario: decoded.userId },
       select: { 
         id_usuario: true, 
-        tipo_usuario: true
+        id_tipo_usuario: true
       }
     });
     
@@ -121,6 +121,7 @@ router.get('/publicaciones', async (req, res) => {
         id: publicacion.id_publicacion.toString(),
         title: publicacion.titulo,
         content: publicacion.descripcion_publicacion,
+        id_usuario: publicacion.id_usuario,
         author: {
           id: publicacion.usuario.id_usuario.toString(),
           name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
@@ -193,12 +194,25 @@ router.post('/publicaciones',
     });
 
     // Asociar las etiquetas
+    console.log('📝 [CREATE POST] Categorías recibidas:', categorias);
+    console.log('📝 [CREATE POST] Tipo de categorias:', typeof categorias);
+    console.log('📝 [CREATE POST] Es array?:', Array.isArray(categorias));
+    
     if (categorias && categorias.length > 0) {
       for (const categoriaId of categorias) {
+        console.log('📝 [CREATE POST] Procesando categoriaId:', categoriaId, 'tipo:', typeof categoriaId);
+        const parsedId = parseInt(categoriaId);
+        console.log('📝 [CREATE POST] Después de parseInt:', parsedId);
+        
+        if (isNaN(parsedId)) {
+          console.error('❌ [CREATE POST] ID de categoría inválido:', categoriaId);
+          continue;
+        }
+        
         await prisma.publicacionEtiqueta.create({
           data: {
             id_publicacion: nuevaPublicacion.id_publicacion,
-            id_etiqueta: parseInt(categoriaId)
+            id_etiqueta: parsedId
           }
         });
       }
@@ -432,6 +446,41 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Comentario eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar comentario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Eliminar una publicación (solo el autor puede eliminarla)
+router.delete('/publicaciones/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id_usuario;
+
+    // Buscar la publicación y verificar que existe
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) },
+      select: {
+        id_usuario: true
+      }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    // Verificar que el usuario es el autor de la publicación
+    if (publicacion.id_usuario !== userId) {
+      return res.status(403).json({ error: 'No tienes permisos para eliminar esta publicación' });
+    }
+
+    // Eliminar la publicación (cascade eliminará etiquetas y comentarios automáticamente)
+    await prisma.publicacion.delete({
+      where: { id_publicacion: parseInt(id) }
+    });
+
+    res.json({ message: 'Publicación eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar publicación:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

@@ -17,7 +17,7 @@ export function UserDropdown({ user, onLogout, isOpen, setIsOpen }: UserDropdown
   const setIsOpenFinal = isControlled ? setIsOpen! : setInternalOpen
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const displayName = user.nombre || user.usuario || user.correo
+  const displayName = user.nombre || user.email
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -52,9 +52,9 @@ export function UserDropdown({ user, onLogout, isOpen, setIsOpen }: UserDropdown
              style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-fg)' }}>
           <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
             <p className="text-sm font-medium" style={{ color: 'var(--color-fg)' }}>{displayName}</p>
-            {user.correo ? (
+            {user.email ? (
               <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                {user.correo.length > 15 ? user.correo.slice(0, 15) + '...' : user.correo}
+                {user.email.length > 15 ? user.email.slice(0, 15) + '...' : user.email}
               </p>
             ) : null}
           </div>

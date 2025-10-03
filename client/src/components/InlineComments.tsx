@@ -21,7 +21,7 @@ interface Comentario {
   id_foro: number
   id_usuario: number
   mensaje: string
-  fecha: string
+  fecha_respuesta: string
   moderation_status?: string  // pending, approved, rejected
   rejection_reason?: string
   usuario: {
@@ -227,7 +227,7 @@ export default function InlineComments({
                               </span>
                             )}
                             <span className="text-xs text-gray-500">
-                              {formatearFecha(comentario.fecha)}
+                              {formatearFecha(comentario.fecha_respuesta)}
                             </span>
                           </div>
                           

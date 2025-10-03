@@ -142,9 +142,9 @@ export default function ProfilePage() {
 
       setProfileData({
         name: fullName,
-        email: user.correo || '',
+        email: user.email || '',
         location: user.ubicacion || '',
-        bio: user.bio || ''
+        bio: user.biografia || ''
       })
 
       // Cargar imagen desde el diccionario local si es ONG
@@ -218,9 +218,9 @@ export default function ProfilePage() {
       
       setProfileData({
         name: fullName,
-        email: user.correo || '',
+        email: user.email || '',
         location: user.ubicacion || '',
-        bio: user.bio || ''
+        bio: user.biografia || ''
       })
     }
     setIsEditing(false)

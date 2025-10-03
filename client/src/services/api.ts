@@ -6,14 +6,17 @@ export type UserRole = 'person' | 'ong';
 // Tipos de datos
 export interface User {
   id_usuario: number;
-  usuario: string;
-  correo: string;
+  email: string;
   nombre?: string;
   apellido?: string;
   ubicacion?: string;
-  bio?: string;
+  biografia?: string;
   createdAt?: Date;
   id_tipo_usuario?: number;
+  tipo_usuario?: number;
+  auth_provider?: string;
+  profile_picture?: string;
+  email_verified?: boolean;
 }
 
 export interface ONG {
@@ -345,7 +348,7 @@ class ApiService {
     try {
       console.log('Obteniendo perfil de usuario...');
       const response = await this.request<{ user: User }>(
-        '/auth/profile',
+        '/api/auth/me',
         {
           method: 'GET',
           headers: {
@@ -449,6 +452,21 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al crear publicación:', error);
+      throw error;
+    }
+  }
+
+  async eliminarPublicacion(publicacionId: string) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/forum/publicaciones/${publicacionId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al eliminar publicación:', error);
       throw error;
     }
   }
