@@ -68,19 +68,29 @@ export default function ForumPage() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedFilter, setSelectedFilter] = useState('all')
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([])
+  const [showAllCategories, setShowAllCategories] = useState(false)
 
   // Leer filtro desde query param al montar
   useEffect(() => {
+    if (categorias.length > 0) {
     const params = new URLSearchParams(window.location.search);
     const filtro = params.get('filtro');
+      
     if (filtro === 'voluntariado' || filtro === 'volunteering') {
-      setSelectedFilter('volunteering');
+        const voluntariadoCategory = categorias.find(c => c.etiqueta === 'Voluntariado');
+        if (voluntariadoCategory) {
+          setSelectedCategories([voluntariadoCategory.id_categoria]);
+        }
     }
     if (filtro === 'donaciones' || filtro === 'donations') {
-      setSelectedFilter('donations');
+        const donacionCategory = categorias.find(c => c.etiqueta === 'Donacion');
+        if (donacionCategory) {
+          setSelectedCategories([donacionCategory.id_categoria]);
+        }
+      }
     }
-  }, []);
+  }, [categorias]);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -284,16 +294,36 @@ export default function ForumPage() {
     return locationRequiredCategories.length > 0
   }
 
+  const handleToggleCategory = (categoriaId: number) => {
+    setSelectedCategories(prev => {
+      if (prev.includes(categoriaId)) {
+        return prev.filter(id => id !== categoriaId);
+      } else {
+        return [...prev, categoriaId];
+      }
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSelectedCategories([]);
+    setSearchTerm('');
+  };
+
   const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Filtro de búsqueda
+    const matchesSearch = searchTerm === '' || 
+                         post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     
-    const matchesFilter = selectedFilter === 'all' || 
-                         (selectedFilter === 'donations' && post.tags.includes('Donacion')) ||
-                         (selectedFilter === 'volunteering' && post.tags.includes('Voluntariado'))
+    // Filtro de categorías
+    const matchesCategory = selectedCategories.length === 0 || 
+                           selectedCategories.some(catId => {
+                             const categoria = categorias.find(c => c.id_categoria === catId);
+                             return categoria && post.tags.includes(categoria.etiqueta);
+                           });
 
-    return matchesSearch && matchesFilter
+    return matchesSearch && matchesCategory;
   })
 
   return (
@@ -319,27 +349,110 @@ export default function ForumPage() {
 
         {/* Filters and Search */}
         <div className="card p-6 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
+          {/* Search Bar */}
+          <div className="flex flex-col gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Buscar publicaciones..."
+                placeholder="Buscar publicaciones por título, contenido o etiqueta..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
             
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="all">Todas las publicaciones</option>
-              <option value="donations">Donaciones</option>
-              <option value="volunteering">Voluntariado</option>
-            </select>
+            {/* Category Filters */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                  <Tag className="w-4 h-4 mr-2" />
+                  Filtrar por categoría
+                  {selectedCategories.length > 0 && (
+                    <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">
+                      {selectedCategories.length}
+                    </span>
+                  )}
+                </h3>
+                {(selectedCategories.length > 0 || searchTerm) && (
+                  <button
+                    onClick={handleClearFilters}
+                    className="text-xs text-gray-600 hover:text-purple-600 transition-colors"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(showAllCategories ? categorias : categorias.slice(0, 8)).map(categoria => {
+                  const isSelected = selectedCategories.includes(categoria.id_categoria);
+                  const count = posts.filter(post => post.tags.includes(categoria.etiqueta)).length;
+                  
+                  return (
+                    <button
+                      key={categoria.id_categoria}
+                      onClick={() => handleToggleCategory(categoria.id_categoria)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'bg-purple-600 text-white shadow-md hover:bg-purple-700'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {categoria.etiqueta}
+                      <span className={`ml-1.5 ${isSelected ? 'text-purple-200' : 'text-gray-500'}`}>
+                        ({count})
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {categorias.length > 8 && (
+                  <button
+                    onClick={() => setShowAllCategories(!showAllCategories)}
+                    className="px-4 py-2 rounded-full text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-300 transition-colors"
+                  >
+                    {showAllCategories ? 'Ver menos' : `Ver todas (${categorias.length})`}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filters */}
+            {selectedCategories.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium text-gray-600">Filtros activos:</span>
+                {selectedCategories.map(catId => {
+                  const categoria = categorias.find(c => c.id_categoria === catId);
+                  if (!categoria) return null;
+                  
+                  return (
+                    <span
+                      key={catId}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                    >
+                      {categoria.etiqueta}
+                      <button
+                        onClick={() => handleToggleCategory(catId)}
+                        className="ml-1.5 hover:text-purple-900"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Results Counter */}
+            <div className="text-sm text-gray-600 border-t pt-3">
+              Mostrando <span className="font-semibold text-purple-600">{filteredPosts.length}</span> de {posts.length} publicaciones
+              {selectedCategories.length > 0 && (
+                <span className="ml-2 text-gray-500">
+                  con {selectedCategories.length} {selectedCategories.length === 1 ? 'categoría' : 'categorías'} seleccionada{selectedCategories.length === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -613,11 +726,11 @@ export default function ForumPage() {
               
               {/* Comentarios inline */}
               <div onClick={(e) => e.stopPropagation()}>
-                <InlineComments
-                  publicacionId={post.id}
-                  isExpanded={expandedComments.has(post.id)}
-                  onToggle={() => handleToggleComments(post.id)}
-                />
+              <InlineComments
+                publicacionId={post.id}
+                isExpanded={expandedComments.has(post.id)}
+                onToggle={() => handleToggleComments(post.id)}
+              />
               </div>
             </div>
             ))
