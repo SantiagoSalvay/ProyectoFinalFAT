@@ -31,6 +31,7 @@ router.get('/', async (req, res) => {
         apellido: true,
         email: true,
         ubicacion: true,
+        coordenadas: true,
         createdAt: true,
         biografia: true,
         calificacionesRecibidas: {
@@ -52,11 +53,22 @@ router.get('/', async (req, res) => {
         ? calificaciones.reduce((sum, cal) => sum + cal.puntuacion, 0) / calificaciones.length
         : 0;
 
+      // Parsear coordenadas si existen
+      let coordinates = null;
+      if (ong.coordenadas) {
+        try {
+          coordinates = JSON.parse(ong.coordenadas);
+        } catch (e) {
+          console.error('Error al parsear coordenadas:', e);
+        }
+      }
+
       return {
         id: ong.id_usuario,
         name: ong.nombre || 'ONG',
         description: ong.biografia || 'Sin descripción disponible',
         location: ong.ubicacion || 'Ubicación no especificada',
+        coordinates,
         email: ong.email,
         type: 'public',
         rating: parseFloat(rating.toFixed(1)),

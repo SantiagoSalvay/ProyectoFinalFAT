@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { api, ONG } from '../services/api'
-import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye, EyeOff, RefreshCw, X } from 'lucide-react'
+import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye, EyeOff, RefreshCw, X, Map } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { toast } from 'react-hot-toast'
 import { getAllONGsImages, loadImageDictionary } from '../services/imageDictionary'
@@ -13,6 +13,9 @@ export default function ONGsPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'public' | 'private'>('all')
   const [locationFilter, setLocationFilter] = useState('')
   const { isAuthenticated } = useAuth()
+  const [showMap, setShowMap] = useState(true)
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const mapRef = useRef<HTMLDivElement>(null)
 
   // Estado para las imágenes de ONGs
   const [ongImages, setOngImages] = useState<Array<{userId: number, imageUrl: string, fileName: string}>>([])
@@ -29,6 +32,66 @@ export default function ONGsPage() {
       console.log('🖼️ Imágenes de ONGs cargadas:', images);
     });
   }, [])
+
+  // Cargar mapa cuando hay ONGs con coordenadas
+  useEffect(() => {
+    if (!showMap || !ongs.length || mapLoaded) return;
+    
+    const ongsWithCoords = ongs.filter(ong => ong.coordinates);
+    if (ongsWithCoords.length === 0) return;
+
+    const loadLeaflet = async () => {
+      try {
+        // Cargar CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+
+        // Cargar JS
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => {
+          // Configurar iconos
+          delete (window as any).L.Icon.Default.prototype._getIconUrl;
+          (window as any).L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          });
+
+          // Crear mapa centrado en Córdoba
+          const map = (window as any).L.map(mapRef.current).setView([-31.4201, -64.1888], 12);
+          
+          // Agregar tiles
+          (window as any).L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(map);
+
+          // Agregar marcadores para ONGs con coordenadas
+          ongsWithCoords.forEach(ong => {
+            if (ong.coordinates) {
+              const marker = (window as any).L.marker(ong.coordinates).addTo(map);
+              marker.bindPopup(`
+                <div style="text-align: center;">
+                  <h3 style="margin: 0 0 8px 0; font-weight: bold;">${ong.name}</h3>
+                  <p style="margin: 0 0 8px 0; font-size: 14px;">${ong.location}</p>
+                  ${ong.rating > 0 ? `<p style="margin: 0; font-size: 12px;">⭐ ${ong.rating.toFixed(1)} / 5</p>` : ''}
+                </div>
+              `);
+            }
+          });
+
+          setMapLoaded(true);
+        };
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error('Error al cargar Leaflet:', error);
+      }
+    };
+
+    loadLeaflet();
+  }, [ongs, showMap, mapLoaded])
 
   const loadONGs = async () => {
     try {
@@ -227,6 +290,44 @@ export default function ONGsPage() {
             </div>
           </div>
         </div>
+
+        {/* Mapa de ONGs */}
+        {ongs.filter(ong => ong.coordinates).length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Map className="w-6 h-6 text-purple-600" />
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Mapa de ONGs ({ongs.filter(ong => ong.coordinates).length} con ubicación)
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowMap(!showMap)}
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                {showMap ? 'Ocultar' : 'Mostrar'} mapa
+              </button>
+            </div>
+            
+            {showMap && (
+              <div className="relative">
+                <div
+                  ref={mapRef}
+                  className="w-full h-96 rounded-lg overflow-hidden"
+                  style={{ minHeight: '400px' }}
+                />
+                {!mapLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                      <p className="text-gray-600">Cargando mapa...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Lista de ONGs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">

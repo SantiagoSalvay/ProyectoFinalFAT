@@ -24,6 +24,7 @@ export interface ONG {
   name: string;
   description: string;
   location: string;
+  coordinates?: [number, number];
   email: string;
   type: 'public' | 'private';
   rating: number;
@@ -264,6 +265,7 @@ class ApiService {
     email: string;
     password: string;
     location: string;
+    coordinates?: [number, number];
     role: UserRole;
     organization?: string;
     tipo_usuario?: number;
@@ -296,6 +298,7 @@ class ApiService {
             contrasena: userData.password || '',
             usuario: (userData.email && userData.email.split('@')[0]) || userData.email || '',
             ubicacion: userData.location || '',
+            coordenadas: userData.coordinates,
             tipo_usuario: userData.tipo_usuario || 1
           }),
         }

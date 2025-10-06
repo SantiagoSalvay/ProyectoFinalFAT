@@ -235,7 +235,7 @@ router.post('/register', async (req, res) => {
   try {
     console.log('Datos recibidos para registro:', req.body);
 
-  const { nombre, apellido, correo, contrasena, usuario, ubicacion, tipo_usuario } = req.body;
+  const { nombre, apellido, correo, contrasena, usuario, ubicacion, coordenadas, tipo_usuario } = req.body;
   
   console.log('Campos extraídos:', {
     nombre: nombre ? 'presente' : 'faltante',
@@ -353,6 +353,7 @@ router.post('/register', async (req, res) => {
           correo,
           contrasena: hashedPassword,
           ubicacion: ubicacion || "",
+          coordenadas: coordenadas ? JSON.stringify(coordenadas) : null,
           tipo_usuario: tipoUsuarioFinal,
           verification_token: verificationToken,
           token_expiry: tokenExpiry
@@ -380,6 +381,7 @@ router.post('/register', async (req, res) => {
               correo,
               contrasena: hashedPassword,
               ubicacion: ubicacion || "",
+              coordenadas: coordenadas ? JSON.stringify(coordenadas) : null,
               tipo_usuario: tipoUsuarioFinal,
               verification_token: verificationToken,
               token_expiry: tokenExpiry
@@ -879,6 +881,7 @@ router.get('/verify-email/:token', async (req, res) => {
         contrasena: pendingRegistration.contrasena,
         id_tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
+        coordenadas: pendingRegistration.coordenadas,
         detalleUsuario: {
           create: {
             email_verified: true

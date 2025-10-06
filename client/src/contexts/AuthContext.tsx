@@ -24,6 +24,7 @@ interface RegisterData {
   role: UserRole
   organization?: string
   location: string
+  coordinates?: [number, number]
   bio?: string
   tipo_usuario?: number
 }

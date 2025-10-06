@@ -22,6 +22,7 @@ model Usuario {
   contrasena               String?
   id_tipo_usuario          Int
   ubicacion                String?
+  coordenadas              String?
   createdAt                DateTime               @default(now())
   calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
@@ -201,6 +202,7 @@ model RegistroPendiente {
   correo             String   @unique
   contrasena         String
   ubicacion          String?
+  coordenadas        String?
   verification_token String   @unique
   token_expiry       DateTime
   createdAt          DateTime @default(now())

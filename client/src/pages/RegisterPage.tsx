@@ -157,6 +157,7 @@ export default function RegisterPage() {
       role: selectedRole,
       organization,
       location: data.location,
+      coordinates: selectedLocation?.coordinates,
       tipo_usuario,
     });
     
