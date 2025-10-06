@@ -51,5 +51,8 @@
     "solidaridad"
   ],
   "author": "Tu Nombre",
-  "license": "MIT"
+  "license": "MIT",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
 }
