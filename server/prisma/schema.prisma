@@ -23,6 +23,8 @@ model Usuario {
   id_tipo_usuario          Int
   ubicacion                String?
   coordenadas              String?
+  redes_sociales           String?
+  telefono                 String?
   createdAt                DateTime               @default(now())
   calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")

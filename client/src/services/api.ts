@@ -11,6 +11,8 @@ export interface User {
   apellido?: string;
   ubicacion?: string;
   biografia?: string;
+  telefono?: string;
+  redes_sociales?: string;
   createdAt?: Date;
   id_tipo_usuario?: number;
   tipo_usuario?: number;
@@ -19,12 +21,20 @@ export interface User {
   email_verified?: boolean;
 }
 
+export interface SocialMediaLink {
+  id: string;
+  url: string;
+  type: string;
+  displayName: string;
+}
+
 export interface ONG {
   id: number;
   name: string;
   description: string;
   location: string;
   coordinates?: [number, number];
+  socialMedia?: SocialMediaLink[];
   email: string;
   type: 'public' | 'private';
   rating: number;
@@ -373,9 +383,17 @@ class ApiService {
     apellido?: string;
     ubicacion?: string;
     bio?: string;
+    telefono?: string;
+    redes_sociales?: any;
   }) {
     try {
-      console.log('Actualizando perfil con datos:', profileData);
+      console.log('📤 [API] Actualizando perfil con datos:', profileData);
+      
+      if (profileData.redes_sociales) {
+        console.log('📤 [API] Redes sociales a enviar:', profileData.redes_sociales);
+        console.log('📤 [API] Tipo:', typeof profileData.redes_sociales);
+      }
+      
       const response = await this.request<{ message: string; user: User }>(
         '/auth/profile',
         {
@@ -383,10 +401,16 @@ class ApiService {
           body: JSON.stringify(profileData),
         }
       );
-      console.log('Perfil actualizado:', response);
+      
+      console.log('✅ [API] Perfil actualizado:', response);
+      
+      if (response.user?.redes_sociales) {
+        console.log('✅ [API] Redes sociales en respuesta:', response.user.redes_sociales);
+      }
+      
       return response;
     } catch (error) {
-      console.error('Error detallado al actualizar perfil:', error);
+      console.error('❌ [API] Error detallado al actualizar perfil:', error);
       throw error;
     }
   }

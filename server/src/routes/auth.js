@@ -1026,7 +1026,7 @@ router.put('/profile', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     
-    const { nombre, apellido, ubicacion, bio } = req.body;
+    const { nombre, apellido, ubicacion, bio, redes_sociales, telefono } = req.body;
 
     // Filtrar campos undefined para evitar errores
     const updateData = {};
@@ -1034,6 +1034,15 @@ router.put('/profile', async (req, res) => {
     if (apellido !== undefined) updateData.apellido = apellido;
     if (ubicacion !== undefined) updateData.ubicacion = ubicacion;
     if (bio !== undefined) updateData.biografia = bio;
+    if (telefono !== undefined) updateData.telefono = telefono;
+    if (redes_sociales !== undefined) {
+      // Guardar como JSON string
+      updateData.redes_sociales = typeof redes_sociales === 'string' 
+        ? redes_sociales 
+        : JSON.stringify(redes_sociales);
+      console.log('🌐 Redes sociales recibidas:', redes_sociales);
+      console.log('🌐 Redes sociales a guardar:', updateData.redes_sociales);
+    }
 
     console.log('Datos a actualizar:', updateData);
 
@@ -1047,6 +1056,8 @@ router.put('/profile', async (req, res) => {
         email: true,
         ubicacion: true,
         biografia: true,
+        redes_sociales: true,
+        telefono: true,
         id_tipo_usuario: true,
         createdAt: true
       }

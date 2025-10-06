@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import ClickableMapModal from '../components/ClickableMapModal'
+import SocialMediaManager from '../components/SocialMediaManager'
 import { useAuth } from '../contexts/AuthContext'
 import { useONGNotifications } from '../hooks/useONGNotifications'
 import { toast } from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import { uploadImageToVPS, getUserImageUrl, loadImageDictionary, clearAllImages } from '../services/imageDictionary'
+import { api } from '../services/api'
+import type { SocialMediaLink } from '../utils/socialMediaDetector'
 import { 
   User, 
   Building, 
@@ -31,7 +34,8 @@ export default function ProfilePage() {
     name: '',
     email: '',
     location: '',
-    bio: ''
+    bio: '',
+    telefono: ''
   })
 
   // Estado para manejar la imagen de la ONG
@@ -39,6 +43,10 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null)
+
+  // Estado para redes sociales
+  const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>([])
+  const [savingSocialMedia, setSavingSocialMedia] = useState(false)
 
   // Autocompletado de ubicación con LocationIQ
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
@@ -144,7 +152,8 @@ export default function ProfilePage() {
         name: fullName,
         email: user.email || '',
         location: user.ubicacion || '',
-        bio: user.biografia || ''
+        bio: user.biografia || '',
+        telefono: (user as any).telefono || ''
       })
 
       // Cargar imagen desde el diccionario local si es ONG
@@ -153,6 +162,27 @@ export default function ProfilePage() {
           const imageUrl = getUserImageUrl(user.id_usuario);
           setCurrentImageUrl(imageUrl);
         });
+      }
+
+      // Cargar redes sociales si es ONG y tiene datos
+      if (isONG && (user as any).redes_sociales) {
+        try {
+          console.log('🔍 Redes sociales del usuario:', (user as any).redes_sociales);
+          console.log('🔍 Tipo:', typeof (user as any).redes_sociales);
+          
+          const parsed = typeof (user as any).redes_sociales === 'string' 
+            ? JSON.parse((user as any).redes_sociales)
+            : (user as any).redes_sociales;
+          
+          console.log('✅ Redes sociales parseadas:', parsed);
+          setSocialMediaLinks(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          console.error('❌ Error al parsear redes sociales:', e);
+          setSocialMediaLinks([]);
+        }
+      } else if (isONG) {
+        console.log('⚠️ ONG sin redes sociales');
+        setSocialMediaLinks([]);
       }
     }
   }, [user, isONG])
@@ -178,7 +208,8 @@ export default function ProfilePage() {
         nombre,
         apellido,
         ubicacion: profileData.location || '',
-        bio: profileData.bio || ''
+        bio: profileData.bio || '',
+        telefono: profileData.telefono || ''
       }
 
       console.log('📤 Datos a enviar al backend:', updateData)
@@ -220,7 +251,8 @@ export default function ProfilePage() {
         name: fullName,
         email: user.email || '',
         location: user.ubicacion || '',
-        bio: user.biografia || ''
+        bio: user.biografia || '',
+        telefono: (user as any).telefono || ''
       })
     }
     setIsEditing(false)
@@ -286,6 +318,35 @@ export default function ProfilePage() {
   const handleImageCancel = () => {
     setSelectedImage(null)
     setImagePreview(null)
+  }
+
+  // Función para guardar redes sociales
+  const handleSaveSocialMedia = async (links: SocialMediaLink[]) => {
+    try {
+      setSavingSocialMedia(true)
+      
+      console.log('🔵 Guardando redes sociales:', links)
+      console.log('🔵 Tipo de links:', typeof links)
+      console.log('🔵 Es array?:', Array.isArray(links))
+      
+      // Usar el método updateProfile del contexto
+      await updateProfile({
+        redes_sociales: links
+      })
+      
+      console.log('✅ Redes sociales enviadas al backend')
+      
+      // Actualizar el estado local inmediatamente
+      setSocialMediaLinks(links)
+      
+      toast.success('Redes sociales guardadas exitosamente')
+    } catch (error) {
+      console.error('❌ Error al guardar redes sociales:', error)
+      toast.error('Error al guardar las redes sociales')
+      throw error
+    } finally {
+      setSavingSocialMedia(false)
+    }
   }
 
   return (
@@ -440,6 +501,28 @@ export default function ProfilePage() {
                   )}
                 </div>
 
+                {/* Teléfono - Solo para ONGs */}
+                {isONG && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono de Contacto
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="tel"
+                        value={profileData.telefono}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, telefono: e.target.value }))}
+                        className="input-field"
+                        placeholder="Ej: +54 9 351 123 4567"
+                      />
+                    ) : (
+                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="text-gray-900">{profileData.telefono || 'No especificado'}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Bio */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -461,6 +544,17 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Redes Sociales - Solo para ONGs */}
+                {isONG && (
+                  <div className="border-t pt-6">
+                    <SocialMediaManager
+                      initialLinks={socialMediaLinks}
+                      onSave={handleSaveSocialMedia}
+                      saving={savingSocialMedia}
+                    />
+                  </div>
+                )}
 
                 {/* Member Since */}
                 <div>

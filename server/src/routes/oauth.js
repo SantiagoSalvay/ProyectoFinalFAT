@@ -174,7 +174,11 @@ router.get('/me', async (req, res) => {
         apellido: true,
         email: true,
         ubicacion: true,
+        biografia: true,
+        telefono: true,
+        redes_sociales: true,
         id_tipo_usuario: true,
+        createdAt: true,
         detalleUsuario: {
           select: {
             auth_provider: true,
@@ -191,17 +195,25 @@ router.get('/me', async (req, res) => {
     }
 
     // Aplanar la estructura para mantener compatibilidad con el frontend
+    console.log('🔍 [AUTH/ME] Redes sociales en BD:', user.redes_sociales);
+    
     const userResponse = {
       id_usuario: user.id_usuario,
       nombre: user.nombre,
       apellido: user.apellido,
       email: user.email,
       ubicacion: user.ubicacion,
+      biografia: user.biografia,
+      telefono: user.telefono,
+      redes_sociales: user.redes_sociales,
+      createdAt: user.createdAt,
       tipo_usuario: user.id_tipo_usuario,
       auth_provider: user.detalleUsuario?.auth_provider || 'email',
       profile_picture: user.detalleUsuario?.profile_picture || null,
       email_verified: user.detalleUsuario?.email_verified || false
     };
+    
+    console.log('📤 [AUTH/ME] Redes sociales enviadas:', userResponse.redes_sociales);
 
     // Si es persona y no tiene ubicación, incluir advertencia
     let warnings = [];

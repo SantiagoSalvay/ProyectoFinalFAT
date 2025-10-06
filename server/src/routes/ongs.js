@@ -32,6 +32,8 @@ router.get('/', async (req, res) => {
         email: true,
         ubicacion: true,
         coordenadas: true,
+        redes_sociales: true,
+        telefono: true,
         createdAt: true,
         biografia: true,
         calificacionesRecibidas: {
@@ -63,19 +65,30 @@ router.get('/', async (req, res) => {
         }
       }
 
+      // Parsear redes sociales si existen
+      let socialMedia = [];
+      if (ong.redes_sociales) {
+        try {
+          socialMedia = JSON.parse(ong.redes_sociales);
+        } catch (e) {
+          console.error('Error al parsear redes sociales:', e);
+        }
+      }
+
       return {
         id: ong.id_usuario,
         name: ong.nombre || 'ONG',
         description: ong.biografia || 'Sin descripción disponible',
         location: ong.ubicacion || 'Ubicación no especificada',
         coordinates,
+        socialMedia,
         email: ong.email,
         type: 'public',
         rating: parseFloat(rating.toFixed(1)),
         volunteers_count: 0,
         projects_count: 0,
         website: '',
-        phone: '',
+        phone: ong.telefono || '',
         totalRatings: calificaciones.length
       };
     });

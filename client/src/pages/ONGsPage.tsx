@@ -4,6 +4,7 @@ import { Search, Filter, MapPin, Building, Users, Star, Heart, ExternalLink, Eye
 import { useAuth } from '../contexts/AuthContext'
 import { toast } from 'react-hot-toast'
 import { getAllONGsImages, loadImageDictionary } from '../services/imageDictionary'
+import { getSocialMediaIcon, getSocialMediaColor } from '../utils/socialMediaDetector'
 
 export default function ONGsPage() {
   const [ongs, setOngs] = useState<ONG[]>([])
@@ -72,13 +73,42 @@ export default function ONGsPage() {
           ongsWithCoords.forEach(ong => {
             if (ong.coordinates) {
               const marker = (window as any).L.marker(ong.coordinates).addTo(map);
+              
+              // Generar HTML para redes sociales en el mapa
+              let socialMediaHTML = '';
+              if (ong.socialMedia && ong.socialMedia.length > 0) {
+                const socialLinks = ong.socialMedia.map(link => {
+                  const color = getSocialMediaColor(link.type);
+                  // Usar texto simple por ahora para el mapa
+                  return `
+                    <a href="${link.url}" target="_blank" rel="noopener noreferrer" 
+                       style="display: inline-block; padding: 4px 12px; margin: 2px; 
+                              background-color: ${color}; color: white; 
+                              border-radius: 4px; text-decoration: none; font-size: 12px;"
+                       title="${link.type}">
+                      ${link.type.charAt(0).toUpperCase() + link.type.slice(1)}
+                    </a>
+                  `;
+                }).join('');
+                
+                socialMediaHTML = `
+                  <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #6b7280;">Redes Sociales:</p>
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;">
+                      ${socialLinks}
+                    </div>
+                  </div>
+                `;
+              }
+              
               marker.bindPopup(`
-                <div style="text-align: center;">
+                <div style="text-align: center; min-width: 200px;">
                   <h3 style="margin: 0 0 8px 0; font-weight: bold;">${ong.name}</h3>
                   <p style="margin: 0 0 8px 0; font-size: 14px;">${ong.location}</p>
                   ${ong.rating > 0 ? `<p style="margin: 0; font-size: 12px;">⭐ ${ong.rating.toFixed(1)} / 5</p>` : ''}
+                  ${socialMediaHTML}
                 </div>
-              `);
+              `, { maxWidth: 300 });
             }
           });
 
@@ -339,6 +369,7 @@ export default function ONGsPage() {
               onRate={handleRateONG}
               onComment={handleCommentONG}
               getImage={getONGImage}
+              socialMedia={ong.socialMedia}
             />
           ))}
         </div>
@@ -361,10 +392,12 @@ interface ONGCardProps {
   onRate: (ongId: number, rating: number, comment: string) => void
   onComment: (ongId: number, content: string) => void
   getImage: (ongId: number) => string | null
+  socialMedia?: { type: string; url: string }[]
 }
 
-function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardProps) {
+function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage, socialMedia }: ONGCardProps) {
   const [showDetails, setShowDetails] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [showRatingModal, setShowRatingModal] = useState(false)
@@ -508,28 +541,44 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardP
           </div>
         )}
 
-        <div className="flex space-x-2 mb-4">
-          {ong.website && (
-            <a
-              href={ong.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors text-sm"
-            >
-              <ExternalLink className="w-4 h-4 inline mr-1" />
-              Sitio web
-            </a>
-          )}
+        <div className="flex flex-col space-y-2 mb-4">
+          <div className="flex space-x-2">
+            {ong.website && (
+              <a
+                href={ong.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors text-sm"
+              >
+                <ExternalLink className="w-4 h-4 inline mr-1" />
+                Sitio web
+              </a>
+            )}
+            
+            {isAuthenticated && (
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className={`${ong.website ? '' : 'flex-1'} ${hasRated ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'} py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors text-sm flex items-center justify-center`}
+              >
+                <Star className={`w-4 h-4 mr-1 ${hasRated ? 'fill-current' : ''}`} />
+                {hasRated ? 'Editar calificación' : 'Calificar'}
+              </button>
+            )}
+          </div>
           
-          {isAuthenticated && (
-            <button
-              onClick={() => setShowRatingModal(true)}
-              className={`${ong.website ? '' : 'flex-1'} ${hasRated ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'} py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors text-sm flex items-center justify-center`}
-            >
-              <Star className={`w-4 h-4 mr-1 ${hasRated ? 'fill-current' : ''}`} />
-              {hasRated ? 'Editar calificación' : 'Calificar'}
-            </button>
-          )}
+          {/* Botón Ver más detalles */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Abriendo modal de detalles...');
+              setShowDetailsModal(true);
+            }}
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all text-sm font-medium flex items-center justify-center"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Ver más detalles
+          </button>
         </div>
 
         {/* Detalles expandidos */}
@@ -568,6 +617,136 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage }: ONGCardP
           </div>
         )}
       </div>
+
+      {/* Modal de Detalles */}
+      {showDetailsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setShowDetailsModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Imagen de la ONG */}
+            {getImage(ong.id) && (
+              <div className="relative h-64 w-full mb-6 rounded-lg overflow-hidden">
+                <img
+                  src={getImage(ong.id)!}
+                  alt={`Imagen de ${ong.name}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* Header */}
+            <div className="mb-6">
+              <h3 className="text-3xl font-bold text-gray-900 mb-3">
+                {ong.name}
+              </h3>
+              <div className="flex items-center text-gray-600 mb-3">
+                <MapPin className="w-5 h-5 mr-2" />
+                <span>{ong.location}</span>
+              </div>
+              {ong.rating > 0 && (
+                <div className="flex items-center">
+                  <Star className="w-5 h-5 text-yellow-500 fill-current mr-1" />
+                  <span className="font-semibold text-lg">{ong.rating.toFixed(1)}</span>
+                  <span className="text-gray-500 ml-1">/ 5</span>
+                </div>
+              )}
+            </div>
+
+            {/* Descripción */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">Descripción</h4>
+              <p className="text-gray-700 whitespace-pre-wrap">{ong.description}</p>
+            </div>
+
+            {/* Estadísticas */}
+            <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <Users className="w-6 h-6 text-blue-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-gray-900">{ong.volunteers_count}</p>
+                <p className="text-xs text-gray-600">Voluntarios</p>
+              </div>
+              <div className="text-center">
+                <Heart className="w-6 h-6 text-red-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-gray-900">{ong.projects_count}</p>
+                <p className="text-xs text-gray-600">Proyectos</p>
+              </div>
+              <div className="text-center">
+                <Star className="w-6 h-6 text-yellow-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-gray-900">{ong.rating.toFixed(1)}</p>
+                <p className="text-xs text-gray-600">Calificación</p>
+              </div>
+            </div>
+
+            {/* Información de contacto */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-3">Información de Contacto</h4>
+              <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center text-gray-700">
+                  <Mail className="w-5 h-5 mr-3 text-gray-400" />
+                  <span>{ong.email}</span>
+                </div>
+                {ong.phone && (
+                  <div className="flex items-center text-gray-700">
+                    <span className="w-5 h-5 mr-3 text-gray-400 text-center">📞</span>
+                    <span>{ong.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Redes Sociales */}
+            {socialMedia && socialMedia.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="mr-2">🌐</span> Redes Sociales
+                </h4>
+                <div className="flex flex-wrap gap-3">
+                  {socialMedia.map((link, index) => {
+                    const IconComponent = getSocialMediaIcon(link.type);
+                    const color = getSocialMediaColor(link.type);
+                    
+                    return (
+                      <a
+                        key={index}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ backgroundColor: color }}
+                        className="flex items-center space-x-2 text-white px-4 py-3 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
+                      >
+                        <IconComponent className="w-6 h-6" />
+                        <span className="font-medium">{link.displayName || link.type}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Sitio web */}
+            {ong.website && (
+              <div className="border-t pt-6">
+                <a
+                  href={ong.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center font-medium"
+                >
+                  <ExternalLink className="w-5 h-5 mr-2" />
+                  Visitar Sitio Web
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal de Calificación */}
       {showRatingModal && (

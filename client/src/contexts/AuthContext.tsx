@@ -34,6 +34,8 @@ interface UpdateProfileData {
   apellido?: string
   ubicacion?: string
   bio?: string
+  telefono?: string
+  redes_sociales?: any
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -149,10 +151,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (profileData: UpdateProfileData) => {
     try {
+      console.log('🔄 [AuthContext] Actualizando perfil con:', profileData)
+      
       const { user } = await api.updateProfile(profileData)
+      
+      console.log('✅ [AuthContext] Usuario recibido del backend:', user)
+      
+      if ((user as any).redes_sociales) {
+        console.log('✅ [AuthContext] Redes sociales en usuario:', (user as any).redes_sociales)
+      }
+      
       setUser(user)
+      
+      console.log('✅ [AuthContext] Usuario actualizado en el estado')
+      
+      // NO forzar recarga automática para mantener los logs
+      
       toast.success('Perfil actualizado exitosamente')
     } catch (error) {
+      console.error('❌ [AuthContext] Error al actualizar perfil:', error)
       toast.error('Error al actualizar perfil')
       throw error
     }
