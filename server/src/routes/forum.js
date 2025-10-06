@@ -94,7 +94,15 @@ router.get('/publicaciones', async (req, res) => {
           select: {
             id_respuesta: true
           }
-        }
+        },
+        likes: userId ? {
+          where: {
+            id_usuario: userId
+          },
+          select: {
+            id_like: true
+          }
+        } : false
       },
       orderBy: {
         fecha_publicacion: 'desc'
@@ -134,7 +142,7 @@ router.get('/publicaciones', async (req, res) => {
         likes: publicacion.num_megusta || 0,
         comments: publicacion.respuestas.length,
         createdAt: publicacion.fecha_publicacion,
-        isLiked: false // TODO: Implementar sistema de likes
+        isLiked: userId && publicacion.likes && publicacion.likes.length > 0
       };
     });
 
@@ -268,7 +276,15 @@ router.get('/publicaciones/:id', async (req, res) => {
           select: {
             id_respuesta: true
           }
-        }
+        },
+        likes: userId ? {
+          where: {
+            id_usuario: userId
+          },
+          select: {
+            id_like: true
+          }
+        } : false
       }
     });
 
@@ -306,7 +322,7 @@ router.get('/publicaciones/:id', async (req, res) => {
       likes: publicacion.num_megusta || 0,
       comments: publicacion.respuestas.length,
       createdAt: publicacion.fecha_publicacion,
-      isLiked: false // TODO: Implementar sistema de likes
+      isLiked: userId && publicacion.likes && publicacion.likes.length > 0
     };
 
     res.json(publicacionFormateada);
@@ -485,21 +501,107 @@ router.delete('/publicaciones/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Dar/quitar "me gusta" a una publicación - TEMPORALMENTE DESHABILITADO
-// TODO: Implementar sistema de likes con la nueva estructura
+// Dar/quitar "me gusta" a una publicación
 router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
-  res.status(501).json({ error: 'Sistema de likes temporalmente deshabilitado durante migración' });
+  try {
+    const { id } = req.params;
+    const userId = req.user.id_usuario;
+    const publicacionId = parseInt(id);
+
+    // Verificar que la publicación existe
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: publicacionId }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    // Verificar si el usuario ya dio like
+    const likeExistente = await prisma.publicacionLike.findUnique({
+      where: {
+        id_publicacion_id_usuario: {
+          id_publicacion: publicacionId,
+          id_usuario: userId
+        }
+      }
+    });
+
+    if (likeExistente) {
+      // Quitar like
+      await prisma.$transaction([
+        prisma.publicacionLike.delete({
+          where: { id_like: likeExistente.id_like }
+        }),
+        prisma.publicacion.update({
+          where: { id_publicacion: publicacionId },
+          data: { num_megusta: { decrement: 1 } }
+        })
+      ]);
+
+      const updatedPublicacion = await prisma.publicacion.findUnique({
+        where: { id_publicacion: publicacionId },
+        select: { num_megusta: true }
+      });
+
+      return res.json({
+        liked: false,
+        totalLikes: updatedPublicacion.num_megusta
+      });
+    } else {
+      // Dar like
+      await prisma.$transaction([
+        prisma.publicacionLike.create({
+          data: {
+            id_publicacion: publicacionId,
+            id_usuario: userId
+          }
+        }),
+        prisma.publicacion.update({
+          where: { id_publicacion: publicacionId },
+          data: { num_megusta: { increment: 1 } }
+        })
+      ]);
+
+      const updatedPublicacion = await prisma.publicacion.findUnique({
+        where: { id_publicacion: publicacionId },
+        select: { num_megusta: true }
+      });
+
+      return res.json({
+        liked: true,
+        totalLikes: updatedPublicacion.num_megusta
+      });
+    }
+  } catch (error) {
+    console.error('Error al dar/quitar like:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
-// Obtener estado de likes de una publicación - TEMPORALMENTE DESHABILITADO
-// TODO: Implementar sistema de likes con la nueva estructura
+// Obtener estado de likes de una publicación
 router.get('/publicaciones/:id/like', async (req, res) => {
   try {
     const { id } = req.params;
+    const authHeader = req.headers.authorization;
+    let userId = null;
+
+    // Verificar si hay usuario autenticado
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+        userId = decoded.userId;
+      } catch (err) {
+        // Token inválido, continuar sin userId
+      }
+    }
     
+    const publicacionId = parseInt(id);
+
     // Obtener el número de likes desde la publicación
     const publicacion = await prisma.publicacion.findUnique({
-      where: { id_publicacion: parseInt(id) },
+      where: { id_publicacion: publicacionId },
       select: { num_megusta: true }
     });
 
@@ -507,9 +609,24 @@ router.get('/publicaciones/:id/like', async (req, res) => {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
+    let isLiked = false;
+
+    // Si hay usuario autenticado, verificar si dio like
+    if (userId) {
+      const like = await prisma.publicacionLike.findUnique({
+        where: {
+          id_publicacion_id_usuario: {
+            id_publicacion: publicacionId,
+            id_usuario: userId
+          }
+        }
+      });
+      isLiked = !!like;
+    }
+
     res.json({
       totalLikes: publicacion.num_megusta || 0,
-      isLiked: false // TODO: Implementar verificación de likes del usuario
+      isLiked
     });
   } catch (error) {
     console.error('Error al obtener likes:', error);

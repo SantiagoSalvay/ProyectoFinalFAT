@@ -55,18 +55,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const loadProfile = async () => {
+  const loadProfile = async (retryCount = 0) => {
+    const maxRetries = 3;
+    const retryDelay = 1500; // 1.5 segundos
+    let shouldStopLoading = true;
+    
     try {
-      console.log('Cargando perfil de usuario...');
+      console.log(`Cargando perfil de usuario... (intento ${retryCount + 1}/${maxRetries + 1})`);
       const { user } = await api.getProfile();
       console.log('Perfil cargado:', user);
       setUser(user);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error detallado al cargar perfil:', error);
-      api.clearToken();
-      setUser(null);
+      
+      // Solo eliminar token si es error de autenticación (401, 403)
+      // No eliminar si es error de red o servidor (500, problemas de BD)
+      const errorMessage = error?.message || '';
+      const isAuthError = errorMessage.includes('401') || 
+                         errorMessage.includes('403') || 
+                         errorMessage.includes('Token') ||
+                         errorMessage.includes('no autorizado') ||
+                         errorMessage.includes('unauthorized');
+      
+      if (isAuthError) {
+        console.log('❌ Error de autenticación - cerrando sesión');
+        api.clearToken();
+        setUser(null);
+      } else if (retryCount < maxRetries) {
+        // Error de conexión - reintentar
+        console.log(`⚠️ Error de conexión - reintentando en ${retryDelay}ms...`);
+        shouldStopLoading = false;
+        setTimeout(() => {
+          loadProfile(retryCount + 1);
+        }, retryDelay);
+        return; // No finalizar loading aún
+      } else {
+        // Se agotaron los reintentos
+        console.log('❌ Se agotaron los reintentos - manteniendo token para reintento manual');
+        setUser(null);
+        toast.error('Error de conexión con el servidor. Por favor, recarga la página.');
+      }
     } finally {
-      setIsLoading(false);
+      // Solo finalizar loading si no vamos a reintentar
+      if (shouldStopLoading) {
+        setIsLoading(false);
+      }
     }
   }
 

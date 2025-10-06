@@ -34,6 +34,7 @@ model Usuario {
   respuestas               RespuestaPublicacion[]
   tiposONG                 TipoONG[]
   passwordResetTokens      PasswordResetToken[]
+  likesRealizados          PublicacionLike[]      @relation("LikesRealizados")
   tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
@@ -63,6 +64,20 @@ model Publicacion {
   usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
   publicacionEtiquetas       PublicacionEtiqueta[]
   respuestas                 RespuestaPublicacion[]
+  likes                      PublicacionLike[]
+}
+
+model PublicacionLike {
+  id_like        Int         @id @default(autoincrement())
+  id_publicacion Int
+  id_usuario     Int
+  fecha_like     DateTime    @default(now())
+  publicacion    Publicacion @relation(fields: [id_publicacion], references: [id_publicacion], onDelete: Cascade)
+  usuario        Usuario     @relation("LikesRealizados", fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_publicacion, id_usuario])
+  @@index([id_publicacion])
+  @@index([id_usuario])
 }
 
 model Etiqueta {
