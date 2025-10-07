@@ -31,7 +31,7 @@
     "nodemailer": "^6.10.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-twitter": "^1.0.4",
+    "passport-twitter": "^0.1.5",
     "passport-twitter-oauth2": "^2.1.1",
     "prisma": "^5.10.2",
     "sqlite": "^5.1.1",
