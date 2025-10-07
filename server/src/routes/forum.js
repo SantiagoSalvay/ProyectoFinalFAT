@@ -125,6 +125,17 @@ router.get('/publicaciones', async (req, res) => {
         }
       }
       
+      // Procesar imágenes
+      let imagenes = [];
+      if (publicacion.imagenes) {
+        try {
+          imagenes = JSON.parse(publicacion.imagenes);
+        } catch (e) {
+          console.error('Error al parsear imágenes:', e);
+          imagenes = [];
+        }
+      }
+
       return {
         id: publicacion.id_publicacion.toString(),
         title: publicacion.titulo,
@@ -139,6 +150,7 @@ router.get('/publicaciones', async (req, res) => {
         },
         tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
         location: location,
+        imagenes: imagenes,
         likes: publicacion.num_megusta || 0,
         comments: publicacion.respuestas.length,
         createdAt: publicacion.fecha_publicacion,
@@ -312,11 +324,23 @@ router.get('/publicaciones/:id', async (req, res) => {
       }
     }
 
+    // Procesar imágenes
+    let imagenes = [];
+    if (publicacion.imagenes) {
+      try {
+        imagenes = JSON.parse(publicacion.imagenes);
+      } catch (e) {
+        console.error('Error al parsear imágenes:', e);
+        imagenes = [];
+      }
+    }
+
     // Formatear la respuesta igual que en /publicaciones
     const publicacionFormateada = {
       id: publicacion.id_publicacion.toString(),
       title: publicacion.titulo,
       content: publicacion.descripcion_publicacion,
+      id_usuario: publicacion.id_usuario,
       author: {
         id: publicacion.usuario.id_usuario.toString(),
         name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
@@ -326,6 +350,7 @@ router.get('/publicaciones/:id', async (req, res) => {
       },
       tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
       location: location,
+      imagenes: imagenes,
       likes: publicacion.num_megusta || 0,
       comments: publicacion.respuestas.length,
       createdAt: publicacion.fecha_publicacion,
@@ -645,5 +670,105 @@ router.get('/publicaciones/:id/like', async (req, res) => {
 // router.get('/moderation/stats', authenticateToken, async (req, res) => {
 //   res.json({ warnings: 0, infractions: [], banned: false });
 // });
+
+// Actualizar una publicación existente
+router.put('/publicaciones/:id', 
+  authenticateToken, 
+  titleModerationMiddleware('titulo'),
+  moderationMiddleware({ fieldName: 'descripcion', strict: true }),
+  async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { titulo, descripcion, categorias, ubicacion, coordenadas, imagenes } = req.body;
+    const userId = req.user?.id_usuario;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    // Verificar que la publicación existe y pertenece al usuario
+    const publicacionExistente = await prisma.Publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) },
+      include: {
+        usuario: {
+          select: { id_usuario: true, id_tipo_usuario: true }
+        }
+      }
+    });
+
+    if (!publicacionExistente) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    if (publicacionExistente.id_usuario !== userId) {
+      return res.status(403).json({ error: 'No tienes permisos para editar esta publicación' });
+    }
+
+    // Verificar que el usuario sea ONG
+    if (publicacionExistente.usuario.id_tipo_usuario !== 2) {
+      return res.status(403).json({ error: 'Solo las ONGs pueden editar publicaciones' });
+    }
+
+    // Preparar datos de ubicación
+    let ubicacionData = null;
+    if (ubicacion) {
+      if (coordenadas && Array.isArray(coordenadas) && coordenadas.length === 2) {
+        ubicacionData = JSON.stringify({
+          address: ubicacion,
+          coordinates: coordenadas
+        });
+      } else {
+        ubicacionData = ubicacion;
+      }
+    }
+
+    // Preparar datos de imágenes
+    let imagenesData = null;
+    if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
+      imagenesData = JSON.stringify(imagenes);
+    }
+
+    // Actualizar la publicación
+    const publicacionActualizada = await prisma.Publicacion.update({
+      where: { id_publicacion: parseInt(id) },
+      data: {
+        titulo,
+        descripcion_publicacion: descripcion,
+        ubicacion: ubicacionData,
+        imagenes: imagenesData,
+        ultima_fecha_actualizacion: new Date()
+      }
+    });
+
+    // Actualizar las etiquetas
+    if (categorias && categorias.length > 0) {
+      // Eliminar etiquetas existentes
+      await prisma.PublicacionEtiqueta.deleteMany({
+        where: { id_publicacion: parseInt(id) }
+      });
+
+      // Agregar nuevas etiquetas
+      for (const categoriaId of categorias) {
+        const parsedId = parseInt(categoriaId);
+        if (!isNaN(parsedId)) {
+          await prisma.PublicacionEtiqueta.create({
+            data: {
+              id_publicacion: parseInt(id),
+              id_etiqueta: parsedId
+            }
+          });
+        }
+      }
+    }
+
+    res.json({ 
+      message: 'Publicación actualizada exitosamente', 
+      publicacion: publicacionActualizada 
+    });
+  } catch (error) {
+    console.error('Error al actualizar publicación:', error);
+    res.status(500).json({ error: 'Error al actualizar la publicación' });
+  }
+});
 
 export default router; 

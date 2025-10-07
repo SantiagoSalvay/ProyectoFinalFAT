@@ -24,7 +24,8 @@ import {
   AlertCircle,
   Trash2,
   Image,
-  X
+  X,
+  Edit3
 } from 'lucide-react'
 
 interface Post {
@@ -108,6 +109,9 @@ export default function ForumPage() {
 
   // Estado separado para las categorías seleccionadas en el modal de creación
   const [modalSelectedCategories, setModalSelectedCategories] = useState<number[]>([])
+  
+  // Estado para saber si estamos editando un post existente
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
   
   // Estado individual para cada categoría (como backup)
   const [categoryStates, setCategoryStates] = useState<{[key: number]: boolean}>({})
@@ -363,6 +367,32 @@ export default function ForumPage() {
     navigate(`/forum/${postId}`)
   }
 
+  const handleEditPost = (post: Post) => {
+    // Establecer el ID del post que se está editando
+    setEditingPostId(post.id)
+    
+    // Llenar el formulario con los datos del post
+    setNewPost({
+      title: post.title,
+      content: post.content,
+      categorias: [], // Las categorías se manejan por separado
+      location: post.location || '',
+      coordinates: null, // TODO: parsear coordenadas si están disponibles
+      imagenes: post.imagenes || []
+    })
+    
+    // Seleccionar las categorías del post
+    const postCategories = categorias
+      .filter(cat => post.tags.includes(cat.etiqueta))
+      .map(cat => cat.id_etiqueta)
+    setModalSelectedCategories(postCategories)
+    
+    // Abrir el modal de creación/edición
+    setShowCreatePost(true)
+    
+    toast.success('Post cargado para edición')
+  }
+
   const handleCreatePost = async () => {
     if (!user) {
       setShowAuthModal(true)
@@ -396,31 +426,38 @@ export default function ForumPage() {
     try {
       setCreatingPost(true)
       
-      console.log('📝 [CREATE POST] Datos a enviar:', {
-        titulo: newPost.title.trim(),
-        descripcion: newPost.content.trim(),
-        categorias: modalSelectedCategories,
-        ubicacion: newPost.location.trim() || undefined,
-        coordenadas: newPost.coordinates || undefined
-      })
-      console.log('📝 [CREATE POST] Categorías seleccionadas:', modalSelectedCategories);
-      console.log('📝 [CREATE POST] Cantidad de categorías seleccionadas:', modalSelectedCategories.length);
-      console.log('📝 [CREATE POST] Lista de categorías disponibles:', categorias);
-      
-      await api.crearPublicacion({
+      const postData = {
         titulo: newPost.title.trim(),
         descripcion: newPost.content.trim(),
         categorias: modalSelectedCategories,
         ubicacion: newPost.location.trim() || undefined,
         coordenadas: newPost.coordinates || undefined,
         imagenes: newPost.imagenes.length > 0 ? newPost.imagenes : undefined
-      })
+      }
+      
+      console.log('📝 [POST] Datos a enviar:', postData)
+      console.log('📝 [POST] Categorías seleccionadas:', modalSelectedCategories);
+      console.log('📝 [POST] Cantidad de categorías seleccionadas:', modalSelectedCategories.length);
+      console.log('📝 [POST] Lista de categorías disponibles:', categorias);
+      
+      if (editingPostId) {
+        // Actualizar publicación existente
+        console.log('📝 [UPDATE] Actualizando publicación ID:', editingPostId)
+        await api.actualizarPublicacion(editingPostId, postData)
+        toast.success('Publicación actualizada exitosamente')
+      } else {
+        // Crear nueva publicación
+        console.log('📝 [CREATE] Creando nueva publicación')
+        await api.crearPublicacion(postData)
+        toast.success('Publicación creada exitosamente')
+      }
 
+      // Limpiar formulario y estados
       setNewPost({ title: '', content: '', categorias: [], location: '', coordinates: null, imagenes: [] })
       setModalSelectedCategories([])
       setCategoryStates({})
+      setEditingPostId(null)
       setShowCreatePost(false)
-      toast.success('Publicación creada exitosamente')
       
       // Recargar las publicaciones
       await loadData()
@@ -450,33 +487,90 @@ export default function ForumPage() {
     toast.success('Ubicación seleccionada correctamente');
   };
 
-  // Función para comprimir imágenes
+  // Función para comprimir imágenes (versión simplificada para debugging)
   const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
+    return new Promise((resolve, reject) => {
+      console.log('🔄 [COMPRESS] Iniciando compresión de:', file.name);
+      
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
 
-      img.onload = () => {
-        // Calcular nuevas dimensiones manteniendo la proporción
-        let { width, height } = img;
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
+        console.log('🔄 [COMPRESS] Canvas y contexto creados');
 
-        canvas.width = width;
-        canvas.height = height;
+        // Manejar errores de carga de imagen
+        img.onerror = (error) => {
+          console.error('❌ [COMPRESS] Error al cargar la imagen:', error);
+          reject(new Error(`No se pudo cargar la imagen ${file.name}`));
+        };
 
-        // Dibujar la imagen redimensionada
-        ctx?.drawImage(img, 0, 0, width, height);
+        img.onload = () => {
+          console.log('🔄 [COMPRESS] Imagen cargada, dimensiones originales:', img.width, 'x', img.height);
+          
+          try {
+            // Verificar que el contexto del canvas esté disponible
+            if (!ctx) {
+              console.error('❌ [COMPRESS] No se pudo obtener el contexto del canvas');
+              reject(new Error('No se pudo obtener el contexto del canvas'));
+              return;
+            }
 
-        // Convertir a base64 con compresión
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
-      };
+            // Calcular nuevas dimensiones manteniendo la proporción
+            let { width, height } = img;
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
 
-      img.src = URL.createObjectURL(file);
+            console.log('🔄 [COMPRESS] Dimensiones calculadas:', width, 'x', height);
+
+            // Verificar dimensiones válidas
+            if (width <= 0 || height <= 0) {
+              console.error('❌ [COMPRESS] Dimensiones inválidas:', width, 'x', height);
+              reject(new Error('Dimensiones de imagen inválidas'));
+              return;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            console.log('🔄 [COMPRESS] Canvas configurado');
+
+            // Dibujar la imagen redimensionada
+            ctx.drawImage(img, 0, 0, width, height);
+            console.log('🔄 [COMPRESS] Imagen dibujada en canvas');
+
+            // Convertir a base64 con compresión
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+            console.log('🔄 [COMPRESS] Data URL generado, longitud:', compressedDataUrl.length);
+            
+            // Verificar que se generó el data URL
+            if (!compressedDataUrl || compressedDataUrl === 'data:,') {
+              console.error('❌ [COMPRESS] Data URL vacío o inválido');
+              reject(new Error('Error al generar la imagen comprimida'));
+              return;
+            }
+
+            console.log('✅ [COMPRESS] Compresión exitosa');
+            resolve(compressedDataUrl);
+          } catch (error) {
+            console.error('❌ [COMPRESS] Error en el procesamiento:', error);
+            reject(error);
+          }
+        };
+
+        // Crear URL del objeto y cargar la imagen
+        console.log('🔄 [COMPRESS] Creando URL del objeto');
+        const objectURL = URL.createObjectURL(file);
+        console.log('🔄 [COMPRESS] URL creada:', objectURL);
+        
+        img.src = objectURL;
+        console.log('🔄 [COMPRESS] Imagen asignada al src');
+        
+      } catch (error) {
+        console.error('❌ [COMPRESS] Error general:', error);
+        reject(error);
+      }
     });
   };
 
@@ -493,30 +587,81 @@ export default function ForumPage() {
       return;
     }
 
+    // Procesar archivos uno por uno
     for (const file of Array.from(files)) {
+      console.log('🖼️ Procesando imagen:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
+
+      // Validar tamaño
       if (file.size > maxSize) {
         toast.error(`La imagen ${file.name} es muy grande. Máximo 5MB`);
         continue;
       }
 
+      // Validar tipo de archivo
       if (!file.type.startsWith('image/')) {
         toast.error(`El archivo ${file.name} no es una imagen válida`);
         continue;
       }
 
+      // Validar tipos de imagen específicos
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`El formato ${file.type} no está soportado. Use JPEG, PNG, GIF o WebP`);
+        continue;
+      }
+
       try {
-        // Comprimir la imagen antes de convertirla a base64
-        const compressedImage = await compressImage(file, 800, 0.7);
+        console.log('🔄 Procesando imagen:', file.name);
         
-        setNewPost(prev => ({
-          ...prev,
-          imagenes: [...prev.imagenes, compressedImage]
-        }));
+        // Intentar comprimir primero
+        try {
+          const compressedImage = await compressImage(file, 800, 0.7);
+          console.log('✅ Imagen comprimida exitosamente:', file.name);
+          console.log('📏 Tamaño del data URL:', compressedImage.length);
+          
+          setNewPost(prev => ({
+            ...prev,
+            imagenes: [...prev.imagenes, compressedImage]
+          }));
+
+          toast.success(`Imagen ${file.name} procesada exitosamente`);
+        } catch (compressError) {
+          console.warn('⚠️ Error en compresión, intentando método alternativo:', compressError);
+          
+          // Método alternativo: usar FileReader sin compresión
+          const reader = new FileReader();
+          
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            if (result) {
+              console.log('✅ Imagen procesada con método alternativo:', file.name);
+              console.log('📏 Tamaño del data URL:', result.length);
+              
+              setNewPost(prev => ({
+                ...prev,
+                imagenes: [...prev.imagenes, result]
+              }));
+
+              toast.success(`Imagen ${file.name} procesada exitosamente (sin compresión)`);
+            } else {
+              throw new Error('No se pudo leer el archivo');
+            }
+          };
+          
+          reader.onerror = () => {
+            throw new Error('Error al leer el archivo');
+          };
+          
+          reader.readAsDataURL(file);
+        }
       } catch (error) {
-        console.error('Error al comprimir imagen:', error);
-        toast.error(`Error al procesar la imagen ${file.name}`);
+        console.error('❌ Error al procesar imagen:', error);
+        toast.error(`Error al procesar la imagen ${file.name}: ${error.message || 'Error desconocido'}`);
       }
     }
+
+    // Limpiar el input para permitir seleccionar el mismo archivo nuevamente
+    event.target.value = '';
   };
 
   // Función para eliminar una imagen
@@ -744,11 +889,13 @@ export default function ForumPage() {
           </div>
         )}
 
-        {/* Create Post Modal */}
+        {/* Create/Edit Post Modal */}
         {showCreatePost && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Nueva Publicación</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {editingPostId ? 'Editar Publicación' : 'Nueva Publicación'}
+              </h2>
               
               <div className="space-y-4">
                 <div>
@@ -889,6 +1036,7 @@ export default function ForumPage() {
                     setShowCreatePost(false)
                     setModalSelectedCategories([])
                     setCategoryStates({})
+                    setEditingPostId(null) // Reset editing state
                   }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
                   disabled={creatingPost}
@@ -901,7 +1049,7 @@ export default function ForumPage() {
                   disabled={creatingPost}
                 >
                   {creatingPost && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {creatingPost ? 'Publicando...' : 'Publicar'}
+                  {creatingPost ? (editingPostId ? 'Actualizando...' : 'Publicando...') : (editingPostId ? 'Actualizar' : 'Publicar')}
                 </button>
               </div>
             </div>
@@ -1007,6 +1155,15 @@ export default function ForumPage() {
                       ))}
                     </div>
                   )}
+
+                  {/* Ubicación de la publicación */}
+                  {post.location && (
+                    <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">Ubicación:</span>
+                      <span>{post.location}</span>
+                    </div>
+                  )}
                   
                   <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center space-x-6">
@@ -1035,6 +1192,18 @@ export default function ForumPage() {
                         <Share2 className="w-5 h-5" />
                         <span>Compartir</span>
                       </button>
+
+                      {/* Botón de editar para posts propios */}
+                      {user && user.id_usuario === post.id_usuario && (
+                        <button 
+                          onClick={() => handleEditPost(post)}
+                          className="flex items-center space-x-2 text-gray-500 hover:text-blue-600"
+                          title="Editar publicación"
+                        >
+                          <Edit3 className="w-5 h-5" />
+                          <span>Editar</span>
+                        </button>
+                      )}
 
                       {post.imagenes && post.imagenes.length > 0 && (
                         <button 

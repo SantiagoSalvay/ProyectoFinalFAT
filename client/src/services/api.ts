@@ -467,6 +467,7 @@ class ApiService {
     categorias: number[];
     ubicacion?: string;
     coordenadas?: [number, number];
+    imagenes?: string[];
   }) {
     try {
       const response = await this.request<{ message: string; id: number }>(
@@ -479,6 +480,29 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al crear publicación:', error);
+      throw error;
+    }
+  }
+
+  async actualizarPublicacion(postId: string, data: {
+    titulo: string;
+    descripcion: string;
+    categorias: number[];
+    ubicacion?: string;
+    coordenadas?: [number, number];
+    imagenes?: string[];
+  }) {
+    try {
+      const response = await this.request<{ message: string; publicacion: any }>(
+        `/api/forum/publicaciones/${postId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar publicación:', error);
       throw error;
     }
   }
