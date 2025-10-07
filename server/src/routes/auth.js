@@ -769,11 +769,21 @@ router.get('/verify-email/:token', async (req, res) => {
       console.log('❌ [VERIFICACIÓN] Token buscado:', token);
       
       // Verificar si el usuario ya fue registrado previamente con este token
-      const usuarioExistente = await prisma.Usuario.findFirst({
+      // El campo verification_token solo existe en RegistroPendiente, no en Usuario
+      // Si quieres verificar si el token ya fue usado, deberías buscar en RegistroPendiente o cambiar la lógica
+      // Aquí simplemente buscamos si existe un registro pendiente con ese token
+      const registroPendiente = await prisma.RegistroPendiente.findFirst({
         where: {
           verification_token: token
         }
       });
+      // Si no existe en RegistroPendiente, asumimos que ya fue usado o es inválido
+      if (!registroPendiente) {
+        console.log('⚠️ [VERIFICACIÓN] Este token ya fue usado o es inválido.');
+        return res.status(400).json({ 
+          error: 'El token ya fue usado o es inválido.'
+        });
+      }
       
       if (usuarioExistente) {
         console.log('⚠️ [VERIFICACIÓN] Este token ya fue usado. Usuario ya registrado:', usuarioExistente.correo);
@@ -882,7 +892,7 @@ router.get('/verify-email/:token', async (req, res) => {
         id_tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
         coordenadas: pendingRegistration.coordenadas,
-        DetalleUsuario: {
+        detalleUsuario: {
           create: {
             email_verified: true
           }
