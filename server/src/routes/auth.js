@@ -23,7 +23,7 @@ router.get('/dashboard/summary', async (req, res) => {
     const userId = decoded.userId;
 
     // Donaciones del usuario (PedidoDonacion.id_usuario)
-    const donaciones = await prisma.pedidoDonacion.findMany({
+    const donaciones = await prisma.PedidoDonacion.findMany({
       where: { id_usuario: userId },
       select: {
         id_pedido: true,
@@ -34,21 +34,21 @@ router.get('/dashboard/summary', async (req, res) => {
       take: 10,
     });
 
-    const donationsCount = await prisma.pedidoDonacion.count({ where: { id_usuario: userId } });
-    const totalDonated = await prisma.pedidoDonacion.aggregate({
+    const donationsCount = await prisma.PedidoDonacion.count({ where: { id_usuario: userId } });
+    const totalDonated = await prisma.PedidoDonacion.aggregate({
       _sum: { cantidad: true },
       where: { id_usuario: userId },
     });
 
     // Puntos actuales: suma de Ranking.puntos del usuario
-    const puntosAgg = await prisma.ranking.aggregate({
+    const puntosAgg = await prisma.Ranking.aggregate({
       _sum: { puntos: true },
       where: { id_usuario: userId },
     });
     const puntos = puntosAgg._sum.puntos || 0;
 
     // Actividad reciente: últimas donaciones y últimas respuestas de foro del usuario
-    const respuestas = await prisma.respuestaPublicacion.findMany({
+    const respuestas = await prisma.RespuestaPublicacion.findMany({
       where: { id_usuario: userId },
       select: { id_respuesta: true, mensaje: true, fecha_respuesta: true, id_publicacion: true },
       orderBy: { fecha_respuesta: 'desc' },
@@ -98,7 +98,7 @@ router.get('/donaciones/realizadas', async (req, res) => {
     const userId = decoded.userId;
 
     // Busca las donaciones realizadas por el usuario
-    const donaciones = await prisma.pedidoDonacion.findMany({
+    const donaciones = await prisma.PedidoDonacion.findMany({
       where: { id_usuario: userId },
       include: {
         publicacionEtiqueta: {
@@ -145,7 +145,7 @@ router.get('/profile/tipoong', async (req, res) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     // Buscar el registro TipoONG vinculado al usuario
-  const tipoOng = await prisma.tipoONG.findFirst({
+  const tipoOng = await prisma.TipoONG.findFirst({
       where: { id_usuario: decoded.userId },
       select: {
         grupo_social: true,
@@ -170,7 +170,7 @@ router.get('/profile/tipoong/:id', async (req, res) => {
       return res.status(400).json({ error: 'ID de usuario requerido' });
     }
 
-    const tipoOng = await prisma.tipoONG.findFirst({
+    const tipoOng = await prisma.TipoONG.findFirst({
       where: { id_usuario: parseInt(id) }
     });
 
@@ -192,15 +192,15 @@ router.post('/profile/tipoong', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     const { grupo_social, necesidad } = req.body;
     // Buscar si ya existe registro TipoONG para el usuario
-  const existing = await prisma.tipoONG.findFirst({ where: { id_usuario: decoded.userId } });
+  const existing = await prisma.TipoONG.findFirst({ where: { id_usuario: decoded.userId } });
     let tipoOng;
     if (existing) {
-  tipoOng = await prisma.tipoONG.update({
+  tipoOng = await prisma.TipoONG.update({
         where: { id_tipo_ong: existing.id_tipo_ong },
         data: { grupo_social, necesidad }
       });
     } else {
-  tipoOng = await prisma.tipoONG.create({
+  tipoOng = await prisma.TipoONG.create({
         data: { grupo_social, necesidad, id_usuario: decoded.userId }
       });
     }
@@ -214,7 +214,7 @@ router.post('/profile/tipoong', async (req, res) => {
 // Obtener todos los usuarios tipo 2 (ONGs)
 router.get('/ongs', async (req, res) => {
   try {
-    const ongs = await prisma.usuario.findMany({
+    const ongs = await prisma.Usuario.findMany({
       where: { id_tipo_usuario: 2 },
       select: {
         id_usuario: true,
@@ -268,7 +268,7 @@ router.post('/register', async (req, res) => {
     const usuarioValue = usuario || correo.split('@')[0];
 
     // Verificar si el usuario ya existe (solo por email)
-    const existingUser = await prisma.usuario.findFirst({
+    const existingUser = await prisma.Usuario.findFirst({
       where: { 
         email: correo
       }
@@ -281,7 +281,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Verificar si ya hay un registro pendiente con este correo
-    const existingPendingRegistration = await prisma.registroPendiente.findFirst({
+    const existingPendingRegistration = await prisma.RegistroPendiente.findFirst({
       where: { correo }
     });
 
@@ -289,7 +289,7 @@ router.post('/register', async (req, res) => {
       console.log('🔄 [REGISTRO] Eliminando registro pendiente anterior para:', correo);
       // Eliminar el registro pendiente anterior
       try {
-        await prisma.registroPendiente.delete({
+        await prisma.RegistroPendiente.delete({
           where: { id: existingPendingRegistration.id }
         });
         console.log('✅ [REGISTRO] Registro pendiente anterior eliminado');
@@ -316,7 +316,7 @@ router.post('/register', async (req, res) => {
     // Verificar que el tipo_usuario existe, si no, usar uno por defecto
     let tipoUsuarioFinal = parseInt(tipo_usuario, 10);
     
-    const tipoUsuarioExiste = await prisma.tipoUsuario.findUnique({
+    const tipoUsuarioExiste = await prisma.TipoUsuario.findUnique({
       where: { id_tipo_usuario: tipoUsuarioFinal }
     });
     
@@ -324,13 +324,13 @@ router.post('/register', async (req, res) => {
       console.log('⚠️ [REGISTRO] Tipo de usuario no existe:', tipoUsuarioFinal);
       
       // Buscar el primer tipo de usuario disponible
-      let tipoUsuarioDefault = await prisma.tipoUsuario.findFirst();
+      let tipoUsuarioDefault = await prisma.TipoUsuario.findFirst();
       
       if (!tipoUsuarioDefault) {
         console.log('📝 [REGISTRO] No hay tipos de usuario, creando uno por defecto...');
         
         // Crear un tipo de usuario por defecto
-        tipoUsuarioDefault = await prisma.tipoUsuario.create({
+        tipoUsuarioDefault = await prisma.TipoUsuario.create({
           data: {
             tipo_usuario: 'Usuario Regular'
           }
@@ -345,7 +345,7 @@ router.post('/register', async (req, res) => {
     // Guardar datos del registro pendiente
     let nuevoRegistro;
     try {
-      nuevoRegistro = await prisma.registroPendiente.create({
+      nuevoRegistro = await prisma.RegistroPendiente.create({
         data: {
           nombre,
           apellido,
@@ -368,12 +368,12 @@ router.post('/register', async (req, res) => {
         
         try {
           // Eliminar todos los registros pendientes con este correo
-          await prisma.registroPendiente.deleteMany({
+          await prisma.RegistroPendiente.deleteMany({
             where: { correo }
           });
           
           // Intentar crear nuevamente
-          nuevoRegistro = await prisma.registroPendiente.create({
+          nuevoRegistro = await prisma.RegistroPendiente.create({
             data: {
               nombre,
               apellido,
@@ -422,7 +422,7 @@ router.post('/register', async (req, res) => {
       console.error('Error al enviar email de verificación:', emailError);
       
       // Eliminar el registro pendiente si no se pudo enviar el email
-      await prisma.registroPendiente.delete({
+      await prisma.RegistroPendiente.delete({
         where: { verification_token: verificationToken }
       });
       
@@ -446,7 +446,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Buscar usuario por correo
-    const user = await prisma.usuario.findFirst({
+    const user = await prisma.Usuario.findFirst({
       where: { email: correo },
       select: {
         id_usuario: true,
@@ -541,7 +541,7 @@ router.get('/profile', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     console.log('Token decodificado:', decoded);
     
-    const user = await prisma.usuario.findUnique({
+    const user = await prisma.Usuario.findUnique({
       where: { id_usuario: decoded.userId },
       select: {
         id_usuario: true,
@@ -592,7 +592,7 @@ router.post('/request-password-reset', async (req, res) => {
     console.log('🔍 [RESET REQUEST] Solicitud de reset para:', correo);
 
     // Verificar si el usuario existe
-    const user = await prisma.usuario.findFirst({
+    const user = await prisma.Usuario.findFirst({
       where: { email: correo }
     });
 
@@ -603,7 +603,7 @@ router.post('/request-password-reset', async (req, res) => {
     }
 
     // Invalidar tokens anteriores del usuario
-    await prisma.passwordResetToken.updateMany({
+    await prisma.PasswordResetToken.updateMany({
       where: { 
         id_usuario: user.id_usuario,
         used: false
@@ -619,7 +619,7 @@ router.post('/request-password-reset', async (req, res) => {
     console.log('⏰ [RESET REQUEST] Token expira:', resetTokenExpiry);
 
     // Guardar token en la base de datos
-    await prisma.passwordResetToken.create({
+    await prisma.PasswordResetToken.create({
       data: {
         id_usuario: user.id_usuario,
         token: resetToken,
@@ -655,7 +655,7 @@ router.post('/reset-password/:token', async (req, res) => {
     console.log('🔍 [RESET PASSWORD] Nueva contraseña recibida:', nuevaContrasena ? 'SÍ' : 'NO');
 
     // Buscar token válido en la tabla PasswordResetToken
-    const resetToken = await prisma.passwordResetToken.findUnique({
+    const resetToken = await prisma.PasswordResetToken.findUnique({
       where: { token },
       include: { usuario: true }
     });
@@ -683,13 +683,13 @@ router.post('/reset-password/:token', async (req, res) => {
     const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
 
     // Actualizar contraseña del usuario
-    await prisma.usuario.update({
+    await prisma.Usuario.update({
       where: { id_usuario: resetToken.id_usuario },
       data: { contrasena: hashedPassword }
     });
 
     // Marcar el token como usado
-    await prisma.passwordResetToken.update({
+    await prisma.PasswordResetToken.update({
       where: { id: resetToken.id },
       data: { used: true }
     });
@@ -745,11 +745,11 @@ router.get('/verify-email/:token', async (req, res) => {
     }
 
     // Primero, verificar cuántos registros hay en total
-    const totalRegistros = await prisma.registroPendiente.count();
+    const totalRegistros = await prisma.RegistroPendiente.count();
     console.log('📊 [VERIFICACIÓN] Total de registros pendientes:', totalRegistros);
     
     // Buscar si el token existe (sin importar fecha de expiración)
-    const pendingRegistration = await prisma.registroPendiente.findFirst({
+    const pendingRegistration = await prisma.RegistroPendiente.findFirst({
       where: {
         verification_token: token
       }
@@ -769,7 +769,7 @@ router.get('/verify-email/:token', async (req, res) => {
       console.log('❌ [VERIFICACIÓN] Token buscado:', token);
       
       // Verificar si el usuario ya fue registrado previamente con este token
-      const usuarioExistente = await prisma.usuario.findFirst({
+      const usuarioExistente = await prisma.Usuario.findFirst({
         where: {
           verification_token: token
         }
@@ -784,7 +784,7 @@ router.get('/verify-email/:token', async (req, res) => {
       }
       
       // Mostrar los últimos 5 tokens para debugging
-      const ultimosRegistros = await prisma.registroPendiente.findMany({
+      const ultimosRegistros = await prisma.RegistroPendiente.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: {
@@ -821,7 +821,7 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // Verificar nuevamente que no exista un usuario con este correo
     console.log('🔍 [VERIFICACIÓN] Verificando si el usuario ya existe...');
-    const existingUser = await prisma.usuario.findFirst({
+    const existingUser = await prisma.Usuario.findFirst({
       where: { 
         email: pendingRegistration.correo
       }
@@ -830,7 +830,7 @@ router.get('/verify-email/:token', async (req, res) => {
     if (existingUser) {
       console.log('⚠️ [VERIFICACIÓN] Usuario ya existe, eliminando registro pendiente...');
       // Eliminar el registro pendiente ya que el usuario ya existe
-      await prisma.registroPendiente.delete({
+      await prisma.RegistroPendiente.delete({
         where: { id: pendingRegistration.id }
       });
       
@@ -846,7 +846,7 @@ router.get('/verify-email/:token', async (req, res) => {
     console.log('👤 [VERIFICACIÓN] Verificando tipo_usuario:', tipoUsuarioId);
     
     // Verificar que el tipo_usuario existe en la tabla TipoUsuario
-    const tipoUsuarioExiste = await prisma.tipoUsuario.findUnique({
+    const tipoUsuarioExiste = await prisma.TipoUsuario.findUnique({
       where: { id_tipo_usuario: tipoUsuarioId }
     });
     
@@ -854,13 +854,13 @@ router.get('/verify-email/:token', async (req, res) => {
       console.log('❌ [VERIFICACIÓN] Tipo de usuario no existe:', tipoUsuarioId);
       
       // Buscar o crear un tipo de usuario por defecto
-      let tipoUsuarioDefault = await prisma.tipoUsuario.findFirst();
+      let tipoUsuarioDefault = await prisma.TipoUsuario.findFirst();
       
       if (!tipoUsuarioDefault) {
         console.log('📝 [VERIFICACIÓN] No hay tipos de usuario, creando uno por defecto...');
         
         // Crear un tipo de usuario por defecto
-        tipoUsuarioDefault = await prisma.tipoUsuario.create({
+        tipoUsuarioDefault = await prisma.TipoUsuario.create({
           data: {
             tipo_usuario: 'Usuario Regular'
           }
@@ -873,7 +873,7 @@ router.get('/verify-email/:token', async (req, res) => {
     }
     
     console.log('👤 [VERIFICACIÓN] Creando usuario definitivo con tipo_usuario:', tipoUsuarioId);
-    const newUser = await prisma.usuario.create({
+    const newUser = await prisma.Usuario.create({
       data: {
         nombre: pendingRegistration.nombre,
         apellido: pendingRegistration.apellido,
@@ -882,7 +882,7 @@ router.get('/verify-email/:token', async (req, res) => {
         id_tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
         coordenadas: pendingRegistration.coordenadas,
-        detalleUsuario: {
+        DetalleUsuario: {
           create: {
             email_verified: true
           }
@@ -892,7 +892,7 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // Eliminar el registro pendiente
     console.log('🧹 [VERIFICACIÓN] Eliminando registro pendiente...');
-    await prisma.registroPendiente.delete({
+    await prisma.RegistroPendiente.delete({
       where: { id: pendingRegistration.id }
     });
 
@@ -958,13 +958,13 @@ router.post('/resend-verification', async (req, res) => {
     }
 
     // Buscar registro pendiente
-    const pendingRegistration = await prisma.registroPendiente.findFirst({
+    const pendingRegistration = await prisma.RegistroPendiente.findFirst({
       where: { correo }
     });
 
     if (!pendingRegistration) {
       // Verificar si el usuario ya está registrado
-      const existingUser = await prisma.usuario.findFirst({
+      const existingUser = await prisma.Usuario.findFirst({
         where: { email: correo }
       });
 
@@ -984,7 +984,7 @@ router.post('/resend-verification', async (req, res) => {
     const newTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 días
 
     // Actualizar el registro pendiente con el nuevo token
-    await prisma.registroPendiente.update({
+    await prisma.RegistroPendiente.update({
       where: { id: pendingRegistration.id },
       data: {
         verification_token: newVerificationToken,
@@ -1046,7 +1046,7 @@ router.put('/profile', async (req, res) => {
 
     console.log('Datos a actualizar:', updateData);
 
-    const user = await prisma.usuario.update({
+    const user = await prisma.Usuario.update({
       where: { id_usuario: decoded.userId },
       data: updateData,
       select: {

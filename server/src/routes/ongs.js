@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
       };
     }
 
-    const ongs = await prisma.usuario.findMany({
+    const ongs = await prisma.Usuario.findMany({
       where: whereClause,
       select: {
         id_usuario: true,
@@ -111,7 +111,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const ong = await prisma.usuario.findFirst({
+    const ong = await prisma.Usuario.findFirst({
       where: { 
         id_usuario: parseInt(id),
         id_tipo_usuario: 2
@@ -183,7 +183,7 @@ router.post('/:id/calificar', authenticateToken, async (req, res) => {
     }
 
     // Verificar que la ONG existe
-    const ong = await prisma.usuario.findUnique({
+    const ong = await prisma.Usuario.findUnique({
       where: { 
         id_usuario: parseInt(id),
         id_tipo_usuario: 2
@@ -200,7 +200,7 @@ router.post('/:id/calificar', authenticateToken, async (req, res) => {
     }
 
     // Intentar crear o actualizar la calificación
-    const calificacion = await prisma.calificacionONG.upsert({
+    const calificacion = await prisma.CalificacionONG.upsert({
       where: {
         id_ong_id_usuario: {
           id_ong: parseInt(id),
@@ -221,7 +221,7 @@ router.post('/:id/calificar', authenticateToken, async (req, res) => {
     });
 
     // Calcular nuevo promedio
-    const todasCalificaciones = await prisma.calificacionONG.findMany({
+    const todasCalificaciones = await prisma.CalificacionONG.findMany({
       where: { id_ong: parseInt(id) },
       select: { puntuacion: true }
     });
@@ -246,7 +246,7 @@ router.get('/:id/mi-calificacion', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id_usuario;
 
-    const calificacion = await prisma.calificacionONG.findUnique({
+    const calificacion = await prisma.CalificacionONG.findUnique({
       where: {
         id_ong_id_usuario: {
           id_ong: parseInt(id),
