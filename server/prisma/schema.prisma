@@ -22,22 +22,22 @@ model Usuario {
   contrasena               String?
   id_tipo_usuario          Int
   ubicacion                String?
+  createdAt                DateTime               @default(now())
   coordenadas              String?
   redes_sociales           String?
   telefono                 String?
-  createdAt                DateTime               @default(now())
   calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
-  detalleUsuario           DetalleUsuario?
+  DetalleUsuario           DetalleUsuario?
   infracciones             Infracciones[]
+  passwordResetTokens      PasswordResetToken[]
   pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
   pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")
   publicaciones            Publicacion[]
+  likesRealizados          PublicacionLike[]      @relation("LikesRealizados")
   rankings                 Ranking[]
   respuestas               RespuestaPublicacion[]
   tiposONG                 TipoONG[]
-  passwordResetTokens      PasswordResetToken[]
-  likesRealizados          PublicacionLike[]      @relation("LikesRealizados")
   tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
@@ -52,7 +52,7 @@ model DetalleUsuario {
   twitter_id                 String?  @unique
   puntosActuales             Int      @default(0)
   ultima_fecha_actualizacion DateTime @default(now())
-  usuario                    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  Usuario                    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 }
 
 model Publicacion {
@@ -66,8 +66,8 @@ model Publicacion {
   ubicacion                  String?
   usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
   publicacionEtiquetas       PublicacionEtiqueta[]
-  respuestas                 RespuestaPublicacion[]
   likes                      PublicacionLike[]
+  respuestas                 RespuestaPublicacion[]
 }
 
 model PublicacionLike {
@@ -204,11 +204,11 @@ model RegistroPendiente {
   correo             String   @unique
   contrasena         String
   ubicacion          String?
-  coordenadas        String?
   verification_token String   @unique
   token_expiry       DateTime
   createdAt          DateTime @default(now())
   tipo_usuario       Int
+  coordenadas        String?
 }
 
 model PasswordResetToken {
@@ -219,7 +219,7 @@ model PasswordResetToken {
   createdAt  DateTime @default(now())
   used       Boolean  @default(false)
   usuario    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
-  
+
   @@index([token])
   @@index([id_usuario])
 }
