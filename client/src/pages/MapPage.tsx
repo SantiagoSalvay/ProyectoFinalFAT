@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
 import { api, ONG } from '../services/api'
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC33z7pXbXF16KbIDIXX-ZhBOLRNWqVAoo'
-import { Heart, MapPin, Building, Users, Star, ExternalLink } from 'lucide-react'
+import { Heart, MapPin, Building, Users, Star, ExternalLink, X, Mail, Phone } from 'lucide-react'
+import { getSocialMediaIcon, getSocialMediaColor } from '../utils/socialMediaDetector'
 
 // Interfaz para ONG con datos del mapa
 interface ONGWithLocation {
@@ -20,6 +21,7 @@ interface ONGWithLocation {
   email: string
   phone: string
   website: string
+  socialMedia?: { type: string; url: string; displayName?: string }[]
 }
 
 // Configuración del mapa
@@ -178,7 +180,8 @@ export default function MapPage() {
           description: ong.description,
           email: ong.email,
           phone: ong.phone,
-          website: ong.website
+          website: ong.website,
+          socialMedia: ong.socialMedia || []
         }
       });
       const ongsWithLocation = await Promise.all(geocodePromises);
@@ -443,24 +446,51 @@ export default function MapPage() {
                 </div>
               </div>
 
-              <div className="flex space-x-3">
-                <a
-                  href={selectedONG.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4 inline mr-2" />
-                  Visitar sitio web
-                </a>
-                <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">
-                  Ver más detalles
-                </button>
+              {/* Botones de acción (solo sitio web si existe) */}
+              <div className="flex space-x-2 mt-4">
+                {selectedONG.website && (
+                  <a
+                    href={selectedONG.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4 inline mr-1" />
+                    Sitio web
+                  </a>
+                )}
               </div>
+
+              {/* Redes Sociales - Agregado en el modal principal */}
+              {selectedONG.socialMedia && selectedONG.socialMedia.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Redes Sociales</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedONG.socialMedia.map((link, index) => {
+                      const IconComponent = getSocialMediaIcon(link.type as any);
+                      const color = getSocialMediaColor(link.type as any);
+                      return (
+                        <a
+                          key={index}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ backgroundColor: color }}
+                          className="flex items-center justify-center w-10 h-10 rounded-full text-white hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
+                          title={link.displayName || link.type}
+                        >
+                          <IconComponent className="w-5 h-5" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
+
     </div>
   )
 }

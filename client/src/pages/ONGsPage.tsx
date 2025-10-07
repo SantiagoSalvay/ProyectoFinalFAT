@@ -162,10 +162,10 @@ export default function ONGsPage() {
     return matchesSearch
   })
 
-  const handleRateONG = async (ongId: number, rating: number, comment: string) => {
+  const handleRateONG = async (ongId: number, rating: number) => {
     try {
-      console.log('Calificando ONG:', { ongId, rating, comment })
-      await api.rateONG(ongId, rating, comment)
+      console.log('Calificando ONG:', { ongId, rating })
+      await api.rateONG(ongId, rating)
       console.log('Calificación enviada exitosamente')
       // Recargar ONGs para actualizar calificaciones
       loadONGs()
@@ -175,20 +175,8 @@ export default function ONGsPage() {
     }
   }
 
-  const handleCommentONG = async (ongId: number, content: string) => {
-    try {
-      console.log('Comentando ONG:', { ongId, content })
-      await api.commentONG(ongId, content)
-      console.log('Comentario enviado exitosamente')
-      // Recargar ONGs para actualizar comentarios
-      loadONGs()
-    } catch (error) {
-      console.error('Error commenting ONG:', error)
-      alert('Error al enviar el comentario. Por favor, intenta nuevamente.')
-    }
-  }
 
-  if (loading) {
+  if (loading && ongs.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -219,7 +207,7 @@ export default function ONGsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -367,7 +355,6 @@ export default function ONGsPage() {
               ong={ong}
               isAuthenticated={isAuthenticated}
               onRate={handleRateONG}
-              onComment={handleCommentONG}
               getImage={getONGImage}
               socialMedia={ong.socialMedia}
             />
@@ -381,25 +368,22 @@ export default function ONGsPage() {
             <p className="text-gray-600">Intenta ajustar los filtros de búsqueda</p>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
+       </div>
+     </div>
+   )
+ }
 
 interface ONGCardProps {
   ong: ONG
   isAuthenticated: boolean
-  onRate: (ongId: number, rating: number, comment: string) => void
-  onComment: (ongId: number, content: string) => void
+  onRate: (ongId: number, rating: number) => void
   getImage: (ongId: number) => string | null
   socialMedia?: { type: string; url: string }[]
 }
 
-function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage, socialMedia }: ONGCardProps) {
+function ONGCard({ ong, isAuthenticated, onRate, getImage, socialMedia }: ONGCardProps) {
   const [showDetails, setShowDetails] = useState(false)
-  const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState('')
   const [showRatingModal, setShowRatingModal] = useState(false)
   const [hoveredStar, setHoveredStar] = useState(0)
   const [hasRated, setHasRated] = useState(false)
@@ -423,42 +407,35 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage, socialMedi
           comentario: response.comentario
         })
         setRating(response.puntuacion!)
-        setComment(response.comentario || '')
       }
     } catch (error) {
       console.error('Error al verificar calificación:', error)
     }
   }
 
-  const handleRate = async () => {
-    if (rating === 0) {
-      toast.error('Por favor selecciona una calificación')
-      return
+    const handleRate = async () => {
+      if (rating === 0) {
+        toast.error('Por favor selecciona una calificación')
+        return
+      }
+
+      try {
+        setSubmitting(true)
+        const response = await api.calificarONG(ong.id, rating)
+        toast.success(hasRated ? 'Calificación actualizada exitosamente' : 'Calificación enviada exitosamente')
+        setShowRatingModal(false)
+        setHasRated(true)
+        
+        // Recargar la página para actualizar el rating
+        window.location.reload()
+      } catch (error: any) {
+        console.error('Error al calificar:', error)
+        toast.error(error?.response?.data?.error || 'Error al enviar la calificación')
+      } finally {
+        setSubmitting(false)
+      }
     }
 
-    try {
-      setSubmitting(true)
-      const response = await api.calificarONG(ong.id, rating, comment.trim() || undefined)
-      toast.success(hasRated ? 'Calificación actualizada exitosamente' : 'Calificación enviada exitosamente')
-      setShowRatingModal(false)
-      setHasRated(true)
-      
-      // Recargar la página para actualizar el rating
-      window.location.reload()
-    } catch (error: any) {
-      console.error('Error al calificar:', error)
-      toast.error(error?.response?.data?.error || 'Error al enviar la calificación')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleComment = () => {
-    if (comment.trim()) {
-      onComment(ong.id, comment.trim())
-      setComment('')
-    }
-  }
 
   // Obtener la imagen de la ONG
   const ongImage = getImage(ong.id);
@@ -566,24 +543,11 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage, socialMedi
             )}
           </div>
           
-          {/* Botón Ver más detalles */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('Abriendo modal de detalles...');
-              setShowDetailsModal(true);
-            }}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all text-sm font-medium flex items-center justify-center"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Ver más detalles
-          </button>
         </div>
 
-        {/* Detalles expandidos */}
+        {/* Detalles expandidos - Solo información de contacto */}
         {showDetails && (
-          <div className="border-t pt-4 space-y-4">
+          <div className="border-t pt-4">
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Información de contacto</h4>
               <div className="space-y-1 text-sm text-gray-600">
@@ -591,162 +555,10 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage, socialMedi
                 {ong.phone && <p>📞 {ong.phone}</p>}
               </div>
             </div>
-
-            {isAuthenticated && (
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Comentar</h4>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Escribe un comentario..."
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                  <button
-                    onClick={handleComment}
-                    disabled={!comment.trim()}
-                    className="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Enviar
-                  </button>
-                </div>
-              </div>
-            )}
-
           </div>
         )}
       </div>
 
-      {/* Modal de Detalles */}
-      {showDetailsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
-            {/* Botón cerrar */}
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            {/* Imagen de la ONG */}
-            {getImage(ong.id) && (
-              <div className="relative h-64 w-full mb-6 rounded-lg overflow-hidden">
-                <img
-                  src={getImage(ong.id)!}
-                  alt={`Imagen de ${ong.name}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-
-            {/* Header */}
-            <div className="mb-6">
-              <h3 className="text-3xl font-bold text-gray-900 mb-3">
-                {ong.name}
-              </h3>
-              <div className="flex items-center text-gray-600 mb-3">
-                <MapPin className="w-5 h-5 mr-2" />
-                <span>{ong.location}</span>
-              </div>
-              {ong.rating > 0 && (
-                <div className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 fill-current mr-1" />
-                  <span className="font-semibold text-lg">{ong.rating.toFixed(1)}</span>
-                  <span className="text-gray-500 ml-1">/ 5</span>
-                </div>
-              )}
-            </div>
-
-            {/* Descripción */}
-            <div className="mb-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Descripción</h4>
-              <p className="text-gray-700 whitespace-pre-wrap">{ong.description}</p>
-            </div>
-
-            {/* Estadísticas */}
-            <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <Users className="w-6 h-6 text-blue-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-gray-900">{ong.volunteers_count}</p>
-                <p className="text-xs text-gray-600">Voluntarios</p>
-              </div>
-              <div className="text-center">
-                <Heart className="w-6 h-6 text-red-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-gray-900">{ong.projects_count}</p>
-                <p className="text-xs text-gray-600">Proyectos</p>
-              </div>
-              <div className="text-center">
-                <Star className="w-6 h-6 text-yellow-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-gray-900">{ong.rating.toFixed(1)}</p>
-                <p className="text-xs text-gray-600">Calificación</p>
-              </div>
-            </div>
-
-            {/* Información de contacto */}
-            <div className="mb-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-3">Información de Contacto</h4>
-              <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center text-gray-700">
-                  <Mail className="w-5 h-5 mr-3 text-gray-400" />
-                  <span>{ong.email}</span>
-                </div>
-                {ong.phone && (
-                  <div className="flex items-center text-gray-700">
-                    <span className="w-5 h-5 mr-3 text-gray-400 text-center">📞</span>
-                    <span>{ong.phone}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Redes Sociales */}
-            {socialMedia && socialMedia.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">🌐</span> Redes Sociales
-                </h4>
-                <div className="flex flex-wrap gap-3">
-                  {socialMedia.map((link, index) => {
-                    const IconComponent = getSocialMediaIcon(link.type);
-                    const color = getSocialMediaColor(link.type);
-                    
-                    return (
-                      <a
-                        key={index}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ backgroundColor: color }}
-                        className="flex items-center space-x-2 text-white px-4 py-3 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
-                      >
-                        <IconComponent className="w-6 h-6" />
-                        <span className="font-medium">{link.displayName || link.type}</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Sitio web */}
-            {ong.website && (
-              <div className="border-t pt-6">
-                <a
-                  href={ong.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center font-medium"
-                >
-                  <ExternalLink className="w-5 h-5 mr-2" />
-                  Visitar Sitio Web
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Modal de Calificación */}
       {showRatingModal && (
@@ -803,19 +615,6 @@ function ONGCard({ ong, isAuthenticated, onRate, onComment, getImage, socialMedi
               )}
             </div>
 
-            {/* Comentario */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Comentario (opcional)
-              </label>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Comparte tu experiencia con esta organización..."
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                rows={4}
-              />
-            </div>
 
             {/* Botones */}
             <div className="flex space-x-3">

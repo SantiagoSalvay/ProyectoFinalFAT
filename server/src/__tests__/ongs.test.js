@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
-import ongsRouter from './ongs.js';
+import ongsRouter from '../routes/ongs.js';
 
 // Create Express app for testing
 const app = express();
