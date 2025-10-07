@@ -198,7 +198,7 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getToken();
 
-    if (!token && endpoint !== '/auth/login' && endpoint !== '/auth/register') {
+    if (!token && endpoint !== '/auth/login' && endpoint !== '/auth/register' && !endpoint.startsWith('/api/ongs')) {
       throw new Error('No hay token de autenticación');
     }
 
