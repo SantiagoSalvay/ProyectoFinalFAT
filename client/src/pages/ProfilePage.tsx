@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import ClickableMapModal from '../components/ClickableMapModal'
+import SocialMediaManager from '../components/SocialMediaManager'
 import { useAuth } from '../contexts/AuthContext'
 import { useONGNotifications } from '../hooks/useONGNotifications'
 import { toast } from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import { uploadImageToVPS, getUserImageUrl, loadImageDictionary, clearAllImages } from '../services/imageDictionary'
+import { api } from '../services/api'
+import type { SocialMediaLink } from '../utils/socialMediaDetector'
 import { 
   User, 
   Building, 
@@ -31,7 +34,8 @@ export default function ProfilePage() {
     name: '',
     email: '',
     location: '',
-    bio: ''
+    bio: '',
+    telefono: ''
   })
 
   // Estado para manejar la imagen de la ONG
@@ -39,6 +43,10 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null)
+
+  // Estado para redes sociales
+  const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>([])
+  const [savingSocialMedia, setSavingSocialMedia] = useState(false)
 
   // Autocompletado de ubicación con LocationIQ
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
@@ -142,9 +150,10 @@ export default function ProfilePage() {
 
       setProfileData({
         name: fullName,
-        email: user.correo || '',
+        email: user.email || '',
         location: user.ubicacion || '',
-        bio: user.bio || ''
+        bio: user.biografia || '',
+        telefono: (user as any).telefono || ''
       })
 
       // Cargar imagen desde el diccionario local si es ONG
@@ -153,6 +162,27 @@ export default function ProfilePage() {
           const imageUrl = getUserImageUrl(user.id_usuario);
           setCurrentImageUrl(imageUrl);
         });
+      }
+
+      // Cargar redes sociales si es ONG y tiene datos
+      if (isONG && (user as any).redes_sociales) {
+        try {
+          console.log('🔍 Redes sociales del usuario:', (user as any).redes_sociales);
+          console.log('🔍 Tipo:', typeof (user as any).redes_sociales);
+          
+          const parsed = typeof (user as any).redes_sociales === 'string' 
+            ? JSON.parse((user as any).redes_sociales)
+            : (user as any).redes_sociales;
+          
+          console.log('✅ Redes sociales parseadas:', parsed);
+          setSocialMediaLinks(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          console.error('❌ Error al parsear redes sociales:', e);
+          setSocialMediaLinks([]);
+        }
+      } else if (isONG) {
+        console.log('⚠️ ONG sin redes sociales');
+        setSocialMediaLinks([]);
       }
     }
   }, [user, isONG])
@@ -178,7 +208,8 @@ export default function ProfilePage() {
         nombre,
         apellido,
         ubicacion: profileData.location || '',
-        bio: profileData.bio || ''
+        bio: profileData.bio || '',
+        telefono: profileData.telefono || ''
       }
 
       console.log('📤 Datos a enviar al backend:', updateData)
@@ -218,9 +249,10 @@ export default function ProfilePage() {
       
       setProfileData({
         name: fullName,
-        email: user.correo || '',
+        email: user.email || '',
         location: user.ubicacion || '',
-        bio: user.bio || ''
+        bio: user.biografia || '',
+        telefono: (user as any).telefono || ''
       })
     }
     setIsEditing(false)
@@ -286,6 +318,35 @@ export default function ProfilePage() {
   const handleImageCancel = () => {
     setSelectedImage(null)
     setImagePreview(null)
+  }
+
+  // Función para guardar redes sociales
+  const handleSaveSocialMedia = async (links: SocialMediaLink[]) => {
+    try {
+      setSavingSocialMedia(true)
+      
+      console.log('🔵 Guardando redes sociales:', links)
+      console.log('🔵 Tipo de links:', typeof links)
+      console.log('🔵 Es array?:', Array.isArray(links))
+      
+      // Usar el método updateProfile del contexto
+      await updateProfile({
+        redes_sociales: links
+      })
+      
+      console.log('✅ Redes sociales enviadas al backend')
+      
+      // Actualizar el estado local inmediatamente
+      setSocialMediaLinks(links)
+      
+      toast.success('Redes sociales guardadas exitosamente')
+    } catch (error) {
+      console.error('❌ Error al guardar redes sociales:', error)
+      toast.error('Error al guardar las redes sociales')
+      throw error
+    } finally {
+      setSavingSocialMedia(false)
+    }
   }
 
   return (
@@ -440,6 +501,28 @@ export default function ProfilePage() {
                   )}
                 </div>
 
+                {/* Teléfono - Solo para ONGs */}
+                {isONG && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono de Contacto
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="tel"
+                        value={profileData.telefono}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, telefono: e.target.value }))}
+                        className="input-field"
+                        placeholder="Ej: +54 9 351 123 4567"
+                      />
+                    ) : (
+                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="text-gray-900">{profileData.telefono || 'No especificado'}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Bio */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -461,6 +544,17 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Redes Sociales - Solo para ONGs */}
+                {isONG && (
+                  <div className="border-t pt-6">
+                    <SocialMediaManager
+                      initialLinks={socialMediaLinks}
+                      onSave={handleSaveSocialMedia}
+                      saving={savingSocialMedia}
+                    />
+                  </div>
+                )}
 
                 {/* Member Since */}
                 <div>
@@ -625,78 +719,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Heart className="w-5 h-5 text-red-500 mr-3" />
-                    <span className="text-gray-700">
-                      {isONG ? 'Donaciones Recibidas' : 'Donaciones Realizadas'}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-gray-900">24</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Users className="w-5 h-5 text-blue-500 mr-3" />
-                    <span className="text-gray-700">
-                      {isONG ? 'Voluntarios' : 'Horas de Voluntariado'}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {isONG ? '156' : '48h'}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Award className="w-5 h-5 text-yellow-500 mr-3" />
-                    <span className="text-gray-700">Logros</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">12</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
-              <div className="space-y-3">
-                <button 
-                  className="w-full btn-primary text-sm"
-                  onClick={() => {
-                    if (isONG) {
-                      // Para ONGs: Crear Campaña (funcionalidad futura)
-                      console.log('Crear Campaña - funcionalidad pendiente');
-                    } else {
-                      // Para usuarios: Buscar ONGs
-                      navigate('/ongs');
-                    }
-                  }}
-                >
-                  {isONG ? 'Crear Campaña' : 'Buscar ONGs'}
-                </button>
-                <button className="w-full btn-secondary text-sm"
-                  onClick={() => {
-                    if (isONG) {
-                      // Para ONGs: Gestionar Voluntarios (funcionalidad futura)
-                      console.log('Gestionar Voluntarios - funcionalidad pendiente');
-                    } else {
-                      // Para usuarios: Ver Oportunidades
-                      navigate('/forum');
-                    }
-                  }}
-                >
-                  {isONG ? 'Gestionar Voluntarios' : 'Ver Oportunidades'}
-                </button>
-                <button className="w-full btn-accent text-sm">
-                  Ver Historial
-                </button>
-              </div>
-            </div>
+            
           </div>
         </div>
       </div>

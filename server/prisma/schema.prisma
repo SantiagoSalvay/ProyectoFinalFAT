@@ -8,115 +8,186 @@ datasource db {
 }
 
 model TipoUsuario {
-  tipo_usuario        Int       @id @default(autoincrement())
-  nombre_tipo_usuario String
-  usuarios            Usuario[]
+  id_tipo_usuario Int       @id @default(autoincrement())
+  tipo_usuario    String
+  usuarios        Usuario[]
 }
 
 model Usuario {
-  id_usuario                Int              @id @default(autoincrement())
-  nombre                    String
-  apellido                  String
-  usuario                   String           @unique
-  correo                    String           @unique
-  contrasena                String?
-  tipo_usuario              Int
-  ubicacion                 String?
-  createdAt                 DateTime         @default(now())
-  email_verified            Boolean          @default(false)
-  reset_token               String?
-  reset_token_expiry        DateTime?
-  verification_token        String?
-  verification_token_expiry DateTime?
-  auth_provider             String           @default("email")
-  facebook_id               String?          @unique
-  google_id                 String?          @unique
-  profile_picture           String?
-  twitter_id                String?          @unique
-  bio                       String?
-  foros                     Foro[]
-  pedidos                   PedidoDonacion[]
-  rankings                  Ranking[]
-  respuestas                RespuestaForo[]
-  tiposONG                  TipoONG[]
-  tipo                      TipoUsuario      @relation(fields: [tipo_usuario], references: [tipo_usuario])
+  id_usuario               Int                    @id @default(autoincrement())
+  nombre                   String
+  apellido                 String
+  biografia                String?
+  email                    String                 @unique
+  contrasena               String?
+  id_tipo_usuario          Int
+  ubicacion                String?
+  coordenadas              String?
+  redes_sociales           String?
+  telefono                 String?
+  createdAt                DateTime               @default(now())
+  calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
+  calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
+  detalleUsuario           DetalleUsuario?
+  infracciones             Infracciones[]
+  pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
+  pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")
+  publicaciones            Publicacion[]
+  rankings                 Ranking[]
+  respuestas               RespuestaPublicacion[]
+  tiposONG                 TipoONG[]
+  passwordResetTokens      PasswordResetToken[]
+  likesRealizados          PublicacionLike[]      @relation("LikesRealizados")
+  tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
-model Foro {
-  id_foro         Int              @id @default(autoincrement())
-  id_usuario      Int
-  titulo          String
-  descripcion     String
-  fecha           DateTime
-  ubicacion       String?
-  usuario         Usuario          @relation(fields: [id_usuario], references: [id_usuario])
-  foroCategorias  ForoCategoria[]
-  pedidosDonacion PedidoDonacion[]
-  respuestas      RespuestaForo[]
+model DetalleUsuario {
+  id_detalle_usuario         Int      @id @default(autoincrement())
+  id_usuario                 Int      @unique
+  email_verified             Boolean  @default(false)
+  auth_provider              String   @default("email")
+  facebook_id                String?  @unique
+  google_id                  String?  @unique
+  profile_picture            String?
+  twitter_id                 String?  @unique
+  puntosActuales             Int      @default(0)
+  ultima_fecha_actualizacion DateTime @default(now())
+  usuario                    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 }
 
-model Categoria {
-  id_categoria   Int             @id @default(autoincrement())
-  etiqueta       String
-  foroCategorias ForoCategoria[]
+model Publicacion {
+  id_publicacion             Int                    @id @default(autoincrement())
+  id_usuario                 Int
+  titulo                     String
+  descripcion_publicacion    String
+  num_megusta                Int                    @default(0)
+  fecha_publicacion          DateTime               @default(now())
+  ultima_fecha_actualizacion DateTime               @default(now())
+  ubicacion                  String?
+  usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
+  publicacionEtiquetas       PublicacionEtiqueta[]
+  respuestas                 RespuestaPublicacion[]
+  likes                      PublicacionLike[]
 }
 
-model ForoCategoria {
-  id_foro_categoria Int              @id @default(autoincrement())
-  id_foro           Int
-  id_categoria      Int
-  categoria         Categoria        @relation(fields: [id_categoria], references: [id_categoria])
-  foro              Foro             @relation(fields: [id_foro], references: [id_foro])
-  pedidos           PedidoDonacion[]
+model PublicacionLike {
+  id_like        Int         @id @default(autoincrement())
+  id_publicacion Int
+  id_usuario     Int
+  fecha_like     DateTime    @default(now())
+  publicacion    Publicacion @relation(fields: [id_publicacion], references: [id_publicacion], onDelete: Cascade)
+  usuario        Usuario     @relation("LikesRealizados", fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_publicacion, id_usuario])
+  @@index([id_publicacion])
+  @@index([id_usuario])
 }
 
-model RespuestaForo {
-  id_respuesta     Int             @id @default(autoincrement())
-  id_foro          Int
-  id_usuario       Int
-  mensaje          String
-  fecha            DateTime        @default(now())
-  id_respuesta_padre Int?          // Para comentarios anidados
-  foro             Foro            @relation(fields: [id_foro], references: [id_foro])
-  usuario          Usuario         @relation(fields: [id_usuario], references: [id_usuario])
-  respuesta_padre  RespuestaForo?  @relation("RespuestaAnidada", fields: [id_respuesta_padre], references: [id_respuesta])
-  respuestas_hijas RespuestaForo[] @relation("RespuestaAnidada")
+model Etiqueta {
+  id_etiqueta          Int                   @id @default(autoincrement())
+  etiqueta             String
+  publicacionEtiquetas PublicacionEtiqueta[]
 }
 
-model Donacion {
-  id_donacion   Int              @id @default(autoincrement())
-  tipo_donacion String
-  descripcion   String
-  puntos        Int
-  pedidos       PedidoDonacion[]
+model PublicacionEtiqueta {
+  id_publicacion_etiqueta Int              @id @default(autoincrement())
+  id_publicacion          Int
+  id_etiqueta             Int
+  pedidosDonacion         PedidoDonacion[]
+  etiqueta                Etiqueta         @relation(fields: [id_etiqueta], references: [id_etiqueta], onDelete: Cascade)
+  publicacion             Publicacion      @relation(fields: [id_publicacion], references: [id_publicacion], onDelete: Cascade)
+}
+
+model TipoDonacion {
+  id_tipo_donacion Int              @id @default(autoincrement())
+  tipo_donacion    String
+  descripcion      String
+  puntos           Int
+  pedidosDonacion  PedidoDonacion[]
 }
 
 model PedidoDonacion {
-  id_pedido         Int           @id @default(autoincrement())
-  id_foro_categoria Int
-  id_usuario        Int
-  id_donacion       Int
-  id_foro           Int
-  descripcion       String
-  cantidad          Int
-  fecha             DateTime
-  foro              Foro          @relation(fields: [id_foro], references: [id_foro], map: "PedidoDonacion_foro")
-  foroCategoria     ForoCategoria @relation(fields: [id_foro_categoria], references: [id_foro_categoria], map: "PedidoDonacion_foroCategoria")
-  donacion          Donacion      @relation(fields: [id_donacion], references: [id_donacion])
-  usuario           Usuario       @relation(fields: [id_usuario], references: [id_usuario])
-  rankings          Ranking[]
+  id_pedido                Int                 @id @default(autoincrement())
+  id_publicacion_etiqueta  Int
+  id_usuario               Int
+  id_tipo_donacion         Int
+  cantidad                 Int
+  fecha_donacion           DateTime            @default(now())
+  id_ong_evaluadora        Int?
+  descripcion_voluntariado String?
+  horas_donadas            Int?
+  estado_evaluacion        String              @default("pendiente")
+  puntos_otorgados         Int?
+  fecha_evaluacion         DateTime?
+  ongEvaluadora            Usuario?            @relation("ONGEvaluadora", fields: [id_ong_evaluadora], references: [id_usuario])
+  publicacionEtiqueta      PublicacionEtiqueta @relation(fields: [id_publicacion_etiqueta], references: [id_publicacion_etiqueta])
+  tipoDonacion             TipoDonacion        @relation(fields: [id_tipo_donacion], references: [id_tipo_donacion])
+  usuario                  Usuario             @relation("UsuarioDonador", fields: [id_usuario], references: [id_usuario])
+}
+
+model CalificacionONG {
+  id_calificacion    Int      @id @default(autoincrement())
+  id_ong             Int
+  id_usuario         Int
+  puntuacion         Float
+  comentario         String?
+  fecha_calificacion DateTime @default(now())
+  ong                Usuario  @relation("ONGCalificada", fields: [id_ong], references: [id_usuario], onDelete: Cascade)
+  usuario            Usuario  @relation("UsuarioCalificador", fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_ong, id_usuario])
+}
+
+model Infracciones {
+  id_infraccion      Int            @id @default(autoincrement())
+  id_usuario         Int
+  contenido          String
+  id_tipo_infraccion Int
+  fecha_infraccion   DateTime       @default(now())
+  fecha_expiracion   DateTime?
+  tipoInfraccion     TipoInfraccion @relation(fields: [id_tipo_infraccion], references: [id_tipo_infraccion])
+  usuario            Usuario        @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+model TipoInfraccion {
+  id_tipo_infraccion Int            @id @default(autoincrement())
+  tipo_infraccion    String
+  severidad          String
+  infracciones       Infracciones[]
+}
+
+model TipoONG {
+  id_tipo_ong  Int     @id @default(autoincrement())
+  grupo_social String
+  necesidad    String
+  id_usuario   Int
+  usuario      Usuario @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+model RespuestaPublicacion {
+  id_respuesta       Int                    @id @default(autoincrement())
+  id_respuesta_padre Int?
+  id_publicacion     Int
+  id_usuario         Int
+  mensaje            String
+  fecha_respuesta    DateTime               @default(now())
+  moderated_at       DateTime?
+  moderation_status  String                 @default("pending")
+  rejection_reason   String?
+  publicacion        Publicacion            @relation(fields: [id_publicacion], references: [id_publicacion], onDelete: Cascade)
+  respuestaPadre     RespuestaPublicacion?  @relation("RespuestaPadre", fields: [id_respuesta_padre], references: [id_respuesta])
+  respuestasHijas    RespuestaPublicacion[] @relation("RespuestaPadre")
+  usuario            Usuario                @relation(fields: [id_usuario], references: [id_usuario])
 }
 
 model Ranking {
-  id_ranking      Int            @id @default(autoincrement())
+  id_ranking      Int         @id @default(autoincrement())
   id_tipo_ranking Int
-  id_pedido       Int
   id_usuario      Int
   puesto          Int
   puntos          Int
-  pedido          PedidoDonacion @relation(fields: [id_pedido], references: [id_pedido])
-  tipoRanking     TipoRanking    @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
-  usuario         Usuario        @relation(fields: [id_usuario], references: [id_usuario])
+  tipoRanking     TipoRanking @relation(fields: [id_tipo_ranking], references: [id_tipo_ranking])
+  usuario         Usuario     @relation(fields: [id_usuario], references: [id_usuario])
 }
 
 model TipoRanking {
@@ -133,17 +204,22 @@ model RegistroPendiente {
   correo             String   @unique
   contrasena         String
   ubicacion          String?
+  coordenadas        String?
   verification_token String   @unique
   token_expiry       DateTime
   createdAt          DateTime @default(now())
   tipo_usuario       Int
 }
 
-model TipoONG {
-  ID_tipo      Int      @id @default(autoincrement())
-  grupo_social String?
-  necesidad    String?
-  usuarioId    Int?
-  tipo_ong     String?
-  usuario      Usuario? @relation(fields: [usuarioId], references: [id_usuario])
+model PasswordResetToken {
+  id         Int      @id @default(autoincrement())
+  id_usuario Int
+  token      String   @unique
+  expiry     DateTime
+  createdAt  DateTime @default(now())
+  used       Boolean  @default(false)
+  usuario    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([id_usuario])
 }

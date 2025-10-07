@@ -11,6 +11,81 @@ import { passwordResetService } from '../../lib/password-reset-service.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Resumen del dashboard para el usuario autenticado
+router.get('/dashboard/summary', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+    const userId = decoded.userId;
+
+    // Donaciones del usuario (PedidoDonacion.id_usuario)
+    const donaciones = await prisma.pedidoDonacion.findMany({
+      where: { id_usuario: userId },
+      select: {
+        id_pedido: true,
+        fecha_donacion: true,
+        cantidad: true,
+      },
+      orderBy: { fecha_donacion: 'desc' },
+      take: 10,
+    });
+
+    const donationsCount = await prisma.pedidoDonacion.count({ where: { id_usuario: userId } });
+    const totalDonated = await prisma.pedidoDonacion.aggregate({
+      _sum: { cantidad: true },
+      where: { id_usuario: userId },
+    });
+
+    // Puntos actuales: suma de Ranking.puntos del usuario
+    const puntosAgg = await prisma.ranking.aggregate({
+      _sum: { puntos: true },
+      where: { id_usuario: userId },
+    });
+    const puntos = puntosAgg._sum.puntos || 0;
+
+    // Actividad reciente: últimas donaciones y últimas respuestas de foro del usuario
+    const respuestas = await prisma.respuestaPublicacion.findMany({
+      where: { id_usuario: userId },
+      select: { id_respuesta: true, mensaje: true, fecha_respuesta: true, id_publicacion: true },
+      orderBy: { fecha_respuesta: 'desc' },
+      take: 10,
+    });
+
+    // Unificar actividad (tomar 5 últimos eventos combinados)
+    const recentActivity = [
+      ...donaciones.map(d => ({
+        type: 'donation',
+        id: `don-${d.id_pedido}`,
+        date: d.fecha_donacion,
+        amount: d.cantidad,
+      })),
+      ...respuestas.map(r => ({
+        type: 'forum-reply',
+        id: `rep-${r.id_respuesta}`,
+        date: r.fecha_respuesta,
+        message: r.mensaje,
+        postId: r.id_publicacion,
+      })),
+    ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+
+    res.json({
+      donationsCount,
+      totalDonated: totalDonated._sum.cantidad || 0,
+      puntos,
+      recentActivity,
+    });
+  } catch (error) {
+    console.error('Error en dashboard/summary:', error);
+    res.status(500).json({ error: 'Error al obtener resumen del dashboard' });
+  }
+});
+
 // Historial de donaciones realizadas por el usuario autenticado
 router.get('/donaciones/realizadas', async (req, res) => {
   try {
@@ -23,26 +98,34 @@ router.get('/donaciones/realizadas', async (req, res) => {
     const userId = decoded.userId;
 
     // Busca las donaciones realizadas por el usuario
-    const donaciones = await prisma.PedidoDonacion.findMany({
-      where: { usuarioId: userId },
+    const donaciones = await prisma.pedidoDonacion.findMany({
+      where: { id_usuario: userId },
       include: {
-        destinatario: {
-          select: { nombre: true, usuario: true, correo: true }
+        publicacionEtiqueta: {
+          include: {
+            publicacion: {
+              include: {
+                usuario: {
+                  select: { nombre: true, email: true }
+                }
+              }
+            }
+          }
         }
       },
-      orderBy: { fecha: 'desc' }
+      orderBy: { fecha_donacion: 'desc' }
     });
 
     // Formatea la respuesta
     const result = donaciones.map(d => ({
-      id: d.id,
-      amount: d.monto,
-      date: d.fecha,
+      id: d.id_pedido,
+      amount: d.cantidad,
+      date: d.fecha_donacion,
       recipient: {
-        name: d.destinatario?.nombre || d.destinatario?.usuario || d.destinatario?.correo || '',
-        organization: d.destinatario?.usuario || undefined
+        name: d.publicacionEtiqueta?.publicacion?.usuario?.nombre || d.publicacionEtiqueta?.publicacion?.usuario?.usuario || '',
+        organization: d.publicacionEtiqueta?.publicacion?.usuario?.usuario || undefined
       },
-      message: d.mensaje || ''
+      message: d.descripcion_voluntariado || ''
     }));
 
     res.json(result);
@@ -62,8 +145,8 @@ router.get('/profile/tipoong', async (req, res) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     // Buscar el registro TipoONG vinculado al usuario
-  const tipoOng = await prisma.TipoONG.findFirst({
-      where: { usuarioId: decoded.userId },
+  const tipoOng = await prisma.tipoONG.findFirst({
+      where: { id_usuario: decoded.userId },
       select: {
         grupo_social: true,
         necesidad: true
@@ -87,8 +170,8 @@ router.get('/profile/tipoong/:id', async (req, res) => {
       return res.status(400).json({ error: 'ID de usuario requerido' });
     }
 
-    const tipoOng = await prisma.TipoONG.findFirst({
-      where: { usuarioId: parseInt(id) }
+    const tipoOng = await prisma.tipoONG.findFirst({
+      where: { id_usuario: parseInt(id) }
     });
 
     res.json({ tipoONG: tipoOng });
@@ -109,16 +192,16 @@ router.post('/profile/tipoong', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     const { grupo_social, necesidad } = req.body;
     // Buscar si ya existe registro TipoONG para el usuario
-  const existing = await prisma.TipoONG.findFirst({ where: { usuarioId: decoded.userId } });
+  const existing = await prisma.tipoONG.findFirst({ where: { id_usuario: decoded.userId } });
     let tipoOng;
     if (existing) {
-  tipoOng = await prisma.TipoONG.update({
-        where: { ID_tipo: existing.ID_tipo },
+  tipoOng = await prisma.tipoONG.update({
+        where: { id_tipo_ong: existing.id_tipo_ong },
         data: { grupo_social, necesidad }
       });
     } else {
-  tipoOng = await prisma.TipoONG.create({
-        data: { grupo_social, necesidad, usuarioId: decoded.userId }
+  tipoOng = await prisma.tipoONG.create({
+        data: { grupo_social, necesidad, id_usuario: decoded.userId }
       });
     }
     res.json({ message: 'Datos guardados exitosamente', grupo_social: tipoOng.grupo_social, necesidad: tipoOng.necesidad });
@@ -132,13 +215,12 @@ router.post('/profile/tipoong', async (req, res) => {
 router.get('/ongs', async (req, res) => {
   try {
     const ongs = await prisma.usuario.findMany({
-      where: { tipo_usuario: 2 },
+      where: { id_tipo_usuario: 2 },
       select: {
         id_usuario: true,
         nombre: true,
-        correo: true,
-        ubicacion: true,
-        usuario: true
+        email: true,
+        ubicacion: true
       }
     });
     res.json({ ongs });
@@ -153,7 +235,7 @@ router.post('/register', async (req, res) => {
   try {
     console.log('Datos recibidos para registro:', req.body);
 
-  const { nombre, apellido, correo, contrasena, usuario, ubicacion, tipo_usuario } = req.body;
+  const { nombre, apellido, correo, contrasena, usuario, ubicacion, coordenadas, tipo_usuario } = req.body;
   
   console.log('Campos extraídos:', {
     nombre: nombre ? 'presente' : 'faltante',
@@ -174,29 +256,27 @@ router.post('/register', async (req, res) => {
   });
 
     // Validar que todos los campos requeridos estén presentes
-    // Para ONGs (tipo_usuario = 2), el apellido puede estar vacío
+    // Para ONGs (id_tipo_usuario = 2), el apellido puede estar vacío
     const isONG = parseInt(tipo_usuario) === 2;
-    if (!nombre || (!apellido && !isONG) || !correo || !contrasena || !usuario || !tipo_usuario) {
+    if (!nombre || (!apellido && !isONG) || !correo || !contrasena || !tipo_usuario) {
       return res.status(400).json({ 
         error: 'Todos los campos son requeridos' 
       });
     }
+    
+    // Asignar un valor por defecto a usuario si no viene (para compatibilidad con RegistroPendiente)
+    const usuarioValue = usuario || correo.split('@')[0];
 
-    // Verificar si el usuario ya existe
+    // Verificar si el usuario ya existe (solo por email)
     const existingUser = await prisma.usuario.findFirst({
       where: { 
-        OR: [
-          { correo },
-          { usuario }
-        ]
+        email: correo
       }
     });
 
     if (existingUser) {
       return res.status(400).json({ 
-        error: existingUser.correo === correo 
-          ? 'El correo ya está registrado' 
-          : 'El nombre de usuario ya está registrado'
+        error: 'El correo ya está registrado'
       });
     }
 
@@ -237,7 +317,7 @@ router.post('/register', async (req, res) => {
     let tipoUsuarioFinal = parseInt(tipo_usuario, 10);
     
     const tipoUsuarioExiste = await prisma.tipoUsuario.findUnique({
-      where: { tipo_usuario: tipoUsuarioFinal }
+      where: { id_tipo_usuario: tipoUsuarioFinal }
     });
     
     if (!tipoUsuarioExiste) {
@@ -252,13 +332,13 @@ router.post('/register', async (req, res) => {
         // Crear un tipo de usuario por defecto
         tipoUsuarioDefault = await prisma.tipoUsuario.create({
           data: {
-            nombre_tipo_usuario: 'Usuario Regular'
+            tipo_usuario: 'Usuario Regular'
           }
         });
         console.log('✅ [REGISTRO] Tipo de usuario por defecto creado:', tipoUsuarioDefault);
       }
       
-      tipoUsuarioFinal = tipoUsuarioDefault.tipo_usuario;
+      tipoUsuarioFinal = tipoUsuarioDefault.id_tipo_usuario;
       console.log('🔄 [REGISTRO] Usando tipo de usuario:', tipoUsuarioFinal);
     }
     
@@ -269,10 +349,11 @@ router.post('/register', async (req, res) => {
         data: {
           nombre,
           apellido,
-          usuario,
+          usuario: usuarioValue,
           correo,
           contrasena: hashedPassword,
           ubicacion: ubicacion || "",
+          coordenadas: coordenadas ? JSON.stringify(coordenadas) : null,
           tipo_usuario: tipoUsuarioFinal,
           verification_token: verificationToken,
           token_expiry: tokenExpiry
@@ -296,10 +377,11 @@ router.post('/register', async (req, res) => {
             data: {
               nombre,
               apellido,
-              usuario,
+              usuario: usuarioValue,
               correo,
               contrasena: hashedPassword,
               ubicacion: ubicacion || "",
+              coordenadas: coordenadas ? JSON.stringify(coordenadas) : null,
               tipo_usuario: tipoUsuarioFinal,
               verification_token: verificationToken,
               token_expiry: tokenExpiry
@@ -365,22 +447,24 @@ router.post('/login', async (req, res) => {
 
     // Buscar usuario por correo
     const user = await prisma.usuario.findFirst({
-      where: { correo },
+      where: { email: correo },
       select: {
         id_usuario: true,
-        usuario: true,
         nombre: true,
         apellido: true,
-        correo: true,
+        email: true,
         contrasena: true,
         ubicacion: true,
-        tipo_usuario: true
+        id_tipo_usuario: true
       }
     });
 
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
+
+    // Verificar si el usuario está baneado - TEMPORALMENTE DESHABILITADO
+    // TODO: Implementar sistema de baneo con la nueva estructura
 
     // Verificar contraseña
     const isValidPassword = await bcrypt.compare(contrasena, user.contrasena);
@@ -390,13 +474,17 @@ router.post('/login', async (req, res) => {
 
     // Generar token JWT
     const token = jwt.sign(
-      { userId: user.id_usuario, email: user.correo },
+      { userId: user.id_usuario, email: user.email },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );
 
-    // Omitir contraseña de la respuesta
-    const { contrasena: _, ...userWithoutPassword } = user;
+    // Omitir contraseña de la respuesta y mapear id_tipo_usuario a tipo_usuario
+    const { contrasena: _, id_tipo_usuario, ...userWithoutPassword } = user;
+    const userResponse = {
+      ...userWithoutPassword,
+      tipo_usuario: id_tipo_usuario
+    };
 
     // Enviar email de notificación de inicio de sesión
     try {
@@ -422,7 +510,7 @@ router.post('/login', async (req, res) => {
         location: 'Argentina' // Podrías integrar con una API de geolocalización
       };
 
-      await emailService.sendLoginNotificationEmail(user.correo, user.nombre, loginInfo);
+      await emailService.sendLoginNotificationEmail(user.email, user.nombre, loginInfo);
       console.log('✅ [LOGIN] Email de notificación de login enviado exitosamente');
     } catch (emailError) {
       console.error('⚠️ [LOGIN] Error al enviar email de notificación de login (no crítico):', emailError);
@@ -431,7 +519,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       message: 'Login exitoso',
-      user: userWithoutPassword,
+      user: userResponse,
       token
     });
   } catch (error) {
@@ -459,11 +547,10 @@ router.get('/profile', async (req, res) => {
         id_usuario: true,
         nombre: true,
         apellido: true,
-        usuario: true,
-        correo: true,
+        email: true,
         ubicacion: true,
-        bio: true,
-        tipo_usuario: true,
+        biografia: true,
+        id_tipo_usuario: true,
         createdAt: true
       }
     });
@@ -478,7 +565,7 @@ router.get('/profile', async (req, res) => {
 
     // Si es persona y no tiene ubicación, incluir advertencia
     let warnings = [];
-    if (user.tipo_usuario === 1 && (!user.ubicacion || user.ubicacion === '')) {
+    if (user.id_tipo_usuario === 1 && (!user.ubicacion || user.ubicacion === '')) {
       warnings.push({
         type: 'warning',
         title: 'Completa tu ubicación',
@@ -502,27 +589,29 @@ router.post('/request-password-reset', async (req, res) => {
   try {
     const { correo } = req.body;
 
+    console.log('🔍 [RESET REQUEST] Solicitud de reset para:', correo);
+
     // Verificar si el usuario existe
     const user = await prisma.usuario.findFirst({
-      where: { correo }
+      where: { email: correo }
     });
 
     if (!user) {
       // Por seguridad, no revelamos si el correo existe o no
+      console.log('⚠️ [RESET REQUEST] Usuario no encontrado');
       return res.json({ message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
     }
 
-    // Limpiar tokens anteriores para este usuario
-    console.log('🧹 [RESET REQUEST] Limpiando tokens anteriores para:', correo);
-    await prisma.usuario.update({
-      where: { id_usuario: user.id_usuario },
-      data: {
-        reset_token: null,
-        reset_token_expiry: null
-      }
+    // Invalidar tokens anteriores del usuario
+    await prisma.passwordResetToken.updateMany({
+      where: { 
+        id_usuario: user.id_usuario,
+        used: false
+      },
+      data: { used: true }
     });
 
-    // Generar token único
+    // Generar nuevo token
     const resetToken = uuidv4();
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hora de validez
 
@@ -530,38 +619,27 @@ router.post('/request-password-reset', async (req, res) => {
     console.log('⏰ [RESET REQUEST] Token expira:', resetTokenExpiry);
 
     // Guardar token en la base de datos
-    await prisma.usuario.update({
-      where: { id_usuario: user.id_usuario },
+    await prisma.passwordResetToken.create({
       data: {
-        reset_token: resetToken,
-        reset_token_expiry: resetTokenExpiry
+        id_usuario: user.id_usuario,
+        token: resetToken,
+        expiry: resetTokenExpiry
       }
     });
 
     // Enviar email usando el servicio
     try {
-      console.log('📧 Intentando enviar email de recuperación a:', correo);
-      console.log('🔑 Token generado:', resetToken);
-      console.log('⚙️ Variables de entorno detalladas:', {
-        SMTP_HOST: process.env.SMTP_HOST || 'NO_CONFIGURADO',
-        SMTP_PORT: process.env.SMTP_PORT || 'NO_CONFIGURADO',
-        SMTP_USER: process.env.SMTP_USER || 'NO_CONFIGURADO',
-        SMTP_PASS: process.env.SMTP_PASS ? `CONFIGURADO (${process.env.SMTP_PASS.length} caracteres)` : 'NO_CONFIGURADO',
-
-      });
-      
-      // Usar el servicio dedicado que funciona igual que la verificación
+      console.log('📧 [RESET REQUEST] Enviando email de recuperación...');
       await passwordResetService.sendPasswordResetEmail(correo, resetToken);
-      console.log('✅ Email de recuperación enviado exitosamente');
+      console.log('✅ [RESET REQUEST] Email de recuperación enviado exitosamente');
     } catch (emailError) {
-      console.error('❌ Error al enviar email de recuperación:', emailError);
-      console.error('📋 Detalles del error:', emailError.message);
+      console.error('❌ [RESET REQUEST] Error al enviar email:', emailError);
       // No retornamos error para no revelar si el email existe
     }
 
     res.json({ message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
   } catch (error) {
-    console.error('Error al solicitar reset de contraseña:', error);
+    console.error('❌ [RESET REQUEST] Error:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -574,56 +652,53 @@ router.post('/reset-password/:token', async (req, res) => {
 
     console.log('🔍 [RESET PASSWORD] Iniciando reset de contraseña...');
     console.log('🔍 [RESET PASSWORD] Token recibido:', token);
-    console.log('🔍 [RESET PASSWORD] Longitud del token:', token ? token.length : 0);
     console.log('🔍 [RESET PASSWORD] Nueva contraseña recibida:', nuevaContrasena ? 'SÍ' : 'NO');
 
-    // Buscar usuario con token válido
-    const user = await prisma.usuario.findFirst({
-      where: {
-        reset_token: token,
-        reset_token_expiry: {
-          gt: new Date()
-        }
-      }
+    // Buscar token válido en la tabla PasswordResetToken
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token },
+      include: { usuario: true }
     });
 
-    console.log('🔍 [RESET PASSWORD] Usuario encontrado:', user ? 'SÍ' : 'NO');
-    if (user) {
-      console.log('🔍 [RESET PASSWORD] Usuario:', user.correo);
-      console.log('🔍 [RESET PASSWORD] Token en BD:', user.reset_token);
-      console.log('🔍 [RESET PASSWORD] Tokens coinciden:', user.reset_token === token);
-    }
-
-    if (!user) {
-      console.log('❌ [RESET PASSWORD] Token inválido o expirado');
-      
-      // Mostrar tokens disponibles para debugging
-      const tokensDisponibles = await prisma.usuario.findMany({
-        where: { reset_token: { not: null } },
-        select: { correo: true, reset_token: true, reset_token_expiry: true }
-      });
-      
-      console.log('📋 [RESET PASSWORD] Tokens disponibles en BD:', tokensDisponibles);
-      
+    if (!resetToken) {
+      console.log('❌ [RESET PASSWORD] Token no encontrado');
       return res.status(400).json({ error: 'Token inválido o expirado' });
     }
+
+    // Verificar si el token ya fue usado
+    if (resetToken.used) {
+      console.log('❌ [RESET PASSWORD] Token ya fue usado');
+      return res.status(400).json({ error: 'Este token ya fue utilizado' });
+    }
+
+    // Verificar si el token expiró
+    if (new Date() > resetToken.expiry) {
+      console.log('❌ [RESET PASSWORD] Token expirado');
+      return res.status(400).json({ error: 'El token ha expirado. Solicita un nuevo enlace de recuperación.' });
+    }
+
+    console.log('✅ [RESET PASSWORD] Token válido para usuario:', resetToken.usuario.email);
 
     // Encriptar nueva contraseña
     const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
 
-    // Actualizar contraseña y limpiar token
+    // Actualizar contraseña del usuario
     await prisma.usuario.update({
-      where: { id_usuario: user.id_usuario },
-      data: {
-        contrasena: hashedPassword,
-        reset_token: null,
-        reset_token_expiry: null
-      }
+      where: { id_usuario: resetToken.id_usuario },
+      data: { contrasena: hashedPassword }
     });
+
+    // Marcar el token como usado
+    await prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true }
+    });
+
+    console.log('✅ [RESET PASSWORD] Contraseña actualizada exitosamente');
 
     // Enviar email de notificación de cambio de contraseña
     try {
-      console.log('📧 [RESET PASSWORD] Enviando email de notificación de cambio de contraseña...');
+      console.log('📧 [RESET PASSWORD] Enviando email de notificación...');
 
       const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
       const userAgent = req.headers['user-agent'] || 'Desconocido';
@@ -643,15 +718,15 @@ router.post('/reset-password/:token', async (req, res) => {
         userAgent: userAgent
       };
 
-      await emailService.sendPasswordChangeNotificationEmail(user.correo, user.nombre, changeInfo);
-      console.log('✅ [RESET PASSWORD] Email de notificación de cambio de contraseña enviado exitosamente');
+      await emailService.sendPasswordChangeNotificationEmail(resetToken.usuario.email, resetToken.usuario.nombre, changeInfo);
+      console.log('✅ [RESET PASSWORD] Email de notificación enviado');
     } catch (emailError) {
-      console.error('⚠️ [RESET PASSWORD] Error al enviar email de notificación de cambio de contraseña (no crítico):', emailError);
+      console.error('⚠️ [RESET PASSWORD] Error al enviar email (no crítico):', emailError);
     }
 
     res.json({ message: 'Contraseña actualizada exitosamente' });
   } catch (error) {
-    console.error('Error al resetear contraseña:', error);
+    console.error('❌ [RESET PASSWORD] Error:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -748,10 +823,7 @@ router.get('/verify-email/:token', async (req, res) => {
     console.log('🔍 [VERIFICACIÓN] Verificando si el usuario ya existe...');
     const existingUser = await prisma.usuario.findFirst({
       where: { 
-        OR: [
-          { correo: pendingRegistration.correo },
-          { usuario: pendingRegistration.usuario }
-        ]
+        email: pendingRegistration.correo
       }
     });
 
@@ -775,7 +847,7 @@ router.get('/verify-email/:token', async (req, res) => {
     
     // Verificar que el tipo_usuario existe en la tabla TipoUsuario
     const tipoUsuarioExiste = await prisma.tipoUsuario.findUnique({
-      where: { tipo_usuario: tipoUsuarioId }
+      where: { id_tipo_usuario: tipoUsuarioId }
     });
     
     if (!tipoUsuarioExiste) {
@@ -790,7 +862,7 @@ router.get('/verify-email/:token', async (req, res) => {
         // Crear un tipo de usuario por defecto
         tipoUsuarioDefault = await prisma.tipoUsuario.create({
           data: {
-            nombre_tipo_usuario: 'Usuario Regular'
+            tipo_usuario: 'Usuario Regular'
           }
         });
         console.log('✅ [VERIFICACIÓN] Tipo de usuario por defecto creado:', tipoUsuarioDefault);
@@ -805,12 +877,16 @@ router.get('/verify-email/:token', async (req, res) => {
       data: {
         nombre: pendingRegistration.nombre,
         apellido: pendingRegistration.apellido,
-        usuario: pendingRegistration.usuario,
-        correo: pendingRegistration.correo,
+        email: pendingRegistration.correo,
         contrasena: pendingRegistration.contrasena,
-        tipo_usuario: tipoUsuarioId,
+        id_tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
-        email_verified: true
+        coordenadas: pendingRegistration.coordenadas,
+        detalleUsuario: {
+          create: {
+            email_verified: true
+          }
+        }
       }
     });
 
@@ -822,14 +898,14 @@ router.get('/verify-email/:token', async (req, res) => {
 
     console.log('✅ [VERIFICACIÓN] Usuario verificado y registrado exitosamente:', {
       id: newUser.id_usuario,
-      correo: newUser.correo,
+      email: newUser.email,
       nombre: newUser.nombre
     });
 
     // Enviar email de bienvenida solo para usuarios registrados por formulario (auth_provider = "email")
     try {
       console.log('📧 [VERIFICACIÓN] Enviando email de bienvenida...');
-      await emailService.sendWelcomeEmail(newUser.correo, newUser.nombre);
+      await emailService.sendWelcomeEmail(newUser.email, newUser.nombre);
       console.log('✅ [VERIFICACIÓN] Email de bienvenida enviado exitosamente');
     } catch (emailError) {
       console.error('⚠️ [VERIFICACIÓN] Error al enviar email de bienvenida (no crítico):', emailError);
@@ -838,17 +914,21 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // Generar token JWT para login automático
     const authToken = jwt.sign(
-      { userId: newUser.id_usuario, email: newUser.correo },
+      { userId: newUser.id_usuario, email: newUser.email },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );
 
-    // Omitir contraseña de la respuesta
-    const { contrasena: _, ...userWithoutPassword } = newUser;
+    // Omitir contraseña de la respuesta y mapear id_tipo_usuario a tipo_usuario
+    const { contrasena: _, id_tipo_usuario, ...userWithoutPassword } = newUser;
+    const userResponse = {
+      ...userWithoutPassword,
+      tipo_usuario: id_tipo_usuario
+    };
 
     const successResponse = {
       message: '¡Email verificado exitosamente! Tu cuenta ha sido activada.',
-      user: userWithoutPassword,
+      user: userResponse,
       token: authToken,
       verified: true
     };
@@ -856,7 +936,7 @@ router.get('/verify-email/:token', async (req, res) => {
     console.log('🚀 [VERIFICACIÓN] Enviando respuesta exitosa:', {
       message: successResponse.message,
       verified: successResponse.verified,
-      usuario: userWithoutPassword.nombre,
+      usuario: userResponse.nombre,
       tokenLength: authToken.length
     });
 
@@ -885,7 +965,7 @@ router.post('/resend-verification', async (req, res) => {
     if (!pendingRegistration) {
       // Verificar si el usuario ya está registrado
       const existingUser = await prisma.usuario.findFirst({
-        where: { correo }
+        where: { email: correo }
       });
 
       if (existingUser) {
@@ -946,14 +1026,23 @@ router.put('/profile', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     
-    const { nombre, apellido, ubicacion, bio } = req.body;
+    const { nombre, apellido, ubicacion, bio, redes_sociales, telefono } = req.body;
 
     // Filtrar campos undefined para evitar errores
     const updateData = {};
     if (nombre !== undefined) updateData.nombre = nombre;
     if (apellido !== undefined) updateData.apellido = apellido;
     if (ubicacion !== undefined) updateData.ubicacion = ubicacion;
-    if (bio !== undefined) updateData.bio = bio;
+    if (bio !== undefined) updateData.biografia = bio;
+    if (telefono !== undefined) updateData.telefono = telefono;
+    if (redes_sociales !== undefined) {
+      // Guardar como JSON string
+      updateData.redes_sociales = typeof redes_sociales === 'string' 
+        ? redes_sociales 
+        : JSON.stringify(redes_sociales);
+      console.log('🌐 Redes sociales recibidas:', redes_sociales);
+      console.log('🌐 Redes sociales a guardar:', updateData.redes_sociales);
+    }
 
     console.log('Datos a actualizar:', updateData);
 
@@ -962,18 +1051,26 @@ router.put('/profile', async (req, res) => {
       data: updateData,
       select: {
         id_usuario: true,
-        usuario: true,
         nombre: true,
         apellido: true,
-        correo: true,
+        email: true,
         ubicacion: true,
-        bio: true,
-        tipo_usuario: true,
+        biografia: true,
+        redes_sociales: true,
+        telefono: true,
+        id_tipo_usuario: true,
         createdAt: true
       }
     });
 
-    res.json({ message: 'Perfil actualizado exitosamente', user });
+    // Mapear id_tipo_usuario a tipo_usuario para compatibilidad con frontend
+    const userResponse = {
+      ...user,
+      tipo_usuario: user.id_tipo_usuario
+    };
+    delete userResponse.id_tipo_usuario;
+
+    res.json({ message: 'Perfil actualizado exitosamente', user: userResponse });
   } catch (error) {
     console.error('Error al actualizar perfil:', error);
     if (error.name === 'JsonWebTokenError') {

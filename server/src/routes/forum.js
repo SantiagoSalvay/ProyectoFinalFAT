@@ -1,11 +1,17 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { 
+  moderationMiddleware, 
+  titleModerationMiddleware, 
+  antiFloodMiddleware 
+} from '../../lib/content-moderation.js';
+// Sistema de moderación simplificado - sin baneo ni advertencias
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Middleware de autenticación
+// Middleware de autenticación (TEMPORAL sin verificación de baneo)
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -19,7 +25,10 @@ const authenticateToken = async (req, res, next) => {
     // Buscar el usuario en la base de datos
     const usuario = await prisma.usuario.findUnique({
       where: { id_usuario: decoded.userId },
-      select: { id_usuario: true, tipo_usuario: true }
+      select: { 
+        id_usuario: true, 
+        id_tipo_usuario: true
+      }
     });
     
     if (!usuario) {
@@ -37,7 +46,7 @@ const authenticateToken = async (req, res, next) => {
 // Obtener todas las categorías
 router.get('/categorias', async (req, res) => {
   try {
-    const categorias = await prisma.categoria.findMany({
+    const categorias = await prisma.etiqueta.findMany({
       orderBy: {
         etiqueta: 'asc'
       }
@@ -52,30 +61,51 @@ router.get('/categorias', async (req, res) => {
 // Obtener todas las publicaciones del foro
 router.get('/publicaciones', async (req, res) => {
   try {
-    const publicaciones = await prisma.foro.findMany({
+    // Intentar obtener el usuario actual (opcional)
+    const authHeader = req.headers.authorization;
+    let userId = null;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+        userId = decoded.userId;
+      } catch (error) {
+        // Token inválido, continuar sin userId
+      }
+    }
+
+    const publicaciones = await prisma.publicacion.findMany({
       include: {
         usuario: {
           select: {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true,
+            id_tipo_usuario: true,
             ubicacion: true
           }
         },
-        foroCategorias: {
+        publicacionEtiquetas: {
           include: {
-            categoria: true
+            etiqueta: true
           }
         },
         respuestas: {
           select: {
             id_respuesta: true
           }
-        }
+        },
+        likes: userId ? {
+          where: {
+            id_usuario: userId
+          },
+          select: {
+            id_like: true
+          }
+        } : false
       },
       orderBy: {
-        fecha: 'desc'
+        fecha_publicacion: 'desc'
       }
     });
 
@@ -96,22 +126,23 @@ router.get('/publicaciones', async (req, res) => {
       }
       
       return {
-        id: publicacion.id_foro.toString(),
+        id: publicacion.id_publicacion.toString(),
         title: publicacion.titulo,
-        content: publicacion.descripcion,
+        content: publicacion.descripcion_publicacion,
+        id_usuario: publicacion.id_usuario,
         author: {
           id: publicacion.usuario.id_usuario.toString(),
           name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
-          role: publicacion.usuario.tipo_usuario === 2 ? 'ong' : 'person',
-          organization: publicacion.usuario.tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
+          role: publicacion.usuario.id_tipo_usuario === 2 ? 'ong' : 'person',
+          organization: publicacion.usuario.id_tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
           avatar: undefined
         },
-        tags: publicacion.foroCategorias.map(fc => fc.categoria.etiqueta),
+        tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
         location: location,
-        likes: 0, // Por ahora no implementamos likes
+        likes: publicacion.num_megusta || 0,
         comments: publicacion.respuestas.length,
-        createdAt: publicacion.fecha,
-        isLiked: false
+        createdAt: publicacion.fecha_publicacion,
+        isLiked: userId && publicacion.likes && publicacion.likes.length > 0
       };
     });
 
@@ -123,7 +154,11 @@ router.get('/publicaciones', async (req, res) => {
 });
 
 // Crear una nueva publicación (solo ONGs)
-router.post('/publicaciones', authenticateToken, async (req, res) => {
+router.post('/publicaciones', 
+  authenticateToken, 
+  titleModerationMiddleware('titulo'),
+  moderationMiddleware({ fieldName: 'descripcion', strict: true }),
+  async (req, res) => {
   try {
     const { titulo, descripcion, categorias, ubicacion, coordenadas } = req.body;
     const userId = req.user?.id_usuario;
@@ -135,10 +170,10 @@ router.post('/publicaciones', authenticateToken, async (req, res) => {
     // Verificar que el usuario sea ONG
     const usuario = await prisma.usuario.findUnique({
       where: { id_usuario: userId },
-      select: { tipo_usuario: true }
+      select: { id_tipo_usuario: true }
     });
 
-    if (!usuario || usuario.tipo_usuario !== 2) {
+    if (!usuario || usuario.id_tipo_usuario !== 2) {
       return res.status(403).json({ error: 'Solo las ONGs pueden crear publicaciones' });
     }
 
@@ -156,23 +191,36 @@ router.post('/publicaciones', authenticateToken, async (req, res) => {
     }
 
     // Crear la publicación
-    const nuevaPublicacion = await prisma.foro.create({
+    const nuevaPublicacion = await prisma.publicacion.create({
       data: {
         id_usuario: userId,
         titulo,
-        descripcion,
-        fecha: new Date(),
+        descripcion_publicacion: descripcion,
+        fecha_publicacion: new Date(),
         ubicacion: ubicacionData
       }
     });
 
-    // Asociar las categorías
+    // Asociar las etiquetas
+    console.log('📝 [CREATE POST] Categorías recibidas:', categorias);
+    console.log('📝 [CREATE POST] Tipo de categorias:', typeof categorias);
+    console.log('📝 [CREATE POST] Es array?:', Array.isArray(categorias));
+    
     if (categorias && categorias.length > 0) {
       for (const categoriaId of categorias) {
-        await prisma.foroCategoria.create({
+        console.log('📝 [CREATE POST] Procesando categoriaId:', categoriaId, 'tipo:', typeof categoriaId);
+        const parsedId = parseInt(categoriaId);
+        console.log('📝 [CREATE POST] Después de parseInt:', parsedId);
+        
+        if (isNaN(parsedId)) {
+          console.error('❌ [CREATE POST] ID de categoría inválido:', categoriaId);
+          continue;
+        }
+        
+        await prisma.publicacionEtiqueta.create({
           data: {
-            id_foro: nuevaPublicacion.id_foro,
-            id_categoria: parseInt(categoriaId)
+            id_publicacion: nuevaPublicacion.id_publicacion,
+            id_etiqueta: parsedId
           }
         });
       }
@@ -181,7 +229,7 @@ router.post('/publicaciones', authenticateToken, async (req, res) => {
 
     res.status(201).json({ 
       message: 'Publicación creada exitosamente',
-      id: nuevaPublicacion.id_foro 
+      id: nuevaPublicacion.id_publicacion 
     });
   } catch (error) {
     console.error('Error al crear publicación:', error);
@@ -194,37 +242,49 @@ router.get('/publicaciones/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const publicacion = await prisma.foro.findUnique({
-      where: { id_foro: parseInt(id) },
+    // Intentar obtener el usuario actual (opcional)
+    const authHeader = req.headers.authorization;
+    let userId = null;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+        userId = decoded.userId;
+      } catch (error) {
+        // Token inválido, continuar sin userId
+      }
+    }
+    
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) },
       include: {
         usuario: {
           select: {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true
+            id_tipo_usuario: true,
+            ubicacion: true
           }
         },
-        foroCategorias: {
+        publicacionEtiquetas: {
           include: {
-            categoria: true
+            etiqueta: true
           }
         },
         respuestas: {
-          include: {
-            usuario: {
-              select: {
-                id_usuario: true,
-                nombre: true,
-                apellido: true,
-                tipo_usuario: true
-              }
-            }
-          },
-          orderBy: {
-            fecha: 'asc'
+          select: {
+            id_respuesta: true
           }
-        }
+        },
+        likes: userId ? {
+          where: {
+            id_usuario: userId
+          },
+          select: {
+            id_like: true
+          }
+        } : false
       }
     });
 
@@ -232,15 +292,51 @@ router.get('/publicaciones/:id', async (req, res) => {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    res.json(publicacion);
+    // Parsear ubicación si es JSON
+    let location = publicacion.ubicacion;
+    if (location && typeof location === 'string') {
+      try {
+        const parsedLocation = JSON.parse(location);
+        if (parsedLocation.address) {
+          location = parsedLocation.address;
+        }
+      } catch (e) {
+        // Si no es JSON válido, usar el string tal como está
+      }
+    }
+
+    // Formatear la respuesta igual que en /publicaciones
+    const publicacionFormateada = {
+      id: publicacion.id_publicacion.toString(),
+      title: publicacion.titulo,
+      content: publicacion.descripcion_publicacion,
+      author: {
+        id: publicacion.usuario.id_usuario.toString(),
+        name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
+        role: publicacion.usuario.id_tipo_usuario === 2 ? 'ong' : 'person',
+        organization: publicacion.usuario.id_tipo_usuario === 2 ? publicacion.usuario.nombre : undefined,
+        avatar: undefined
+      },
+      tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
+      location: location,
+      likes: publicacion.num_megusta || 0,
+      comments: publicacion.respuestas.length,
+      createdAt: publicacion.fecha_publicacion,
+      isLiked: userId && publicacion.likes && publicacion.likes.length > 0
+    };
+
+    res.json(publicacionFormateada);
   } catch (error) {
     console.error('Error al obtener publicación:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// Crear un comentario en una publicación
-router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res) => {
+// Crear un comentario en una publicación CON VALIDACIÓN (sin cooldown en backend)
+router.post('/publicaciones/:id/comentarios', 
+  authenticateToken,
+  moderationMiddleware({ fieldName: 'mensaje', strict: true }), // VALIDAR ANTES DE CREAR
+  async (req, res) => {
   try {
     const { id } = req.params;
     const { mensaje } = req.body;
@@ -250,26 +346,22 @@ router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res
       return res.status(401).json({ error: 'No autorizado' });
     }
 
-    if (!mensaje || !mensaje.trim()) {
-      return res.status(400).json({ error: 'El mensaje es requerido' });
-    }
-
     // Verificar que la publicación existe
-    const publicacion = await prisma.foro.findUnique({
-      where: { id_foro: parseInt(id) }
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) }
     });
 
     if (!publicacion) {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    // Crear el comentario
-    const nuevoComentario = await prisma.respuestaForo.create({
+    // Crear comentario directamente (ya pasó la validación del middleware)
+    const nuevoComentario = await prisma.respuestaPublicacion.create({
       data: {
-        id_foro: parseInt(id),
+        id_publicacion: parseInt(id),
         id_usuario: userId,
         mensaje: mensaje.trim(),
-        fecha: new Date()
+        fecha_respuesta: new Date()
       },
       include: {
         usuario: {
@@ -277,14 +369,14 @@ router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true
+            id_tipo_usuario: true
           }
         }
       }
     });
 
     res.status(201).json({
-      message: 'Comentario creado exitosamente',
+      message: 'Comentario publicado exitosamente',
       comentario: nuevoComentario
     });
   } catch (error) {
@@ -293,35 +385,34 @@ router.post('/publicaciones/:id/comentarios', authenticateToken, async (req, res
   }
 });
 
-// Obtener comentarios de una publicación
+// Obtener comentarios de una publicación (TEMPORAL SIN MODERACIÓN)
 router.get('/publicaciones/:id/comentarios', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Verificar que la publicación existe
-    const publicacion = await prisma.foro.findUnique({
-      where: { id_foro: parseInt(id) }
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) }
     });
 
     if (!publicacion) {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    const comentarios = await prisma.respuestaForo.findMany({
-      where: { id_foro: parseInt(id) },
+    // Obtener TODOS los comentarios (sin filtro de moderación)
+    const comentarios = await prisma.respuestaPublicacion.findMany({
+      where: { id_publicacion: parseInt(id) },
       include: {
         usuario: {
           select: {
             id_usuario: true,
             nombre: true,
             apellido: true,
-            tipo_usuario: true
+            id_tipo_usuario: true
           }
         }
       },
-      orderBy: {
-        fecha: 'asc'
-      }
+      orderBy: { fecha_respuesta: 'asc' }
     });
 
     res.json(comentarios);
@@ -342,13 +433,13 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     }
 
     // Buscar el comentario
-    const comentario = await prisma.respuestaForo.findUnique({
+    const comentario = await prisma.respuestaPublicacion.findUnique({
       where: { id_respuesta: parseInt(id) },
       include: {
         usuario: {
           select: {
             id_usuario: true,
-            tipo_usuario: true
+            id_tipo_usuario: true
           }
         }
       }
@@ -364,7 +455,7 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     }
 
     // Eliminar el comentario
-    await prisma.respuestaForo.delete({
+    await prisma.respuestaPublicacion.delete({
       where: { id_respuesta: parseInt(id) }
     });
 
@@ -374,5 +465,178 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
+// Eliminar una publicación (solo el autor puede eliminarla)
+router.delete('/publicaciones/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id_usuario;
+
+    // Buscar la publicación y verificar que existe
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) },
+      select: {
+        id_usuario: true
+      }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    // Verificar que el usuario es el autor de la publicación
+    if (publicacion.id_usuario !== userId) {
+      return res.status(403).json({ error: 'No tienes permisos para eliminar esta publicación' });
+    }
+
+    // Eliminar la publicación (cascade eliminará etiquetas y comentarios automáticamente)
+    await prisma.publicacion.delete({
+      where: { id_publicacion: parseInt(id) }
+    });
+
+    res.json({ message: 'Publicación eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar publicación:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Dar/quitar "me gusta" a una publicación
+router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id_usuario;
+    const publicacionId = parseInt(id);
+
+    // Verificar que la publicación existe
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: publicacionId }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    // Verificar si el usuario ya dio like
+    const likeExistente = await prisma.publicacionLike.findUnique({
+      where: {
+        id_publicacion_id_usuario: {
+          id_publicacion: publicacionId,
+          id_usuario: userId
+        }
+      }
+    });
+
+    if (likeExistente) {
+      // Quitar like
+      await prisma.$transaction([
+        prisma.publicacionLike.delete({
+          where: { id_like: likeExistente.id_like }
+        }),
+        prisma.publicacion.update({
+          where: { id_publicacion: publicacionId },
+          data: { num_megusta: { decrement: 1 } }
+        })
+      ]);
+
+      const updatedPublicacion = await prisma.publicacion.findUnique({
+        where: { id_publicacion: publicacionId },
+        select: { num_megusta: true }
+      });
+
+      return res.json({
+        liked: false,
+        totalLikes: updatedPublicacion.num_megusta
+      });
+    } else {
+      // Dar like
+      await prisma.$transaction([
+        prisma.publicacionLike.create({
+          data: {
+            id_publicacion: publicacionId,
+            id_usuario: userId
+          }
+        }),
+        prisma.publicacion.update({
+          where: { id_publicacion: publicacionId },
+          data: { num_megusta: { increment: 1 } }
+        })
+      ]);
+
+      const updatedPublicacion = await prisma.publicacion.findUnique({
+        where: { id_publicacion: publicacionId },
+        select: { num_megusta: true }
+      });
+
+      return res.json({
+        liked: true,
+        totalLikes: updatedPublicacion.num_megusta
+      });
+    }
+  } catch (error) {
+    console.error('Error al dar/quitar like:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Obtener estado de likes de una publicación
+router.get('/publicaciones/:id/like', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const authHeader = req.headers.authorization;
+    let userId = null;
+
+    // Verificar si hay usuario autenticado
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
+        userId = decoded.userId;
+      } catch (err) {
+        // Token inválido, continuar sin userId
+      }
+    }
+    
+    const publicacionId = parseInt(id);
+
+    // Obtener el número de likes desde la publicación
+    const publicacion = await prisma.publicacion.findUnique({
+      where: { id_publicacion: publicacionId },
+      select: { num_megusta: true }
+    });
+
+    if (!publicacion) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    let isLiked = false;
+
+    // Si hay usuario autenticado, verificar si dio like
+    if (userId) {
+      const like = await prisma.publicacionLike.findUnique({
+        where: {
+          id_publicacion_id_usuario: {
+            id_publicacion: publicacionId,
+            id_usuario: userId
+          }
+        }
+      });
+      isLiked = !!like;
+    }
+
+    res.json({
+      totalLikes: publicacion.num_megusta || 0,
+      isLiked
+    });
+  } catch (error) {
+    console.error('Error al obtener likes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Estadísticas de moderación - DESHABILITADO (sistema de sanciones eliminado)
+// router.get('/moderation/stats', authenticateToken, async (req, res) => {
+//   res.json({ warnings: 0, infractions: [], banned: false });
+// });
 
 export default router; 

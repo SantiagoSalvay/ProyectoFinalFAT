@@ -54,7 +54,7 @@ export default function AuthCallbackPage() {
         console.log('Usuario recibido del servidor:', user)
 
         // Verificar que el usuario tenga los datos necesarios
-        if (!user || !user.correo) {
+        if (!user || !user.email) {
           throw new Error('Usuario no válido: faltan datos esenciales')
         }
 

@@ -7,6 +7,8 @@ import SocialLoginButtons from '../components/SocialLoginButtons'
 import { useLoginLoading } from '../hooks/useAuthLoading'
 import { ButtonLoading } from '../components/GlobalLoading'
 import { LoadingText } from '../components/LoadingDots'
+import BannedAccountModal from '../components/BannedAccountModal'
+import { toast } from 'react-hot-toast'
 
 interface LoginFormData {
   email: string
@@ -15,8 +17,15 @@ interface LoginFormData {
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [showBannedModal, setShowBannedModal] = useState(false)
+  const [bannedInfo, setBannedInfo] = useState<{
+    reason?: string
+    bannedUntil?: string | null
+    permanent?: boolean
+  }>({})
+  
   const { login } = useAuth()
-  const { isLoading, message, withLoginLoading } = useLoginLoading()
+  const { isLoading, message } = useLoginLoading()
   const navigate = useNavigate()
 
   const {
@@ -25,14 +34,38 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>()
 
-  const onSubmit = withLoginLoading(async (data: LoginFormData) => {
-    await login(data.email, data.password)
-    navigate('/dashboard')
-  })
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      await login(data.email, data.password)
+      toast.success('¡Bienvenido de vuelta!')
+      navigate('/dashboard')
+    } catch (error: any) {
+      // Verificar si es error de cuenta baneada
+      if (error.response?.status === 403 && error.response.data?.userBanned) {
+        setBannedInfo({
+          reason: error.response.data.reason,
+          bannedUntil: error.response.data.bannedUntil,
+          permanent: error.response.data.permanent
+        })
+        setShowBannedModal(true)
+      } else {
+        toast.error('Credenciales inválidas. Inténtalo de nuevo.')
+      }
+    }
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--color-bg)' }}>
-      <div className="max-w-md w-full space-y-8">
+    <>
+      <BannedAccountModal
+        isOpen={showBannedModal}
+        bannedReason={bannedInfo.reason}
+        bannedUntil={bannedInfo.bannedUntil}
+        permanent={bannedInfo.permanent}
+        onClose={() => setShowBannedModal(false)}
+      />
+
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center mb-4" style={{ color: 'var(--link)' }}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -140,8 +173,9 @@ export default function LoginPage() {
 
           {/* Social Login Buttons */}
           <SocialLoginButtons mode="login" />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 } 

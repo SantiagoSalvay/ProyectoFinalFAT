@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node --no-deprecation src/index.js",
     "dev": "nodemon --exec \"node --no-deprecation\" src/index.js",
+    "wake-db": "node wake-railway-db.js",
+    "keep-db-alive": "node keep-db-alive.js",
     "build": "echo 'No build step required'",
     "postinstall": "prisma generate",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--experimental-vm-modules\" jest",
@@ -51,5 +53,8 @@
     "solidaridad"
   ],
   "author": "Tu Nombre",
-  "license": "MIT"
+  "license": "MIT",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
 }

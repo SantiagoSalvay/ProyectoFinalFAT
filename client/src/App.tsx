@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import ForumPage from './pages/ForumPage'
+import ForumPostDetailPage from './pages/ForumPostDetailPage'
 import MissionPage from './pages/MissionPage'
 import ProfilePage from './pages/ProfilePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -85,6 +86,11 @@ function App() {
               <Route path="/forum" element={
                 <ProtectedRoute>
                   <ForumPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/forum/:postId" element={
+                <ProtectedRoute>
+                  <ForumPostDetailPage />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={

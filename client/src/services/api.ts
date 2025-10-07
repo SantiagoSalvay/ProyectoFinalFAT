@@ -6,14 +6,26 @@ export type UserRole = 'person' | 'ong';
 // Tipos de datos
 export interface User {
   id_usuario: number;
-  usuario: string;
-  correo: string;
+  email: string;
   nombre?: string;
   apellido?: string;
   ubicacion?: string;
-  bio?: string;
+  biografia?: string;
+  telefono?: string;
+  redes_sociales?: string;
   createdAt?: Date;
+  id_tipo_usuario?: number;
   tipo_usuario?: number;
+  auth_provider?: string;
+  profile_picture?: string;
+  email_verified?: boolean;
+}
+
+export interface SocialMediaLink {
+  id: string;
+  url: string;
+  type: string;
+  displayName: string;
 }
 
 export interface ONG {
@@ -21,6 +33,8 @@ export interface ONG {
   name: string;
   description: string;
   location: string;
+  coordinates?: [number, number];
+  socialMedia?: SocialMediaLink[];
   email: string;
   type: 'public' | 'private';
   rating: number;
@@ -32,6 +46,32 @@ export interface ONG {
 
 // Clase API
 class ApiService {
+  // Resumen del dashboard para el usuario autenticado
+  async getDashboardSummary() {
+    try {
+      const response = await this.request<{
+        donationsCount: number;
+        totalDonated: number;
+        puntos: number;
+        recentActivity: Array<
+          | { type: 'donation'; id: string; date: string; amount: number }
+          | { type: 'forum-reply'; id: string; date: string; message: string; postId: number }
+        >;
+      }>(
+        '/auth/dashboard/summary',
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`
+          }
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener resumen del dashboard:', error);
+      throw error;
+    }
+  }
   // Obtener donaciones realizadas por el usuario autenticado
   async getDonacionesRealizadas() {
     try {
@@ -68,7 +108,7 @@ class ApiService {
   // Guardar datos de TipoONG para el usuario autenticado
   async saveTipoONG(data: { grupo_social: string; necesidad: string }) {
     try {
-      const response = await this.request<{ tipoONG: any }>(
+      const response = await this.request<{ message: string; grupo_social: string; necesidad: string }>(
         '/auth/profile/tipoong',
         {
           method: 'POST',
@@ -79,7 +119,7 @@ class ApiService {
           body: JSON.stringify(data)
         }
       );
-      return response.tipoONG;
+      return response;
     } catch (error) {
       console.error('Error al guardar datos de TipoONG:', error);
       throw error;
@@ -117,7 +157,7 @@ class ApiService {
     // Obtener datos de TipoONG para el usuario autenticado
     async getTipoONG() {
       try {
-        const response = await this.request<{ tipoONG: { ID_tipo: number; grupo_social: string | null; necesidad: string | null } | null }>(
+        const response = await this.request<{ tipoONG: { id_tipo_ong: number; grupo_social: string | null; necesidad: string | null } | null }>(
           '/auth/profile/tipoong',
           {
             method: 'GET',
@@ -235,6 +275,7 @@ class ApiService {
     email: string;
     password: string;
     location: string;
+    coordinates?: [number, number];
     role: UserRole;
     organization?: string;
     tipo_usuario?: number;
@@ -267,6 +308,7 @@ class ApiService {
             contrasena: userData.password || '',
             usuario: (userData.email && userData.email.split('@')[0]) || userData.email || '',
             ubicacion: userData.location || '',
+            coordenadas: userData.coordinates,
             tipo_usuario: userData.tipo_usuario || 1
           }),
         }
@@ -319,7 +361,7 @@ class ApiService {
     try {
       console.log('Obteniendo perfil de usuario...');
       const response = await this.request<{ user: User }>(
-        '/auth/profile',
+        '/api/auth/me',
         {
           method: 'GET',
           headers: {
@@ -341,9 +383,17 @@ class ApiService {
     apellido?: string;
     ubicacion?: string;
     bio?: string;
+    telefono?: string;
+    redes_sociales?: any;
   }) {
     try {
-      console.log('Actualizando perfil con datos:', profileData);
+      console.log('📤 [API] Actualizando perfil con datos:', profileData);
+      
+      if (profileData.redes_sociales) {
+        console.log('📤 [API] Redes sociales a enviar:', profileData.redes_sociales);
+        console.log('📤 [API] Tipo:', typeof profileData.redes_sociales);
+      }
+      
       const response = await this.request<{ message: string; user: User }>(
         '/auth/profile',
         {
@@ -351,10 +401,16 @@ class ApiService {
           body: JSON.stringify(profileData),
         }
       );
-      console.log('Perfil actualizado:', response);
+      
+      console.log('✅ [API] Perfil actualizado:', response);
+      
+      if (response.user?.redes_sociales) {
+        console.log('✅ [API] Redes sociales en respuesta:', response.user.redes_sociales);
+      }
+      
       return response;
     } catch (error) {
-      console.error('Error detallado al actualizar perfil:', error);
+      console.error('❌ [API] Error detallado al actualizar perfil:', error);
       throw error;
     }
   }
@@ -362,7 +418,7 @@ class ApiService {
   // Métodos del foro
   async getCategorias() {
     try {
-      const response = await this.request<{ id_categoria: number; etiqueta: string }[]>(
+      const response = await this.request<{ id_etiqueta: number; etiqueta: string }[]>(
         '/api/forum/categorias',
         {
           method: 'GET'
@@ -390,6 +446,21 @@ class ApiService {
     }
   }
 
+  async getPublicacion(publicacionId: string) {
+    try {
+      const response = await this.request<any>(
+        `/api/forum/publicaciones/${publicacionId}`,
+        {
+          method: 'GET'
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener publicación:', error);
+      throw error;
+    }
+  }
+
   async crearPublicacion(data: {
     titulo: string;
     descripcion: string;
@@ -412,6 +483,21 @@ class ApiService {
     }
   }
 
+  async eliminarPublicacion(publicacionId: string) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/forum/publicaciones/${publicacionId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al eliminar publicación:', error);
+      throw error;
+    }
+  }
+
   // Métodos para comentarios
   async getComentarios(publicacionId: string) {
     try {
@@ -430,7 +516,17 @@ class ApiService {
 
   async crearComentario(publicacionId: string, mensaje: string) {
     try {
-      const response = await this.request<{ message: string; comentario: any }>(
+      const response = await this.request<{ 
+        message: string; 
+        comentario: any;
+        needsApproval?: boolean;
+        status?: string;
+        warning?: {
+          count: number;
+          remaining: number;
+          message: string;
+        };
+      }>(
         `/api/forum/publicaciones/${publicacionId}/comentarios`,
         {
           method: 'POST',
@@ -440,6 +536,24 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al crear comentario:', error);
+      throw error;
+    }
+  }
+
+  async getModerationStats() {
+    try {
+      const response = await this.request<{
+        warningsCount: number;
+        maxWarnings: number;
+        isBanned: boolean;
+        bannedReason?: string;
+        bannedUntil?: string;
+        totalInfractions: number;
+        recentInfractions: any[];
+      }>('/api/forum/moderation/stats');
+      return response;
+    } catch (error) {
+      console.error('Error al obtener estadísticas de moderación:', error);
       throw error;
     }
   }
@@ -459,7 +573,87 @@ class ApiService {
     }
   }
 
+  // Dar/quitar "me gusta" a una publicación
+  async toggleLike(publicacionId: string) {
+    try {
+      const response = await this.request<{ 
+        message: string; 
+        liked: boolean;
+        totalLikes: number;
+      }>(
+        `/api/forum/publicaciones/${publicacionId}/like`,
+        {
+          method: 'POST',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al dar/quitar me gusta:', error);
+      throw error;
+    }
+  }
+
+  // Obtener estado de likes de una publicación
+  async getLikes(publicacionId: string) {
+    try {
+      const response = await this.request<{ 
+        totalLikes: number;
+        isLiked: boolean;
+      }>(
+        `/api/forum/publicaciones/${publicacionId}/like`,
+        {
+          method: 'GET',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener likes:', error);
+      throw error;
+    }
+  }
+
   // Métodos para ONGs
+  async calificarONG(ongId: number, puntuacion: number, comentario?: string) {
+    try {
+      const response = await this.request<{ 
+        message: string; 
+        calificacion: any;
+        nuevoPromedio: number;
+        totalCalificaciones: number;
+      }>(
+        `/api/ongs/${ongId}/calificar`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ puntuacion, comentario }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al calificar ONG:', error);
+      throw error;
+    }
+  }
+
+  async obtenerMiCalificacion(ongId: number) {
+    try {
+      const response = await this.request<{
+        hasRated: boolean;
+        puntuacion?: number;
+        comentario?: string;
+        fecha?: string;
+      }>(
+        `/api/ongs/${ongId}/mi-calificacion`,
+        {
+          method: 'GET',
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al obtener calificación:', error);
+      throw error;
+    }
+  }
+
   async rateONG(ongId: number, rating: number, comment: string) {
     try {
       const response = await this.request<{ message: string }>(

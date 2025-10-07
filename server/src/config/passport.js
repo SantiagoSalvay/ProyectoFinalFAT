@@ -16,49 +16,66 @@ passport.use(new GoogleStrategy({
   try {
     console.log('🔍 Google OAuth Profile:', profile);
     
-    // Buscar usuario existente por google_id
-    let user = await prisma.usuario.findUnique({
-      where: { google_id: profile.id }
+    // Buscar usuario existente por google_id en DetalleUsuario
+    let detalleUsuario = await prisma.detalleUsuario.findUnique({
+      where: { google_id: profile.id },
+      include: { usuario: true }
     });
 
-    if (user) {
-      console.log('✅ Usuario existente encontrado:', user.email);
-      return done(null, user);
+    if (detalleUsuario) {
+      console.log('✅ Usuario existente encontrado:', detalleUsuario.usuario.email);
+      return done(null, detalleUsuario.usuario);
     }
 
     // Buscar usuario existente por email
-    user = await prisma.usuario.findUnique({
-      where: { correo: profile.emails[0].value }
+    let user = await prisma.usuario.findUnique({
+      where: { email: profile.emails[0].value },
+      include: { detalleUsuario: true }
     });
 
     if (user) {
-      // Actualizar usuario existente con google_id
-      user = await prisma.usuario.update({
-        where: { id_usuario: user.id_usuario },
-        data: {
-          google_id: profile.id,
-          auth_provider: 'google',
-          profile_picture: profile.photos[0]?.value,
-          email_verified: true // Los usuarios de Google ya tienen email verificado
-        }
-      });
+      // Si el usuario existe pero no tiene DetalleUsuario, crearlo
+      if (!user.detalleUsuario) {
+        await prisma.detalleUsuario.create({
+          data: {
+            id_usuario: user.id_usuario,
+            google_id: profile.id,
+            auth_provider: 'google',
+            profile_picture: profile.photos[0]?.value,
+            email_verified: true
+          }
+        });
+      } else {
+        // Si ya tiene DetalleUsuario, actualizar con google_id
+        await prisma.detalleUsuario.update({
+          where: { id_usuario: user.id_usuario },
+          data: {
+            google_id: profile.id,
+            auth_provider: 'google',
+            profile_picture: profile.photos[0]?.value,
+            email_verified: true
+          }
+        });
+      }
       console.log('🔄 Usuario existente actualizado con Google ID');
       return done(null, user);
     }
 
-    // Crear nuevo usuario
+    // Crear nuevo usuario con su detalle
     const newUser = await prisma.usuario.create({
       data: {
         nombre: profile.name.givenName,
         apellido: profile.name.familyName || '',
-        usuario: profile.emails[0].value.split('@')[0], // Usar parte antes del @ como username
-        correo: profile.emails[0].value,
-        google_id: profile.id,
-        auth_provider: 'google',
-        profile_picture: profile.photos[0]?.value,
-        email_verified: true,
-        tipo_usuario: 1, // Usuario regular por defecto
-        ubicacion: null // Deberá completar en el perfil
+        email: profile.emails[0].value,
+        id_tipo_usuario: 1, // Usuario regular por defecto
+        detalleUsuario: {
+          create: {
+            google_id: profile.id,
+            auth_provider: 'google',
+            profile_picture: profile.photos[0]?.value,
+            email_verified: true
+          }
+        }
       }
     });
 
@@ -71,11 +88,11 @@ passport.use(new GoogleStrategy({
       const userName = `${newUser.nombre} ${newUser.apellido}`.trim();
       
       // 1. Email de cuenta creada exitosamente
-      await emailService.sendOAuthAccountCreatedEmail(newUser.correo, userName, 'Google');
+      await emailService.sendOAuthAccountCreatedEmail(newUser.email, userName, 'Google');
       console.log('✅ [GOOGLE OAUTH] Email de cuenta creada enviado');
       
       // 2. Email de bienvenida
-      await emailService.sendWelcomeEmail(newUser.correo, userName);
+      await emailService.sendWelcomeEmail(newUser.email, userName);
       console.log('✅ [GOOGLE OAUTH] Email de bienvenida enviado');
       
     } catch (emailError) {
@@ -106,71 +123,91 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         return done(new Error('No email found in Twitter profile'), null);
       }
 
-      let user = await prisma.usuario.findUnique({
-        where: { twitter_id: profile.id }
+      // Buscar usuario existente por twitter_id en DetalleUsuario
+      let detalleUsuario = await prisma.detalleUsuario.findUnique({
+        where: { twitter_id: profile.id },
+        include: { usuario: true }
       });
 
-      if (!user) {
-        user = await prisma.usuario.findUnique({
-          where: { correo: email }
-        });
+      if (detalleUsuario) {
+        console.log('🎉 Twitter OAuth exitoso para usuario:', detalleUsuario.usuario.email);
+        return done(null, detalleUsuario.usuario);
+      }
 
-        if (user) {
-          // Link existing account
-          user = await prisma.usuario.update({
-            where: { id_usuario: user.id_usuario },
-            data: {
-              twitter_id: profile.id,
-              auth_provider: 'twitter',
-              profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
-              email_verified: true // OAuth users are considered verified
-            }
-          });
-          console.log('🔗 Cuenta existente vinculada:', user.correo);
-        } else {
-          // Create new user
-          const firstName = profile.displayName ? profile.displayName.split(' ')[0] : 'Usuario';
-          const lastName = profile.displayName ? profile.displayName.split(' ').slice(1).join(' ') : 'Twitter';
-          const username = profile.username || email.split('@')[0];
+      // Buscar usuario existente por email
+      let user = await prisma.usuario.findUnique({
+        where: { email: email },
+        include: { detalleUsuario: true }
+      });
 
-          user = await prisma.usuario.create({
+      if (user) {
+        // Si el usuario existe pero no tiene DetalleUsuario, crearlo
+        if (!user.detalleUsuario) {
+          await prisma.detalleUsuario.create({
             data: {
+              id_usuario: user.id_usuario,
               twitter_id: profile.id,
-              nombre: firstName,
-              apellido: lastName,
-              correo: email,
-              usuario: username,
-              contrasena: null, // No password for OAuth users
-              tipo_usuario: 1, // Default to 'person'
-              ubicacion: null, // User must complete this later
               auth_provider: 'twitter',
               profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
               email_verified: true
             }
           });
-          console.log('🆕 Nuevo usuario creado:', user.correo);
+        } else {
+          // Si ya tiene DetalleUsuario, actualizar con twitter_id
+          await prisma.detalleUsuario.update({
+            where: { id_usuario: user.id_usuario },
+            data: {
+              twitter_id: profile.id,
+              auth_provider: 'twitter',
+              profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
+              email_verified: true
+            }
+          });
+        }
+        console.log('🔗 Cuenta existente vinculada:', user.email);
+        return done(null, user);
+      }
 
-          // Enviar emails de notificación para nuevo usuario OAuth
-          try {
-            console.log('📧 [TWITTER OAUTH] Enviando emails de notificación...');
-            
-            const userName = `${user.nombre} ${user.apellido}`.trim();
-            
-            // 1. Email de cuenta creada exitosamente
-            await emailService.sendOAuthAccountCreatedEmail(user.correo, userName, 'Twitter');
-            console.log('✅ [TWITTER OAUTH] Email de cuenta creada enviado');
-            
-            // 2. Email de bienvenida
-            await emailService.sendWelcomeEmail(user.correo, userName);
-            console.log('✅ [TWITTER OAUTH] Email de bienvenida enviado');
-            
-          } catch (emailError) {
-            console.error('⚠️ [TWITTER OAUTH] Error al enviar emails (no crítico):', emailError);
+      // Crear nuevo usuario con su detalle
+      const firstName = profile.displayName ? profile.displayName.split(' ')[0] : 'Usuario';
+      const lastName = profile.displayName ? profile.displayName.split(' ').slice(1).join(' ') : 'Twitter';
+
+      user = await prisma.usuario.create({
+        data: {
+          nombre: firstName,
+          apellido: lastName,
+          email: email,
+          id_tipo_usuario: 1, // Default to 'person'
+          detalleUsuario: {
+            create: {
+              twitter_id: profile.id,
+              auth_provider: 'twitter',
+              profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
+              email_verified: true
+            }
           }
         }
-      } else {
-        console.log('🎉 Twitter OAuth exitoso para usuario:', user.correo);
+      });
+      console.log('🆕 Nuevo usuario creado:', user.email);
+
+      // Enviar emails de notificación para nuevo usuario OAuth
+      try {
+        console.log('📧 [TWITTER OAUTH] Enviando emails de notificación...');
+        
+        const userName = `${user.nombre} ${user.apellido}`.trim();
+        
+        // 1. Email de cuenta creada exitosamente
+        await emailService.sendOAuthAccountCreatedEmail(user.email, userName, 'Twitter');
+        console.log('✅ [TWITTER OAUTH] Email de cuenta creada enviado');
+        
+        // 2. Email de bienvenida
+        await emailService.sendWelcomeEmail(user.email, userName);
+        console.log('✅ [TWITTER OAUTH] Email de bienvenida enviado');
+        
+      } catch (emailError) {
+        console.error('⚠️ [TWITTER OAUTH] Error al enviar emails (no crítico):', emailError);
       }
+
       done(null, user);
     } catch (error) {
       console.error('❌ Error en Twitter OAuth:', error);

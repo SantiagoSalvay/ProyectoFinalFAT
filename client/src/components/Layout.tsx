@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import React, { ReactNode } from 'react'
 import Header from './Header'
 import Footer from './Footer'
 
@@ -10,7 +10,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="pt-16 flex-1">
+      <main className="pt-16 flex-1 bg-white dark:bg-gray-900">
         {children}
       </main>
       <Footer />
