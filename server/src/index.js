@@ -7,6 +7,7 @@ import oauthRoutes from './routes/oauth.js';
 import forumRoutes from './routes/forum.js';
 import ongsRoutes from './routes/ongs.js';
 import mercadopagoRoutes from './routes/mercadopago.js';
+import adminRoutes from './routes/admin.js';
 import passport from './config/passport.js';
 
 // Cargar variables de entorno desde el directorio raíz
@@ -50,6 +51,7 @@ app.use('/auth', authRoutes);
 app.use('/api/auth', oauthRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/ongs', ongsRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/mercadopago', mercadopagoRoutes);
 
 // Ruta de prueba

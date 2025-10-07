@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -92,6 +93,35 @@ async function main() {
     skipDuplicates: true,
   });
   console.log(`   ✅ ${tiposDonacion.count} tipos de donación insertados`);
+
+  // 6. Super Admin
+  console.log('\n🛡️  Creando Super Admin por defecto...');
+  // Asegurar que el tipo Admin exista y obtener su ID
+  let adminTipo = await prisma.tipoUsuario.findFirst({ where: { tipo_usuario: 'Admin' } });
+  if (!adminTipo) {
+    adminTipo = await prisma.tipoUsuario.create({ data: { tipo_usuario: 'Admin' } });
+  }
+
+  const adminEmail = 'admin@demos.local';
+  const adminPassword = 'Admin#1234';
+  const existingAdmin = await prisma.usuario.findFirst({ where: { email: adminEmail } });
+  if (!existingAdmin) {
+    const hashed = await bcrypt.hash(adminPassword, 10);
+    const adminUser = await prisma.usuario.create({
+      data: {
+        nombre: 'Super',
+        apellido: 'Admin',
+        email: adminEmail,
+        contrasena: hashed,
+        id_tipo_usuario: adminTipo.id_tipo_usuario,
+        ubicacion: 'HQ',
+        detalleUsuario: { create: { email_verified: true } }
+      }
+    });
+    console.log(`   ✅ Super Admin creado: ${adminUser.email} (pass: ${adminPassword})`);
+  } else {
+    console.log('   ℹ️  Super Admin ya existe, no se modifica.');
+  }
 
   console.log('\n✅ Seed completado exitosamente!\n');
 }

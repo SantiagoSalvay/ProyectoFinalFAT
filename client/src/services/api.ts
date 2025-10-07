@@ -72,6 +72,66 @@ class ApiService {
       throw error;
     }
   }
+
+  // Admin API
+  async adminListComments(status: 'pending' | 'approved' | 'rejected' = 'pending') {
+    return this.request<{ comentarios: any[] }>(`/api/admin/comments?status=${status}`, { method: 'GET' });
+  }
+
+  async adminUpdateComment(id: number, data: { mensaje?: string; moderation_status?: string; rejection_reason?: string }) {
+    return this.request<{ message: string; comentario: any }>(`/api/admin/comments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminListUsers() {
+    return this.request<{ users: any[] }>(`/api/admin/users`, { method: 'GET' });
+  }
+
+  async adminUpdateUser(id: number, data: { nombre?: string; apellido?: string; ubicacion?: string }) {
+    return this.request<{ message: string; user: any }>(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminBanUser(id: number, data: { reason?: string; days?: number; permanent?: boolean }) {
+    return this.request<{ message: string }>(`/api/admin/users/${id}/ban`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminUnbanUser(id: number) {
+    return this.request<{ message: string; updated: number }>(`/api/admin/users/${id}/ban`, {
+      method: 'DELETE'
+    });
+  }
+
+  async adminListONGs() {
+    return this.request<{ ongs: any[] }>(`/api/admin/ongs`, { method: 'GET' });
+  }
+
+  async adminUpdateONG(id: number, data: { nombre?: string; ubicacion?: string }) {
+    return this.request<{ message: string; ong: any }>(`/api/admin/ongs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminBanONG(id: number, data: { reason?: string; days?: number; permanent?: boolean }) {
+    return this.request<{ message: string }>(`/api/admin/ongs/${id}/ban`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminUnbanONG(id: number) {
+    return this.request<{ message: string; updated: number }>(`/api/admin/ongs/${id}/ban`, {
+      method: 'DELETE'
+    });
+  }
   // Obtener donaciones realizadas por el usuario autenticado
   async getDonacionesRealizadas() {
     try {

@@ -36,6 +36,7 @@ import SearchOrgsPage from './pages/SearchOrgsPage'
 import VolunteerOpportunitiesPage from './pages/VolunteerOpportunitiesPage'
 import MyHistoryPage from './pages/MyHistoryPage'
 import MyDonationsPage from './pages/MyDonationsPage'
+import AdminPage from './pages/AdminPage'
 
 function App() {
   return (
@@ -96,6 +97,11 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminPage />
                 </ProtectedRoute>
               } />
               {/* Quick Actions routes */}
