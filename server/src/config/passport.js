@@ -221,8 +221,17 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 
 
 // Serializar usuario para la sesión
+
 passport.serializeUser((user, done) => {
-  done(null, user.id_usuario);
+  // Asegurarse de que user existe y tiene id_usuario
+  if (user && user.id_usuario) {
+    done(null, user.id_usuario);
+  } else if (user && user.id) {
+    // fallback por si el campo es id
+    done(null, user.id);
+  } else {
+    done(new Error('No se puede serializar usuario: id_usuario no encontrado'), null);
+  }
 });
 
 // Deserializar usuario de la sesión
