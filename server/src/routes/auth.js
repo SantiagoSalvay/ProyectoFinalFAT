@@ -785,14 +785,6 @@ router.get('/verify-email/:token', async (req, res) => {
         });
       }
       
-      if (usuarioExistente) {
-        console.log('⚠️ [VERIFICACIÓN] Este token ya fue usado. Usuario ya registrado:', usuarioExistente.correo);
-        return res.status(400).json({ 
-          error: 'Este enlace ya fue utilizado. Tu cuenta ya está activa. Puedes iniciar sesión.',
-          alreadyVerified: true
-        });
-      }
-      
       // Mostrar los últimos 5 tokens para debugging
       const ultimosRegistros = await prisma.RegistroPendiente.findMany({
         take: 5,
@@ -892,7 +884,7 @@ router.get('/verify-email/:token', async (req, res) => {
         id_tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
         coordenadas: pendingRegistration.coordenadas,
-        detalleUsuario: {
+        DetalleUsuario: {
           create: {
             email_verified: true
           }
@@ -1120,7 +1112,7 @@ router.get('/me', async (req, res) => {
         redes_sociales: true,
         id_tipo_usuario: true,
         createdAt: true,
-        detalleUsuario: {
+        DetalleUsuario: {
           select: {
             auth_provider: true,
             profile_picture: true,
@@ -1149,9 +1141,9 @@ router.get('/me', async (req, res) => {
       redes_sociales: user.redes_sociales,
       createdAt: user.createdAt,
       tipo_usuario: user.id_tipo_usuario,
-      auth_provider: user.detalleUsuario?.auth_provider || 'email',
-      profile_picture: user.detalleUsuario?.profile_picture || null,
-      email_verified: user.detalleUsuario?.email_verified || false
+      auth_provider: user.DetalleUsuario?.auth_provider || 'email',
+      profile_picture: user.DetalleUsuario?.profile_picture || null,
+      email_verified: user.DetalleUsuario?.email_verified || false
     };
     
     console.log('📤 [AUTH/ME] Redes sociales enviadas:', userResponse.redes_sociales);

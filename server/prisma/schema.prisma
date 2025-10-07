@@ -64,6 +64,7 @@ model Publicacion {
   fecha_publicacion          DateTime               @default(now())
   ultima_fecha_actualizacion DateTime               @default(now())
   ubicacion                  String?
+  imagenes                   String?                // JSON string con array de URLs de imágenes
   usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
   publicacionEtiquetas       PublicacionEtiqueta[]
   likes                      PublicacionLike[]

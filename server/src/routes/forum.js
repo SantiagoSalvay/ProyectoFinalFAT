@@ -160,7 +160,7 @@ router.post('/publicaciones',
   moderationMiddleware({ fieldName: 'descripcion', strict: true }),
   async (req, res) => {
   try {
-    const { titulo, descripcion, categorias, ubicacion, coordenadas } = req.body;
+    const { titulo, descripcion, categorias, ubicacion, coordenadas, imagenes } = req.body;
     const userId = req.user?.id_usuario;
 
     if (!userId) {
@@ -190,6 +190,12 @@ router.post('/publicaciones',
       }
     }
 
+    // Preparar datos de imágenes
+    let imagenesData = null;
+    if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
+      imagenesData = JSON.stringify(imagenes);
+    }
+
     // Crear la publicación
     const nuevaPublicacion = await prisma.Publicacion.create({
       data: {
@@ -197,7 +203,8 @@ router.post('/publicaciones',
         titulo,
         descripcion_publicacion: descripcion,
         fecha_publicacion: new Date(),
-        ubicacion: ubicacionData
+        ubicacion: ubicacionData,
+        imagenes: imagenesData
       }
     });
 
