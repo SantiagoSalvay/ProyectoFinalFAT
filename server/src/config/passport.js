@@ -16,15 +16,15 @@ passport.use(new GoogleStrategy({
   try {
     console.log('🔍 Google OAuth Profile:', profile);
     
-    // Buscar Usuario existente por google_id en DetalleUsuario
-    let DetalleUsuario = await prisma.DetalleUsuario.findUnique({
+    // Buscar Usuario existente por google_id en detalleUsuario
+    let detalleUsuario = await prisma.detalleUsuario.findUnique({
       where: { google_id: profile.id },
       include: { Usuario: true }
     });
 
-    if (DetalleUsuario) {
-      console.log('✅ Usuario existente encontrado:', DetalleUsuario.Usuario.email);
-      return done(null, DetalleUsuario.Usuario);
+    if (detalleUsuario) {
+      console.log('✅ Usuario existente encontrado:', detalleUsuario.Usuario.email);
+      return done(null, detalleUsuario.Usuario);
     }
 
     // Buscar Usuario existente por email
@@ -36,7 +36,7 @@ passport.use(new GoogleStrategy({
     if (user) {
       // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
       if (!user.DetalleUsuario) {
-        await prisma.DetalleUsuario.create({
+        await prisma.detalleUsuario.create({
           data: {
             id_usuario: user.id_usuario,
             google_id: profile.id,
@@ -46,8 +46,8 @@ passport.use(new GoogleStrategy({
           }
         });
       } else {
-        // Si ya tiene DetalleUsuario, actualizar con google_id
-        await prisma.DetalleUsuario.update({
+        // Si ya tiene detalleUsuario, actualizar con google_id
+        await prisma.detalleUsuario.update({
           where: { id_usuario: user.id_usuario },
           data: {
             google_id: profile.id,
@@ -123,15 +123,15 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         return done(new Error('No email found in Twitter profile'), null);
       }
 
-      // Buscar Usuario existente por twitter_id en DetalleUsuario
-      let DetalleUsuario = await prisma.DetalleUsuario.findUnique({
+      // Buscar Usuario existente por twitter_id en detalleUsuario
+      let detalleUsuario = await prisma.detalleUsuario.findUnique({
         where: { twitter_id: profile.id },
         include: { Usuario: true }
       });
 
-      if (DetalleUsuario) {
-        console.log('🎉 Twitter OAuth exitoso para Usuario:', DetalleUsuario.Usuario.email);
-        return done(null, DetalleUsuario.Usuario);
+      if (detalleUsuario) {
+        console.log('🎉 Twitter OAuth exitoso para Usuario:', detalleUsuario.Usuario.email);
+        return done(null, detalleUsuario.Usuario);
       }
 
       // Buscar Usuario existente por email
@@ -143,7 +143,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
       if (user) {
         // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
         if (!user.DetalleUsuario) {
-          await prisma.DetalleUsuario.create({
+          await prisma.detalleUsuario.create({
             data: {
               id_usuario: user.id_usuario,
               twitter_id: profile.id,
@@ -153,8 +153,8 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
             }
           });
         } else {
-          // Si ya tiene DetalleUsuario, actualizar con twitter_id
-          await prisma.DetalleUsuario.update({
+          // Si ya tiene detalleUsuario, actualizar con twitter_id
+          await prisma.detalleUsuario.update({
             where: { id_usuario: user.id_usuario },
             data: {
               twitter_id: profile.id,
@@ -178,7 +178,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
           apellido: lastName,
           email: email,
           id_tipo_usuario: 1, // Default to 'person'
-          DetalleUsuario: {
+          detalleUsuario: {
             create: {
               twitter_id: profile.id,
               auth_provider: 'twitter',

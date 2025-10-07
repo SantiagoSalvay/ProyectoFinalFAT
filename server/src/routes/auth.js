@@ -1080,4 +1080,89 @@ router.put('/profile', async (req, res) => {
   }
 });
 
+// Ruta para obtener información del usuario autenticado (GET /me)
+router.get('/me', async (req, res) => {
+  try {
+    console.log('🔍 [AUTH/ME] Headers recibidos:', req.headers);
+    
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      console.log('❌ [AUTH/ME] No se proporcionó token de autorización');
+      return res.status(401).json({ error: 'Token no proporcionado' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    console.log('🔑 [AUTH/ME] Token recibido:', token ? 'Presente' : 'Ausente');
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ [AUTH/ME] Token decodificado:', { userId: decoded.userId, email: decoded.email });
+    
+    const user = await prisma.usuario.findUnique({
+      where: { id_usuario: decoded.userId },
+      select: {
+        id_usuario: true,
+        nombre: true,
+        apellido: true,
+        email: true,
+        ubicacion: true,
+        biografia: true,
+        telefono: true,
+        redes_sociales: true,
+        id_tipo_usuario: true,
+        createdAt: true,
+        detalleUsuario: {
+          select: {
+            auth_provider: true,
+            profile_picture: true,
+            email_verified: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      console.log('❌ [AUTH/ME] Usuario no encontrado con ID:', decoded.userId);
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // Aplanar la estructura para mantener compatibilidad con el frontend
+    console.log('🔍 [AUTH/ME] Redes sociales en BD:', user.redes_sociales);
+    
+    const userResponse = {
+      id_usuario: user.id_usuario,
+      nombre: user.nombre,
+      apellido: user.apellido,
+      email: user.email,
+      ubicacion: user.ubicacion,
+      biografia: user.biografia,
+      telefono: user.telefono,
+      redes_sociales: user.redes_sociales,
+      createdAt: user.createdAt,
+      tipo_usuario: user.id_tipo_usuario,
+      auth_provider: user.detalleUsuario?.auth_provider || 'email',
+      profile_picture: user.detalleUsuario?.profile_picture || null,
+      email_verified: user.detalleUsuario?.email_verified || false
+    };
+    
+    console.log('📤 [AUTH/ME] Redes sociales enviadas:', userResponse.redes_sociales);
+
+    // Si es persona y no tiene ubicación, incluir advertencia
+    let warnings = [];
+    if (user.id_tipo_usuario === 1 && (!user.ubicacion || user.ubicacion === '')) {
+      warnings.push({
+        type: 'missing_location',
+        message: 'Tu perfil de persona no tiene una ubicación definida. Considera agregarla para mejorar tu experiencia.'
+      });
+    }
+
+    res.json({ user: userResponse, warnings });
+  } catch (error) {
+    console.error('💥 [AUTH/ME] Error al obtener perfil:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 export default router; 
