@@ -7,7 +7,7 @@ async function verifyData() {
     console.log('🔍 Verificando datos insertados...\n');
 
     // Verificar tipos de usuario
-    const tiposUsuario = await prisma.tipoUsuario.findMany();
+    const tiposUsuario = await prisma.TipoUsuario.findMany();
     console.log('📋 Tipos de Usuario:');
     tiposUsuario.forEach(tipo => {
       console.log(`  - ${tipo.tipo_usuario}`);
@@ -15,7 +15,7 @@ async function verifyData() {
     console.log('');
 
     // Verificar tipos de ranking
-    const tiposRanking = await prisma.tipoRanking.findMany();
+    const tiposRanking = await prisma.TipoRanking.findMany();
     console.log('🏆 Tipos de Ranking:');
     tiposRanking.forEach(tipo => {
       console.log(`  - ${tipo.tipo_ranking}`);
@@ -23,7 +23,7 @@ async function verifyData() {
     console.log('');
 
     // Verificar tipos de infracción
-    const tiposInfraccion = await prisma.tipoInfraccion.findMany();
+    const tiposInfraccion = await prisma.TipoInfraccion.findMany();
     console.log('⚠️  Tipos de Infracción:');
     tiposInfraccion.forEach(tipo => {
       console.log(`  - ${tipo.tipo_infraccion} (${tipo.severidad})`);
@@ -31,7 +31,7 @@ async function verifyData() {
     console.log('');
 
     // Verificar etiquetas
-    const etiquetas = await prisma.etiqueta.findMany();
+    const etiquetas = await prisma.Etiqueta.findMany();
     console.log('🏷️  Etiquetas:');
     etiquetas.forEach(etiqueta => {
       console.log(`  - ${etiqueta.etiqueta}`);
@@ -39,7 +39,7 @@ async function verifyData() {
     console.log('');
 
     // Verificar tipos de donación
-    const tiposDonacion = await prisma.tipoDonacion.findMany();
+    const tiposDonacion = await prisma.TipoDonacion.findMany();
     console.log('🎁 Tipos de Donación:');
     tiposDonacion.forEach(tipo => {
       console.log(`  - ${tipo.tipo_donacion}: ${tipo.descripcion} (${tipo.puntos} puntos)`);

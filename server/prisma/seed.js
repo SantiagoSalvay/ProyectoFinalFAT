@@ -7,7 +7,7 @@ async function main() {
 
   // 1. Tipos de Usuario
   console.log('📝 Insertando Tipos de Usuario...');
-  const tiposUsuario = await prisma.tipoUsuario.createMany({
+  const tiposUsuario = await prisma.TipoUsuario.createMany({
     data: [
       { tipo_usuario: 'Persona' },    // id: 1
       { tipo_usuario: 'ONG' },        // id: 2
@@ -19,7 +19,7 @@ async function main() {
 
   // 2. Tipos de Ranking
   console.log('\n📝 Insertando Tipos de Ranking...');
-  const tiposRanking = await prisma.tipoRanking.createMany({
+  const tiposRanking = await prisma.TipoRanking.createMany({
     data: [
       { tipo_ranking: 'Ranking ONG' },
       { tipo_ranking: 'Ranking Usuarios' },
@@ -30,7 +30,7 @@ async function main() {
 
   // 3. Tipos de Infracción
   console.log('\n📝 Insertando Tipos de Infracción...');
-  const tiposInfraccion = await prisma.tipoInfraccion.createMany({
+  const tiposInfraccion = await prisma.TipoInfraccion.createMany({
     data: [
       { tipo_infraccion: 'Contenido inapropiado', severidad: 'Media' },
       { tipo_infraccion: 'Spam', severidad: 'Baja' },
@@ -46,7 +46,7 @@ async function main() {
 
   // 4. Etiquetas
   console.log('\n📝 Insertando Etiquetas...');
-  const etiquetas = await prisma.etiqueta.createMany({
+  const etiquetas = await prisma.Etiqueta.createMany({
     data: [
       { etiqueta: 'Alimentos' },
       { etiqueta: 'Ropa' },
@@ -75,7 +75,7 @@ async function main() {
 
   // 5. Tipos de Donación
   console.log('\n📝 Insertando Tipos de Donación...');
-  const tiposDonacion = await prisma.tipoDonacion.createMany({
+  const tiposDonacion = await prisma.TipoDonacion.createMany({
     data: [
       { tipo_donacion: 'Alimentos', descripcion: 'Donación de productos alimenticios', puntos: 10 },
       { tipo_donacion: 'Ropa', descripcion: 'Donación de prendas de vestir', puntos: 5 },

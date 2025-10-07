@@ -8,16 +8,16 @@ async function debugResetToken() {
 
     // 1. Buscar usuarios con tokens de reset
     console.log('👥 [DEBUG] Usuarios con tokens de reset:');
-    const usuariosConResetToken = await prisma.usuario.findMany({
+    const usuariosConResetToken = await prisma.Usuario.findMany({
       where: {
         reset_token: {
           not: null
         }
       },
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
-        usuario: true,
+        Usuario: true,
         reset_token: true,
         reset_token_expiry: true
       }
@@ -47,7 +47,7 @@ async function debugResetToken() {
     console.log('⏰ [DEBUG] Tokens generados en las últimas 24 horas:');
     const hace24Horas = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    const tokensRecientes = await prisma.usuario.findMany({
+    const tokensRecientes = await prisma.Usuario.findMany({
       where: {
         reset_token: {
           not: null
@@ -57,7 +57,7 @@ async function debugResetToken() {
         }
       },
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
         reset_token: true,
         reset_token_expiry: true
@@ -85,17 +85,17 @@ async function debugResetToken() {
 
     // 3. Estadísticas generales
     console.log('📊 [DEBUG] Estadísticas:');
-    const totalUsuarios = await prisma.usuario.count();
-    const totalConResetToken = await prisma.usuario.count({
+    const totalUsuarios = await prisma.Usuario.count();
+    const totalConResetToken = await prisma.Usuario.count({
       where: { reset_token: { not: null } }
     });
-    const tokensExpirados = await prisma.usuario.count({
+    const tokensExpirados = await prisma.Usuario.count({
       where: {
         reset_token: { not: null },
         reset_token_expiry: { lt: new Date() }
       }
     });
-    const tokensValidos = await prisma.usuario.count({
+    const tokensValidos = await prisma.Usuario.count({
       where: {
         reset_token: { not: null },
         reset_token_expiry: { gte: new Date() }

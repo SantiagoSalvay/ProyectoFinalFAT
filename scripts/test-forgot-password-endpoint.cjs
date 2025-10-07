@@ -8,12 +8,12 @@ async function testForgotPasswordEndpoint() {
 
     // 1. Buscar un usuario para probar
     console.log('👥 [TEST] Buscando usuario para prueba...');
-    const usuarios = await prisma.usuario.findMany({
+    const usuarios = await prisma.Usuario.findMany({
       take: 1,
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
-        usuario: true
+        Usuario: true
       }
     });
 
@@ -47,7 +47,7 @@ async function testForgotPasswordEndpoint() {
       
       // 3. Verificar que se guardó el token en la base de datos
       console.log('\n💾 [TEST] Verificando token en la base de datos...');
-      const usuarioActualizado = await prisma.usuario.findUnique({
+      const usuarioActualizado = await prisma.Usuario.findUnique({
         where: { id_usuario: usuarioPrueba.id_usuario },
         select: {
           reset_token: true,

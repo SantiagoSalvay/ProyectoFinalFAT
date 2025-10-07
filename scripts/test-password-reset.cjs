@@ -82,12 +82,12 @@ async function testPasswordReset() {
 
     // 3. Buscar un usuario para probar
     console.log('\n👥 [TEST] Buscando usuario para prueba...');
-    const usuarios = await prisma.usuario.findMany({
+    const usuarios = await prisma.Usuario.findMany({
       take: 1,
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
-        usuario: true
+        Usuario: true
       }
     });
 
@@ -135,7 +135,7 @@ async function testPasswordReset() {
     console.log('\n💾 [TEST] Actualizando token en la base de datos...');
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hora
     
-    await prisma.usuario.update({
+    await prisma.Usuario.update({
       where: { id_usuario: usuarioPrueba.id_usuario },
       data: {
         reset_token: resetToken,

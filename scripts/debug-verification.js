@@ -8,7 +8,7 @@ async function debugVerification() {
     console.log('🔍 [DEBUG] Iniciando diagnóstico de verificación...\n');
 
     // 1. Verificar registros pendientes
-    const registrosPendientes = await prisma.registroPendiente.findMany({
+    const registrosPendientes = await prisma.RegistroPendiente.findMany({
       orderBy: { createdAt: 'desc' },
       take: 5
     });
@@ -27,7 +27,7 @@ async function debugVerification() {
     }
 
     // 2. Verificar usuarios registrados
-    const usuariosRegistrados = await prisma.usuario.findMany({
+    const usuariosRegistrados = await prisma.Usuario.findMany({
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: {
@@ -50,7 +50,7 @@ async function debugVerification() {
     }
 
     // 3. Verificar tipos de usuario
-    const tiposUsuario = await prisma.tipoUsuario.findMany();
+    const tiposUsuario = await prisma.TipoUsuario.findMany();
     console.log('🏷️ [DEBUG] Tipos de usuario disponibles:');
     tiposUsuario.forEach(tipo => {
       console.log(`   ${tipo.tipo_usuario}. ${tipo.nombre_tipo_usuario}`);

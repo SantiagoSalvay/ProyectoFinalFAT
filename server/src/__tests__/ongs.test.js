@@ -72,7 +72,7 @@ describe('ONGs API', () => {
           apellido: true,
           correo: true,
           ubicacion: true,
-          usuario: true,
+          Usuario: true,
           createdAt: true,
           bio: true
         },
@@ -217,7 +217,7 @@ describe('ONGs API', () => {
           apellido: true,
           correo: true,
           ubicacion: true,
-          usuario: true,
+          Usuario: true,
           createdAt: true,
           bio: true
         }

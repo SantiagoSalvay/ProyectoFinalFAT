@@ -657,7 +657,7 @@ router.post('/reset-password/:token', async (req, res) => {
     // Buscar token válido en la tabla PasswordResetToken
     const resetToken = await prisma.PasswordResetToken.findUnique({
       where: { token },
-      include: { usuario: true }
+      include: { Usuario: true }
     });
 
     if (!resetToken) {

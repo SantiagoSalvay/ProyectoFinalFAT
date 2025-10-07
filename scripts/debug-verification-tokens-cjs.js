@@ -8,12 +8,12 @@ async function debugVerificationTokens() {
 
     // 1. Mostrar todos los registros pendientes
     console.log('📋 [DEBUG] Registros pendientes actuales:');
-    const registrosPendientes = await prisma.registroPendiente.findMany({
+    const registrosPendientes = await prisma.RegistroPendiente.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         correo: true,
-        usuario: true,
+        Usuario: true,
         verification_token: true,
         createdAt: true,
         token_expiry: true
@@ -36,16 +36,16 @@ async function debugVerificationTokens() {
 
     // 2. Mostrar usuarios ya registrados con tokens de verificación
     console.log('👥 [DEBUG] Usuarios registrados con tokens de verificación:');
-    const usuariosConTokens = await prisma.usuario.findMany({
+    const usuariosConTokens = await prisma.Usuario.findMany({
       where: {
         verification_token: {
           not: null
         }
       },
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
-        usuario: true,
+        Usuario: true,
         verification_token: true,
         email_verified: true,
         createdAt: true
@@ -73,37 +73,37 @@ async function debugVerificationTokens() {
     console.log('🔍 [DEBUG] Búsqueda de tokens específicos:');
     
     // Buscar token problemático en registros pendientes
-    const tokenEnPendientes = await prisma.registroPendiente.findFirst({
+    const tokenEnPendientes = await prisma.RegistroPendiente.findFirst({
       where: { verification_token: tokenProblematico }
     });
     console.log(`   Token problemático (${tokenProblematico}) en registros pendientes: ${tokenEnPendientes ? 'SÍ' : 'NO'}`);
 
     // Buscar token problemático en usuarios registrados
-    const tokenEnUsuarios = await prisma.usuario.findFirst({
+    const tokenEnUsuarios = await prisma.Usuario.findFirst({
       where: { verification_token: tokenProblematico }
     });
     console.log(`   Token problemático en usuarios registrados: ${tokenEnUsuarios ? 'SÍ' : 'NO'}`);
 
     // Buscar token existente en registros pendientes
-    const tokenExistenteEnPendientes = await prisma.registroPendiente.findFirst({
+    const tokenExistenteEnPendientes = await prisma.RegistroPendiente.findFirst({
       where: { verification_token: tokenExistente }
     });
     console.log(`   Token existente (${tokenExistente}) en registros pendientes: ${tokenExistenteEnPendientes ? 'SÍ' : 'NO'}`);
 
     // Buscar token existente en usuarios registrados
-    const tokenExistenteEnUsuarios = await prisma.usuario.findFirst({
+    const tokenExistenteEnUsuarios = await prisma.Usuario.findFirst({
       where: { verification_token: tokenExistente }
     });
     console.log(`   Token existente en usuarios registrados: ${tokenExistenteEnUsuarios ? 'SÍ' : 'NO'}`);
 
     // 4. Estadísticas generales
     console.log('\n📊 [DEBUG] Estadísticas:');
-    const totalPendientes = await prisma.registroPendiente.count();
-    const totalUsuarios = await prisma.usuario.count();
-    const usuariosVerificados = await prisma.usuario.count({
+    const totalPendientes = await prisma.RegistroPendiente.count();
+    const totalUsuarios = await prisma.Usuario.count();
+    const usuariosVerificados = await prisma.Usuario.count({
       where: { email_verified: true }
     });
-    const usuariosNoVerificados = await prisma.usuario.count({
+    const usuariosNoVerificados = await prisma.Usuario.count({
       where: { email_verified: false }
     });
 
