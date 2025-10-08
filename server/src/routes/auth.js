@@ -220,10 +220,25 @@ router.get('/ongs', async (req, res) => {
         id_usuario: true,
         nombre: true,
         email: true,
-        ubicacion: true
+        ubicacion: true,
+        DetalleUsuario: {
+          select: {
+            puntosActuales: true
+          }
+        }
       }
     });
-    res.json({ ongs });
+    
+    // Agregar puntos a cada ONG
+    const ongsConPuntos = ongs.map(ong => ({
+      id_usuario: ong.id_usuario,
+      nombre: ong.nombre,
+      email: ong.email,
+      ubicacion: ong.ubicacion,
+      puntos: ong.DetalleUsuario?.puntosActuales || 0
+    }));
+    
+    res.json({ ongs: ongsConPuntos });
   } catch (error) {
     console.error('Error al obtener ONGs:', error);
     res.status(500).json({ error: 'Error al obtener ONGs' });
