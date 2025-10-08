@@ -489,7 +489,7 @@ router.post('/login', async (req, res) => {
 
     // Generar token JWT
     const token = jwt.sign(
-      { userId: user.id_usuario, email: user.email },
+      { userId: user.id_usuario, email: user.email, tipo_usuario: user.id_tipo_usuario },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );
@@ -931,7 +931,7 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // Generar token JWT para login automático
     const authToken = jwt.sign(
-      { userId: newUser.id_usuario, email: newUser.email },
+      { userId: newUser.id_usuario, email: newUser.email, tipo_usuario: newUser.id_tipo_usuario },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );

@@ -80,13 +80,6 @@ export default function Footer() {
                 </Link>
               </li>
               {isAuthenticated && (
-                <li>
-                  <Link to="/ongs" className="text-gray-300 hover:text-white transition-colors">
-                    ONGs
-                  </Link>
-                </li>
-              )}
-              {isAuthenticated && (
                 <>
                   <li>
                     <Link to="/map" className="text-gray-300 hover:text-white transition-colors">

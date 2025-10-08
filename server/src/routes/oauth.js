@@ -66,6 +66,7 @@ router.get('/google/callback',
         { 
           userId: req.user.id_usuario,
           email: req.user.email,
+          tipo_usuario: req.user.id_tipo_usuario,
           provider: userWithDetails?.DetalleUsuario?.auth_provider || 'google'
         },
         process.env.JWT_SECRET,
@@ -133,7 +134,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         // Generar JWT
         const authProvider = userWithDetails?.DetalleUsuario?.auth_provider || 'twitter';
         const token = jwt.sign(
-          { userId: user.id_usuario, email: user.email, provider: authProvider },
+          { userId: user.id_usuario, email: user.email, tipo_usuario: user.id_tipo_usuario, provider: authProvider },
           process.env.JWT_SECRET,
           { expiresIn: '7d' }
         );

@@ -20,7 +20,6 @@ export default function Header() {
   const unauthenticatedNavigation = [
     { name: 'Inicio', href: '/' },
     { name: 'Misión', href: '/mission' },
-    { name: 'ONGs', href: '/ongs' },
   ]
 
   // Navegación para usuarios registrados

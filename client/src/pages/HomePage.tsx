@@ -1,8 +1,11 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, Users, ArrowRight } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuth()
+  
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -47,19 +50,31 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link
-                to="/register"
-                className="btn-primary text-lg px-8 py-4 flex items-center bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                Comenzar Ahora
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
-              <Link
-                to="/mission"
-                className="btn-secondary text-lg px-8 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/20"
-              >
-                Conoce Nuestra Misión
-              </Link>
+              {!isAuthenticated ? (
+                <>
+                  <Link
+                    to="/register"
+                    className="btn-primary text-lg px-8 py-4 flex items-center bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    Comenzar Ahora
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                  <Link
+                    to="/mission"
+                    className="btn-secondary text-lg px-8 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                  >
+                    Conoce Nuestra Misión
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  to="/dashboard"
+                  className="btn-primary text-lg px-8 py-4 flex items-center bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Ir al Dashboard
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -157,32 +172,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20" style={{ backgroundColor: 'var(--color-bg)' }}>
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold mb-6" style={{ color: 'var(--color-fg)' }}>
-            ¿Listo para hacer la diferencia?
-          </h2>
-          <p className="text-xl mb-8" style={{ color: 'var(--color-muted)' }}>
-            Únete a miles de personas que ya están creando un impacto positivo 
-            en sus comunidades y en el mundo.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="btn-primary text-lg px-8 py-4"
-            >
-              Registrarse Ahora
-            </Link>
-            <Link
-              to="/login"
-              className="btn-secondary text-lg px-8 py-4"
-            >
-              Ya Tengo Cuenta
-            </Link>
+      {/* CTA Section - Solo para usuarios no autenticados */}
+      {!isAuthenticated && (
+        <section className="py-20" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl font-bold mb-6" style={{ color: 'var(--color-fg)' }}>
+              ¿Listo para hacer la diferencia?
+            </h2>
+            <p className="text-xl mb-8" style={{ color: 'var(--color-muted)' }}>
+              Únete a miles de personas que ya están creando un impacto positivo 
+              en sus comunidades y en el mundo.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/register"
+                className="btn-primary text-lg px-8 py-4"
+              >
+                Registrarse Ahora
+              </Link>
+              <Link
+                to="/login"
+                className="btn-secondary text-lg px-8 py-4"
+              >
+                Ya Tengo Cuenta
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   )
 } 

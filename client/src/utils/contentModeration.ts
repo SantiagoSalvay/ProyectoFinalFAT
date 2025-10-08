@@ -84,7 +84,83 @@ const PALABRAS_PROHIBIDAS = [
   
   // Otras palabras ofensivas
   'maldito', 'maldita', 'desgraciado', 'desgraciada', 'miserable',
-  'basura', 'escoria', 'parásito', 'parasito', 'rata', 'cucaracha'
+  'basura', 'escoria', 'parásito', 'parasito', 'rata', 'cucaracha',
+  
+  // Insultos argentinos y modismos ofensivos
+  'boludo', 'boluda', 'boludito', 'boludita', 'boludazo', 'boludaza',
+  'pelotudo', 'pelotuda', 'pelotudito', 'pelotudita', 'pelotudazo',
+  'gil', 'gila', 'gilastro', 'gilazo', 'gilada',
+  'tarado', 'tarada', 'taradito', 'taradita', 'taradazo',
+  'mogólico', 'mogolico', 'mongolon', 'mongui',
+  'garca', 'garcón', 'garcha', 'garchado', 'garchada',
+  'forro', 'forra', 'forrito', 'forrazo', 'forraso',
+  'chupapija', 'chupaverga', 'chupamedias', 'lameculos',
+  'la concha de tu madre', 'la concha de tu hermana', 'la concha de la lora',
+  'andate a la mierda', 'andate al carajo', 'rajá de acá', 'raja de aca',
+  'la puta que te parió', 'la puta que te pario', 'la re puta madre',
+  'hijo de puta', 'hijo de mil putas', 'hijo de re mil putas',
+  'la re concha de tu madre', 'la reconcha', 're concha',
+  'sorete', 'soretito', 'soretazo', 'soreteada',
+  'choto', 'chota', 'chotazo', 'al pedo',
+  'la concha de dios', 'me cago en dios', 'la puta madre',
+  'chupame', 'chupamela', 'chupate esta', 'chupenla',
+  'mamita', 'mamadera', 'mamerto', 'mamón', 'mamon',
+  'turro', 'turra', 'turrito', 'turraso', 'turrón',
+  'negro villero', 'negrada', 'negros de mierda',
+  'planero', 'planera', 'vago', 'vaga', 'vago de mierda',
+  
+  // Insultos específicos cordobeses
+  'culiado', 'culia', 'culiau', 'culiada', 'culiá',
+  'la puta', 'la pucha', 'qué culiado', 'que culiado',
+  'nabo', 'nabito', 'nabaso', 're nabo',
+  'chamuyero', 'chamuyera', 'chanta', 'chantazo', 'chantada',
+  'botón', 'boton', 'buchón', 'buchon', 'cagón', 'cagon',
+  'ortiva', 'ortibas', 'ortibón', 'ortibon',
+  'pecho frío', 'pecho frio', 'pechofrío', 'pechofrio',
+  'gato', 'gata', 'gatubi', 'minusa', 'minuza',
+  'groncho', 'groncha', 'gronchada', 'grasa', 'grasada',
+  'cagaste', 'te cagaron', 'la cagaste', 'cagador',
+  'pedorro', 'pedorra', 'pedorrito', 'pedorrazo',
+  'chupame un huevo', 'me importa un carajo', 'me chupa un huevo',
+  'andate a cagar', 'andate al chori', 'rajá gil', 'raja gil',
+  'la concha bien de tu madre', 'recontra', 're contra',
+  'malparido', 'malparida', 'malnacido', 'malnacida',
+  
+  // Variantes cordobesas con "culia"
+  'culiado loco', 'culiado man', 'culia loco', 'culia chabon',
+  'andá a cagar', 'anda a cagar', 'andá al carajo',
+  'boludo culiado', 'culiado boludo', 'la re culia',
+  'qué culiado que sos', 'que culiado que sos',
+  
+  // Expresiones ofensivas cordobesas
+  'la puta que lo parió', 'la puta que lo pario',
+  'me cago en vos', 'me cago en todos', 'cagón de mierda',
+  'la re puta madre que te parió', 'la re puta madre que te pario',
+  'sos un pelotudo', 'sos una pelotuda', 'sos un gil',
+  'sos un forro', 'sos una forra', 'sos un nabo',
+  
+  // Diminutivos y aumentativos ofensivos
+  'putito', 'putita', 'putón', 'puton', 'putazo',
+  'mierdita', 'mierdero', 'cagadita', 'cagadón', 'cagadon',
+  'forrito', 'forrazo', 'gillito', 'gilazo',
+  
+  // Vulgaridades adicionales argentinas
+  'la concha bien', 'me recontra cago', 'te recontra cago',
+  'chupame bien', 'metete', 'metételo', 'metetelo',
+  'pajero', 'pajera', 'pajerito', 'pajerón', 'pajeron',
+  'buchón de mierda', 'buchon de mierda', 'cagón de mierda',
+  'culo roto', 'rompeculos', 'rompehuevos', 'rompebolas',
+  'salame', 'salamín', 'salamin', 'salamazo',
+  'cabeza de termo', 'cabeza de tacho', 'termo', 'termo culiado',
+  'la re mil', 'la re putísima', 're putísima',
+  
+  // Expresiones discriminatorias argentinas
+  'villero', 'villera', 'villa miseria', 'negro villero',
+  'cabeza', 'cabecita', 'cabecita negra', 'cabeza de tacho',
+  'choriplanero', 'choriplanera', 'ñoqui', 'ñoquis',
+  'vende patria', 'vendepatria', 'cipayo', 'gorila',
+  'zurdo', 'zurdito', 'comunista de mierda', 'peroncho',
+  'kirchnerista', 'k', 'macrista', 'choriplaneros'
 ]
 
 // Patrones sospechosos

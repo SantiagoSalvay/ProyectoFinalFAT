@@ -710,6 +710,43 @@ class ApiService {
       throw error;
     }
   }
+
+  // Categories API methods
+  async getCategories() {
+    try {
+      const response = await this.request('/api/categories');
+      return response;
+    } catch (error) {
+      console.error('Error al obtener categorías:', error);
+      throw error;
+    }
+  }
+
+  async getONGCategories(ongId: number) {
+    try {
+      const response = await this.request(`/api/categories/ong/${ongId}`);
+      return response;
+    } catch (error) {
+      console.error('Error al obtener categorías de ONG:', error);
+      throw error;
+    }
+  }
+
+  async updateONGCategories(ongId: number, categoriaIds: number[]) {
+    try {
+      const response = await this.request(
+        `/api/categories/ong/${ongId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ categoriaIds }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar categorías de ONG:', error);
+      throw error;
+    }
+  }
 }
 
 export const api = new ApiService(); 

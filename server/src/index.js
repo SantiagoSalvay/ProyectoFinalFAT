@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js';
 import oauthRoutes from './routes/oauth.js';
 import forumRoutes from './routes/forum.js';
 import ongsRoutes from './routes/ongs.js';
+import categoriesRoutes from './routes/categories.js';
 import mercadopagoRoutes from './routes/mercadopago.js';
 import passport from './config/passport.js';
 
@@ -60,6 +61,7 @@ app.use('/auth', authRoutes);
 app.use('/api/auth', oauthRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/ongs', ongsRoutes);
+app.use('/api/categories', categoriesRoutes);
 app.use('/mercadopago', mercadopagoRoutes);
 
 // Ruta de prueba

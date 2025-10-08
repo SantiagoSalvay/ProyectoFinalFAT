@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { toast } from 'react-hot-toast'
 import { api } from '../services/api'
-import ClickableMapModal from '../components/ClickableMapModal'
 import InlineComments from '../components/InlineComments'
 import { usePostValidation } from '../hooks/useContentModeration'
 import { 
@@ -51,7 +50,7 @@ interface Post {
 }
 
 interface Categoria {
-  id_categoria: number
+  id_etiqueta: number
   etiqueta: string
 }
 
@@ -59,16 +58,18 @@ export default function ForumPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { addNotification } = useNotifications()
-  const { validatePost } = usePostValidation()
+  const { validatePost, validateTitle, validate } = usePostValidation()
   const [posts, setPosts] = useState<Post[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
   const [creatingPost, setCreatingPost] = useState(false)
-  const [showLocationModal, setShowLocationModal] = useState(false)
-  const [selectedLocation, setSelectedLocation] = useState<{
-    address: string;
-    coordinates: [number, number];
-  } | null>(null)
+  const [titleError, setTitleError] = useState<string>('')
+  const [contentError, setContentError] = useState<string>('')
+  
+  // Autocompletado de ubicación
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
+  const [locationLoading, setLocationLoading] = useState(false)
+  const LOCATIONIQ_API_KEY = (import.meta as any).env?.VITE_LOCATIONIQ_API_KEY
 
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -87,13 +88,13 @@ export default function ForumPage() {
     if (filtro === 'voluntariado' || filtro === 'volunteering') {
         const voluntariadoCategory = categorias.find(c => c.etiqueta === 'Voluntariado');
         if (voluntariadoCategory) {
-          setSelectedCategories([voluntariadoCategory.id_categoria]);
+          setSelectedCategories([voluntariadoCategory.id_etiqueta]);
         }
     }
     if (filtro === 'donaciones' || filtro === 'donations') {
         const donacionCategory = categorias.find(c => c.etiqueta === 'Donacion');
         if (donacionCategory) {
-          setSelectedCategories([donacionCategory.id_categoria]);
+          setSelectedCategories([donacionCategory.id_etiqueta]);
         }
       }
     }
@@ -118,6 +119,60 @@ export default function ForumPage() {
   
   // Ref para manejar checkboxes directamente
   const checkboxRefs = useRef<{[key: number]: HTMLInputElement | null}>({})
+
+  // Autocompletado de ubicación con debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (!newPost.location || newPost.location.length < 3) {
+        setLocationSuggestions([])
+        return
+      }
+      if (!LOCATIONIQ_API_KEY) {
+        setLocationSuggestions([])
+        return
+      }
+      setLocationLoading(true)
+      fetch(`https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(newPost.location)}&limit=8&countrycodes=ar&dedupe=1`)
+        .then(async res => {
+          if (!res.ok) {
+            setLocationSuggestions([])
+            return []
+          }
+          return res.json()
+        })
+        .then(data => {
+          if (!Array.isArray(data)) {
+            setLocationSuggestions([])
+            return
+          }
+          const filtered = data.filter((item: any) => {
+            return (
+              (item.address && (
+                (item.address.city && item.address.city.toLowerCase().includes('córdoba')) ||
+                (item.address.state && item.address.state.toLowerCase().includes('córdoba')) ||
+                (item.display_name && item.display_name.toLowerCase().includes('córdoba'))
+              ))
+            );
+          });
+          setLocationSuggestions(filtered.map((item: any) => {
+            const road = item.address?.road || item.address?.name || '';
+            const houseNumber = item.address?.house_number || '';
+            if (road && houseNumber) {
+              return `${road} ${houseNumber}, Córdoba`;
+            }
+            if (road) {
+              return `${road}, Córdoba`;
+            }
+            return item.display_name;
+          }));
+        })
+        .catch(() => {
+          setLocationSuggestions([])
+        })
+        .finally(() => setLocationLoading(false))
+    }, 600)
+    return () => clearTimeout(handler)
+  }, [newPost.location, showCreatePost])
 
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -475,18 +530,6 @@ export default function ForumPage() {
     }
   }
 
-  // Función para manejar la selección de ubicación del modal
-  const handleLocationSelect = (location: { address: string; coordinates: [number, number] }) => {
-    setSelectedLocation(location);
-    setNewPost(prev => ({ 
-      ...prev, 
-      location: location.address,
-      coordinates: location.coordinates
-    }));
-    setShowLocationModal(false);
-    toast.success('Ubicación seleccionada correctamente');
-  };
-
   // Función para comprimir imágenes (versión simplificada para debugging)
   const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -675,7 +718,7 @@ export default function ForumPage() {
   // Función para verificar si una publicación requiere ubicación
   const requiresLocation = (categoriasIds: number[]) => {
     const locationRequiredCategories = categoriasIds.filter(catId => {
-      const categoria = categorias.find(c => c.id_categoria === catId)
+      const categoria = categorias.find(c => c.id_etiqueta === catId)
       return categoria?.etiqueta === 'Donacion' || categoria?.etiqueta === 'Voluntariado'
     })
     return locationRequiredCategories.length > 0
@@ -706,7 +749,7 @@ export default function ForumPage() {
     // Filtro de categorías
     const matchesCategory = selectedCategories.length === 0 || 
                            selectedCategories.some(catId => {
-                             const categoria = categorias.find(c => c.id_categoria === catId);
+                             const categoria = categorias.find(c => c.id_etiqueta === catId);
                              return categoria && post.tags.includes(categoria.etiqueta);
                            });
 
@@ -773,13 +816,13 @@ export default function ForumPage() {
 
               <div className="flex flex-wrap gap-2">
                 {(showAllCategories ? categorias : categorias.slice(0, 8)).map(categoria => {
-                  const isSelected = selectedCategories.includes(categoria.id_categoria);
+                  const isSelected = selectedCategories.includes(categoria.id_etiqueta);
                   const count = posts.filter(post => post.tags.includes(categoria.etiqueta)).length;
                   
                   return (
                     <button
-                      key={categoria.id_categoria}
-                      onClick={() => handleToggleCategory(categoria.id_categoria)}
+                      key={categoria.id_etiqueta}
+                      onClick={() => handleToggleCategory(categoria.id_etiqueta)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         isSelected
                           ? 'bg-purple-600 text-white shadow-md hover:bg-purple-700'
@@ -810,7 +853,7 @@ export default function ForumPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-medium text-gray-600">Filtros activos:</span>
                 {selectedCategories.map(catId => {
-                  const categoria = categorias.find(c => c.id_categoria === catId);
+                  const categoria = categorias.find(c => c.id_etiqueta === catId);
                   if (!categoria) return null;
                   
                   return (
@@ -903,21 +946,61 @@ export default function ForumPage() {
                   <input
                     type="text"
                     value={newPost.title}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-                    className="input-field"
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setNewPost(prev => ({ ...prev, title: value }))
+                      // Validación en tiempo real
+                      if (value.length > 0) {
+                        const validation = validateTitle(value)
+                        if (!validation.isValid) {
+                          setTitleError(validation.errors[0] || 'Error de validación')
+                        } else {
+                          setTitleError('')
+                        }
+                      } else {
+                        setTitleError('')
+                      }
+                    }}
+                    className={`input-field ${titleError ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Título de la publicación"
                   />
+                  {titleError && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {titleError}
+                    </p>
+                  )}
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contenido</label>
                   <textarea
                     value={newPost.content}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-                    className="input-field"
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setNewPost(prev => ({ ...prev, content: value }))
+                      // Validación en tiempo real
+                      if (value.length > 0) {
+                        const validation = validate(value)
+                        if (!validation.isValid) {
+                          setContentError(validation.errors[0] || 'Error de validación')
+                        } else {
+                          setContentError('')
+                        }
+                      } else {
+                        setContentError('')
+                      }
+                    }}
+                    className={`input-field ${contentError ? 'border-red-500 focus:ring-red-500' : ''}`}
                     rows={4}
                     placeholder="Describe tu publicación..."
                   />
+                  {contentError && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {contentError}
+                    </p>
+                  )}
                 </div>
                 
                 <div>
@@ -959,29 +1042,63 @@ export default function ForumPage() {
                 </div>
                 
                 {/* Campo de ubicación opcional */}
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Ubicación (opcional)
                   </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newPost.location}
-                        onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
-                        className="input-field flex-1"
-                        placeholder="Ciudad, País"
-                      />
-                      <button
-                        type="button"
-                        className="p-2 rounded border flex items-center justify-center hover:bg-gray-50 transition-colors"
-                        title="Seleccionar ubicación en el mapa"
-                        onClick={() => setShowLocationModal(true)}
-                        style={{ background: 'color-mix(in oklab, var(--accent) 8%, transparent)', borderColor: 'var(--accent)' }}
-                      >
-                        <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                      </button>
+                  <input
+                    type="text"
+                    value={newPost.location}
+                    onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Tab' && locationSuggestions.length > 0) {
+                        e.preventDefault()
+                        const firstSuggestion = locationSuggestions[0]
+                        setNewPost(prev => ({ ...prev, location: firstSuggestion }))
+                        setLocationSuggestions([])
+                      }
+                    }}
+                    className="input-field w-full"
+                    placeholder="Calle y numeración en Córdoba (presiona TAB para autocompletar)"
+                    autoComplete="off"
+                  />
+                  
+                  {/* Sugerencias de autocompletado - Primera en negrita */}
+                  {locationSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                      <div className="max-h-36 overflow-y-auto">
+                        {locationSuggestions.slice(0, 3).map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className={`w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors ${
+                              index === 0 ? 'bg-purple-50' : ''
+                            }`}
+                            onClick={() => {
+                              setNewPost(prev => ({ ...prev, location: suggestion }))
+                              setLocationSuggestions([])
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                              <span className={`text-sm ${index === 0 ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+                                {suggestion}
+                              </span>
+                              {index === 0 && (
+                                <span className="ml-auto text-xs text-purple-600">Presiona TAB</span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                        {locationSuggestions.length > 3 && (
+                          <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-t border-gray-200">
+                            +{locationSuggestions.length - 3} sugerencias más disponibles
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </div>
 
                 {/* Sección de imágenes */}
                 <div>
@@ -1096,59 +1213,9 @@ export default function ForumPage() {
                     )}
                   </div>
                   
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                    <span>{post.author.name}</span>
-                    {post.author.organization && (
-                      <span>• {post.author.organization}</span>
-                    )}
-                    {post.location && (
-                      <span className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {post.location}
-                      </span>
-                    )}
-                    <span className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      {post.createdAt.toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-700 mb-4">{post.content}</p>
-                  
-                  {/* Imágenes de la publicación */}
-                  {post.imagenes && post.imagenes.length > 0 && (
-                    <div className="mb-4">
-                      {post.imagenes.length === 1 ? (
-                        <img
-                          src={post.imagenes[0]}
-                          alt="Imagen de la publicación"
-                          className="w-full max-w-md h-48 object-cover rounded-lg border"
-                        />
-                      ) : (
-                        <div className="grid grid-cols-2 gap-2 max-w-md">
-                          {post.imagenes.slice(0, 4).map((imagen, index) => (
-                            <div key={index} className="relative">
-                              <img
-                                src={imagen}
-                                alt={`Imagen ${index + 1}`}
-                                className="w-full h-24 object-cover rounded-lg border"
-                              />
-                              {index === 3 && post.imagenes.length > 4 && (
-                                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
-                                  <span className="text-white font-semibold">
-                                    +{post.imagenes.length - 4}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
+                  {/* Solo mostrar categorías en la vista de lista */}
                   {post.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {post.tags.map(tag => (
                         <span
                           key={tag}
@@ -1160,15 +1227,41 @@ export default function ForumPage() {
                       ))}
                     </div>
                   )}
-
-                  {/* Ubicación de la publicación */}
-                  {post.location && (
-                    <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">Ubicación:</span>
-                      <span>{post.location}</span>
-                    </div>
-                  )}
+                  
+                  {/* Mensaje para ver detalles y botones de acción */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500 italic">
+                      Haz clic para ver la descripción completa, ubicación, imágenes y comentarios
+                    </p>
+                    
+                    {/* Botones de editar/eliminar para el autor */}
+                    {user && user.id_usuario === post.id_usuario && (
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditPost(post)
+                          }}
+                          className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 transition-colors"
+                          title="Editar publicación"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          <span className="text-xs">Editar</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEliminarPublicacion(post.id)
+                          }}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
+                          title="Eliminar publicación"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="text-xs">Eliminar</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center space-x-6">
@@ -1235,15 +1328,6 @@ export default function ForumPage() {
                   </div>
                 </div>
               </div>
-              
-              {/* Comentarios inline */}
-              <div onClick={(e) => e.stopPropagation()}>
-              <InlineComments
-                publicacionId={post.id}
-                isExpanded={expandedComments.has(post.id)}
-                onToggle={() => handleToggleComments(post.id)}
-              />
-              </div>
 
               {/* Vista expandida de imágenes */}
               {expandedPost === post.id && post.imagenes && post.imagenes.length > 0 && (
@@ -1283,14 +1367,6 @@ export default function ForumPage() {
             </div>
           )}
         </div>
-
-        {/* Modal de selección de ubicación */}
-        <ClickableMapModal
-          isOpen={showLocationModal}
-          onClose={() => setShowLocationModal(false)}
-          onLocationSelect={handleLocationSelect}
-          initialLocation={newPost.location}
-        />
 
       </div>
     </div>

@@ -537,7 +537,17 @@ router.delete('/publicaciones/:id', authenticateToken, async (req, res) => {
 router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id_usuario;
+    
+    console.log('👍 [LIKE] Usuario del request:', req.user);
+    console.log('👍 [LIKE] ID de publicación:', id);
+    
+    const userId = req.user?.id_usuario;
+    
+    if (!userId) {
+      console.error('❌ [LIKE] Usuario no tiene id_usuario');
+      return res.status(401).json({ error: 'Usuario no autorizado' });
+    }
+    
     const publicacionId = parseInt(id);
 
     // Verificar que la publicación existe
@@ -548,6 +558,8 @@ router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
     if (!publicacion) {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
+    
+    console.log('👍 [LIKE] Publicación encontrada, procesando like...');
 
     // Verificar si el usuario ya dio like
     const likeExistente = await prisma.PublicacionLike.findUnique({
@@ -576,6 +588,7 @@ router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
         select: { num_megusta: true }
       });
 
+      console.log('👍 [LIKE] Like removido exitosamente');
       return res.json({
         liked: false,
         totalLikes: updatedPublicacion.num_megusta
@@ -600,6 +613,7 @@ router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
         select: { num_megusta: true }
       });
 
+      console.log('👍 [LIKE] Like agregado exitosamente');
       return res.json({
         liked: true,
         totalLikes: updatedPublicacion.num_megusta

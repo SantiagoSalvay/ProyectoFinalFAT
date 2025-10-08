@@ -83,9 +83,15 @@ export default function PostDetailPage() {
     }
 
     try {
-      await api.likePublicacion(id!)
+      const response = await api.toggleLike(id!)
       // Recargar el post para obtener el estado actualizado
       await loadPost()
+      
+      // Mostrar mensaje de éxito
+      toast.success(response.liked ? '¡Te gusta esta publicación!' : 'Ya no te gusta esta publicación', {
+        duration: 2000,
+        icon: response.liked ? '💜' : '🤍'
+      })
     } catch (error) {
       console.error('Error al dar like:', error)
       toast.error('Error al dar like')
@@ -341,6 +347,7 @@ export default function PostDetailPage() {
                 publicacionId={post.id}
                 isExpanded={expandedComments}
                 onToggle={() => setExpandedComments(!expandedComments)}
+                onCommentAdded={() => loadPost()}
               />
             </div>
           )}

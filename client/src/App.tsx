@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
 import { NotificationProvider } from './contexts/NotificationContext'
+import NotificationManager from './components/NotificationManager'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -21,7 +22,6 @@ import AuthCallbackPage from './pages/AuthCallbackPage'
 
 import MapPage from './pages/MapPage'
 import RankingPage from './pages/RankingPage'
-import ONGsPage from './pages/ONGsPage'
 import Donaciones from './pages/Donaciones'
 import ProtectedRoute from './components/ProtectedRoute'
 import UnauthenticatedOnlyRoute from './components/UnauthenticatedOnlyRoute'
@@ -41,6 +41,7 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
+        <NotificationManager />
         <div className="min-h-screen">
           <Layout>
             <Routes>
@@ -58,7 +59,6 @@ function App() {
                   <MissionPage />
                 </UnauthenticatedOnlyRoute>
               } />
-              <Route path="/ongs" element={<ONGsPage />} />
               
               {/* Rutas solo para usuarios registrados */}
               <Route path="/donaciones" element={

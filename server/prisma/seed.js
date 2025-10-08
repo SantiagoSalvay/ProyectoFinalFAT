@@ -93,6 +93,30 @@ async function main() {
   });
   console.log(`   ✅ ${tiposDonacion.count} tipos de donación insertados`);
 
+  // 6. Categorías para ONGs
+  console.log('\n📝 Insertando Categorías...');
+  const categorias = await prisma.Categoria.createMany({
+    data: [
+      { nombre: 'Educación', descripcion: 'Organizaciones dedicadas a la educación y capacitación', color: '#3B82F6', icono: '📚' },
+      { nombre: 'Salud', descripcion: 'Organizaciones enfocadas en salud y bienestar', color: '#10B981', icono: '🏥' },
+      { nombre: 'Medio Ambiente', descripcion: 'Protección del medio ambiente y sustentabilidad', color: '#059669', icono: '🌱' },
+      { nombre: 'Derechos Humanos', descripcion: 'Defensa de derechos humanos y justicia social', color: '#8B5CF6', icono: '⚖️' },
+      { nombre: 'Animales', descripcion: 'Protección y cuidado de animales', color: '#F59E0B', icono: '🐾' },
+      { nombre: 'Alimentación', descripcion: 'Combate al hambre y seguridad alimentaria', color: '#EF4444', icono: '🍽️' },
+      { nombre: 'Niñez y Adolescencia', descripcion: 'Protección y desarrollo de niños y adolescentes', color: '#EC4899', icono: '👶' },
+      { nombre: 'Adultos Mayores', descripcion: 'Apoyo y cuidado de adultos mayores', color: '#6366F1', icono: '👴' },
+      { nombre: 'Vivienda', descripcion: 'Acceso a vivienda digna', color: '#14B8A6', icono: '🏠' },
+      { nombre: 'Cultura y Arte', descripcion: 'Promoción de la cultura y las artes', color: '#F97316', icono: '🎨' },
+      { nombre: 'Deportes', descripcion: 'Fomento del deporte y la recreación', color: '#06B6D4', icono: '⚽' },
+      { nombre: 'Discapacidad', descripcion: 'Inclusión y apoyo a personas con discapacidad', color: '#A855F7', icono: '♿' },
+      { nombre: 'Género', descripcion: 'Igualdad de género y derechos de la mujer', color: '#E11D48', icono: '👥' },
+      { nombre: 'Comunidad', descripcion: 'Desarrollo comunitario y participación ciudadana', color: '#84CC16', icono: '🤝' },
+      { nombre: 'Empleo', descripcion: 'Capacitación laboral y generación de empleo', color: '#0EA5E9', icono: '💼' },
+    ],
+    skipDuplicates: true,
+  });
+  console.log(`   ✅ ${categorias.count} categorías insertadas`);
+
   console.log('\n✅ Seed completado exitosamente!\n');
 }
 
