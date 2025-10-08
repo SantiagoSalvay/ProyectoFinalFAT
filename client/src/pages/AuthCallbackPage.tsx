@@ -11,6 +11,7 @@ export default function AuthCallbackPage() {
   const [authStatus, setAuthStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [userInfo, setUserInfo] = useState<any>(null)
   const [token, setToken] = useState<string>('')
+  const [secondsLeft, setSecondsLeft] = useState<number>(5)
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -66,10 +67,18 @@ export default function AuthCallbackPage() {
         // Mostrar mensaje de éxito
         toast.success(`¡Bienvenido! Iniciaste sesión con ${provider}`)
 
-        // Redirigir a la página principal después de 5 segundos
-        setTimeout(() => {
-          navigate('/')
-        }, 5000)
+        // Redirigir a la página principal después de 5 segundos con contador
+        setSecondsLeft(5)
+        const intervalId = setInterval(() => {
+          setSecondsLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(intervalId)
+              navigate('/')
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
 
       } catch (error) {
         console.error('Error en callback OAuth:', error)
@@ -128,7 +137,7 @@ export default function AuthCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
         {/* Header de éxito */}
         <div className="mb-6">
@@ -161,7 +170,7 @@ export default function AuthCallbackPage() {
             Ir a la Página Principal
           </button>
           <p className="text-sm text-gray-500">
-            Serás redirigido automáticamente en 5 segundos...
+            Serás redirigido automáticamente en {secondsLeft} segundos...
           </p>
         </div>
       </div>

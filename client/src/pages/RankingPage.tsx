@@ -221,10 +221,10 @@ export default function RankingPage() {
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-900">{ong.name}</h3>
                         <div className="flex items-center space-x-2">
-                          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                          <span className="bg-purple-200 text-purple-900 text-xs font-semibold px-2.5 py-0.5 rounded ring-1 ring-purple-300">
                             {ong.grupo_social}
                           </span>
-                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                          <span className="bg-blue-200 text-blue-900 text-xs font-semibold px-2.5 py-0.5 rounded ring-1 ring-blue-300">
                             {ong.necesidad}
                           </span>
                         </div>

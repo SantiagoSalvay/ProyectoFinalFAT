@@ -14,6 +14,7 @@ export default function VerifyEmailPage() {
   const [isTokenExpired, setIsTokenExpired] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const hasVerified = useRef(false) // Para evitar múltiples ejecuciones
+  const [secondsLeft, setSecondsLeft] = useState<number>(5)
 
   console.log('VerifyEmailPage cargado en React Router')
   console.log('Token:', token)
@@ -54,11 +55,19 @@ export default function VerifyEmailPage() {
             setUserFromVerification(data.user, data.token)
           }
           
-          // Redirigir inmediatamente a la cuenta del usuario
+          // Redirigir con contador
           console.log('🚀 Redirigiendo a la cuenta...')
-          setTimeout(() => {
-            navigate('/dashboard') // Cambio a dashboard que es más apropiado para "mi cuenta"
-          }, 2000) // Reducido a 2 segundos
+          setSecondsLeft(5)
+          const intervalId = setInterval(() => {
+            setSecondsLeft(prev => {
+              if (prev <= 1) {
+                clearInterval(intervalId)
+                navigate('/dashboard')
+                return 0
+              }
+              return prev - 1
+            })
+          }, 1000)
         } else {
           console.error('❌ Error en la verificación:', data.error)
           setVerificationStatus('error')
@@ -129,7 +138,7 @@ export default function VerifyEmailPage() {
 
   if (verificationStatus === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-2xl p-8 shadow-2xl border border-gray-200 text-center max-w-md w-full mx-4">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Verificando tu email...</h2>
@@ -141,7 +150,7 @@ export default function VerifyEmailPage() {
 
   if (verificationStatus === 'error') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50">
+      <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow-lg px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <Link to="/" className="text-4xl md:text-5xl font-bold text-purple-600">
@@ -222,7 +231,7 @@ export default function VerifyEmailPage() {
 
   // verificationStatus === 'success'
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-lg px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-4xl md:text-5xl font-bold text-purple-600">
@@ -251,7 +260,7 @@ export default function VerifyEmailPage() {
             </div>
             
             {userData?.reenvio ? (
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-6 mb-6">
+              <div className="bg-blue-50 rounded-lg p-6 mb-6">
                 <p className="text-gray-700 text-sm leading-relaxed">
                   Por favor, revisa tu bandeja de entrada. El enlace de verificación permanecerá válido hasta que lo uses.
                 </p>
@@ -260,12 +269,12 @@ export default function VerifyEmailPage() {
                 </p>
               </div>
             ) : (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 mb-6">
+              <div className="bg-emerald-50 rounded-lg p-6 mb-6">
                 <p className="text-gray-700 text-sm leading-relaxed mb-3">
                   ¡Bienvenido a DEMOS+, <strong className="text-purple-600">{userData?.nombre} {userData?.apellido}</strong>!
                 </p>
                 <p className="text-gray-700 text-sm leading-relaxed">
-                  Tu sesión se ha iniciado automáticamente. Serás redirigido a tu cuenta en unos momentos.
+                  Tu sesión se ha iniciado automáticamente. Serás redirigido a tu cuenta en {secondsLeft} segundos...
                 </p>
               </div>
             )}

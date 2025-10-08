@@ -932,6 +932,11 @@ export default function ForumPage() {
                         <label 
                           key={categoria.id_etiqueta} 
                           className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                          style={{
+                            // En modo oscuro evitar blanco puro en hover
+                            // El CSS global ya ajusta .hover:bg-gray-50, esto es por si falta la clase
+                            backgroundColor: 'transparent'
+                          }}
                         >
                           <input
                             type="checkbox"
