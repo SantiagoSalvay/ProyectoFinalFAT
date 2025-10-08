@@ -31,17 +31,18 @@ export interface SocialMediaLink {
 export interface ONG {
   id: number;
   name: string;
-  description: string;
+  description?: string;
   location: string;
   coordinates?: [number, number];
   socialMedia?: SocialMediaLink[];
   email: string;
-  type: 'public' | 'private';
-  rating: number;
-  volunteers_count: number;
-  projects_count: number;
-  website: string;
-  phone: string;
+  type?: 'public' | 'private';
+  rating?: number;
+  volunteers_count?: number;
+  projects_count?: number;
+  website?: string;
+  phone?: string;
+  puntos?: number;
 }
 
 // Clase API
