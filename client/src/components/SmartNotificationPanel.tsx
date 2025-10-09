@@ -273,7 +273,15 @@ export default function SmartNotificationPanel() {
                 </span>
                 {filter !== 'all' && (
                   <button
-                    onClick={() => clearCategory(filter === 'all' ? undefined : filter)}
+                    onClick={() => {
+                      if (filter === 'unread') {
+                        // If filter is 'unread', clear all unread notifications
+                        notifications.filter(n => !n.read).forEach(notif => removeNotification(notif.id));
+                      } else {
+                        // For category filters, clear the specific category
+                        clearCategory(filter);
+                      }
+                    }}
                     className="text-xs text-red-600 hover:text-red-800"
                   >
                     Limpiar categoría
