@@ -66,7 +66,7 @@ function App() {
                   <Donaciones />
                 </AuthenticatedOnlyRoute>
               } />
-              <Route path="/map" element={
+                <Route path="/map" element={
                 <AuthenticatedOnlyRoute>
                   <MapPage />
                 </AuthenticatedOnlyRoute>
