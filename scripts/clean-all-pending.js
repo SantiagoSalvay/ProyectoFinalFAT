@@ -8,12 +8,12 @@ async function cleanAllPendingRegistrations() {
     console.log('⚠️ [LIMPIEZA TOTAL] Solo ejecuta esto si estás seguro de que quieres limpiar todo\n');
 
     // 1. Mostrar todos los registros pendientes
-    const todosLosRegistros = await prisma.registroPendiente.findMany({
+    const todosLosRegistros = await prisma.RegistroPendiente.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         correo: true,
-        usuario: true,
+        Usuario: true,
         verification_token: true,
         createdAt: true
       }
@@ -35,12 +35,12 @@ async function cleanAllPendingRegistrations() {
     // 2. Eliminar todos los registros pendientes
     console.log('\n🗑️ [LIMPIEZA TOTAL] Eliminando todos los registros pendientes...');
     
-    const resultado = await prisma.registroPendiente.deleteMany({});
+    const resultado = await prisma.RegistroPendiente.deleteMany({});
     
     console.log(`✅ [LIMPIEZA TOTAL] Eliminados ${resultado.count} registros pendientes`);
 
     // 3. Verificar que se eliminaron todos
-    const registrosRestantes = await prisma.registroPendiente.count();
+    const registrosRestantes = await prisma.RegistroPendiente.count();
     console.log(`📊 [LIMPIEZA TOTAL] Registros pendientes restantes: ${registrosRestantes}`);
 
     if (registrosRestantes === 0) {

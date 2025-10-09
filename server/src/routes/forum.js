@@ -23,7 +23,7 @@ const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     
     // Buscar el usuario en la base de datos
-    const usuario = await prisma.usuario.findUnique({
+    const usuario = await prisma.Usuario.findUnique({
       where: { id_usuario: decoded.userId },
       select: { 
         id_usuario: true, 
@@ -46,7 +46,7 @@ const authenticateToken = async (req, res, next) => {
 // Obtener todas las categorías
 router.get('/categorias', async (req, res) => {
   try {
-    const categorias = await prisma.etiqueta.findMany({
+    const categorias = await prisma.Etiqueta.findMany({
       orderBy: {
         etiqueta: 'asc'
       }
@@ -74,7 +74,7 @@ router.get('/publicaciones', async (req, res) => {
       }
     }
 
-    const publicaciones = await prisma.publicacion.findMany({
+    const publicaciones = await prisma.Publicacion.findMany({
       include: {
         usuario: {
           select: {
@@ -125,6 +125,17 @@ router.get('/publicaciones', async (req, res) => {
         }
       }
       
+      // Procesar imágenes
+      let imagenes = [];
+      if (publicacion.imagenes) {
+        try {
+          imagenes = JSON.parse(publicacion.imagenes);
+        } catch (e) {
+          console.error('Error al parsear imágenes:', e);
+          imagenes = [];
+        }
+      }
+
       return {
         id: publicacion.id_publicacion.toString(),
         title: publicacion.titulo,
@@ -139,6 +150,7 @@ router.get('/publicaciones', async (req, res) => {
         },
         tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
         location: location,
+        imagenes: imagenes,
         likes: publicacion.num_megusta || 0,
         comments: publicacion.respuestas.length,
         createdAt: publicacion.fecha_publicacion,
@@ -160,7 +172,7 @@ router.post('/publicaciones',
   moderationMiddleware({ fieldName: 'descripcion', strict: true }),
   async (req, res) => {
   try {
-    const { titulo, descripcion, categorias, ubicacion, coordenadas } = req.body;
+    const { titulo, descripcion, categorias, ubicacion, coordenadas, imagenes } = req.body;
     const userId = req.user?.id_usuario;
 
     if (!userId) {
@@ -168,7 +180,7 @@ router.post('/publicaciones',
     }
 
     // Verificar que el usuario sea ONG
-    const usuario = await prisma.usuario.findUnique({
+    const usuario = await prisma.Usuario.findUnique({
       where: { id_usuario: userId },
       select: { id_tipo_usuario: true }
     });
@@ -190,14 +202,21 @@ router.post('/publicaciones',
       }
     }
 
+    // Preparar datos de imágenes
+    let imagenesData = null;
+    if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
+      imagenesData = JSON.stringify(imagenes);
+    }
+
     // Crear la publicación
-    const nuevaPublicacion = await prisma.publicacion.create({
+    const nuevaPublicacion = await prisma.Publicacion.create({
       data: {
         id_usuario: userId,
         titulo,
         descripcion_publicacion: descripcion,
         fecha_publicacion: new Date(),
-        ubicacion: ubicacionData
+        ubicacion: ubicacionData,
+        imagenes: imagenesData
       }
     });
 
@@ -217,7 +236,7 @@ router.post('/publicaciones',
           continue;
         }
         
-        await prisma.publicacionEtiqueta.create({
+        await prisma.PublicacionEtiqueta.create({
           data: {
             id_publicacion: nuevaPublicacion.id_publicacion,
             id_etiqueta: parsedId
@@ -255,7 +274,7 @@ router.get('/publicaciones/:id', async (req, res) => {
       }
     }
     
-    const publicacion = await prisma.publicacion.findUnique({
+    const publicacion = await prisma.Publicacion.findUnique({
       where: { id_publicacion: parseInt(id) },
       include: {
         usuario: {
@@ -305,11 +324,23 @@ router.get('/publicaciones/:id', async (req, res) => {
       }
     }
 
+    // Procesar imágenes
+    let imagenes = [];
+    if (publicacion.imagenes) {
+      try {
+        imagenes = JSON.parse(publicacion.imagenes);
+      } catch (e) {
+        console.error('Error al parsear imágenes:', e);
+        imagenes = [];
+      }
+    }
+
     // Formatear la respuesta igual que en /publicaciones
     const publicacionFormateada = {
       id: publicacion.id_publicacion.toString(),
       title: publicacion.titulo,
       content: publicacion.descripcion_publicacion,
+      id_usuario: publicacion.id_usuario,
       author: {
         id: publicacion.usuario.id_usuario.toString(),
         name: `${publicacion.usuario.nombre} ${publicacion.usuario.apellido}`,
@@ -319,6 +350,7 @@ router.get('/publicaciones/:id', async (req, res) => {
       },
       tags: publicacion.publicacionEtiquetas.map(pe => pe.etiqueta.etiqueta),
       location: location,
+      imagenes: imagenes,
       likes: publicacion.num_megusta || 0,
       comments: publicacion.respuestas.length,
       createdAt: publicacion.fecha_publicacion,
@@ -347,7 +379,7 @@ router.post('/publicaciones/:id/comentarios',
     }
 
     // Verificar que la publicación existe
-    const publicacion = await prisma.publicacion.findUnique({
+    const publicacion = await prisma.Publicacion.findUnique({
       where: { id_publicacion: parseInt(id) }
     });
 
@@ -356,7 +388,7 @@ router.post('/publicaciones/:id/comentarios',
     }
 
     // Crear comentario directamente (ya pasó la validación del middleware)
-    const nuevoComentario = await prisma.respuestaPublicacion.create({
+    const nuevoComentario = await prisma.RespuestaPublicacion.create({
       data: {
         id_publicacion: parseInt(id),
         id_usuario: userId,
@@ -391,7 +423,7 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
     const { id } = req.params;
 
     // Verificar que la publicación existe
-    const publicacion = await prisma.publicacion.findUnique({
+    const publicacion = await prisma.Publicacion.findUnique({
       where: { id_publicacion: parseInt(id) }
     });
 
@@ -400,7 +432,7 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
     }
 
     // Obtener TODOS los comentarios (sin filtro de moderación)
-    const comentarios = await prisma.respuestaPublicacion.findMany({
+    const comentarios = await prisma.RespuestaPublicacion.findMany({
       where: { id_publicacion: parseInt(id) },
       include: {
         usuario: {
@@ -433,7 +465,7 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     }
 
     // Buscar el comentario
-    const comentario = await prisma.respuestaPublicacion.findUnique({
+    const comentario = await prisma.RespuestaPublicacion.findUnique({
       where: { id_respuesta: parseInt(id) },
       include: {
         usuario: {
@@ -455,7 +487,7 @@ router.delete('/comentarios/:id', authenticateToken, async (req, res) => {
     }
 
     // Eliminar el comentario
-    await prisma.respuestaPublicacion.delete({
+    await prisma.RespuestaPublicacion.delete({
       where: { id_respuesta: parseInt(id) }
     });
 
@@ -473,7 +505,7 @@ router.delete('/publicaciones/:id', authenticateToken, async (req, res) => {
     const userId = req.user.id_usuario;
 
     // Buscar la publicación y verificar que existe
-    const publicacion = await prisma.publicacion.findUnique({
+    const publicacion = await prisma.Publicacion.findUnique({
       where: { id_publicacion: parseInt(id) },
       select: {
         id_usuario: true
@@ -490,7 +522,7 @@ router.delete('/publicaciones/:id', authenticateToken, async (req, res) => {
     }
 
     // Eliminar la publicación (cascade eliminará etiquetas y comentarios automáticamente)
-    await prisma.publicacion.delete({
+    await prisma.Publicacion.delete({
       where: { id_publicacion: parseInt(id) }
     });
 
@@ -505,20 +537,32 @@ router.delete('/publicaciones/:id', authenticateToken, async (req, res) => {
 router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id_usuario;
+    
+    console.log('👍 [LIKE] Usuario del request:', req.user);
+    console.log('👍 [LIKE] ID de publicación:', id);
+    
+    const userId = req.user?.id_usuario;
+    
+    if (!userId) {
+      console.error('❌ [LIKE] Usuario no tiene id_usuario');
+      return res.status(401).json({ error: 'Usuario no autorizado' });
+    }
+    
     const publicacionId = parseInt(id);
 
     // Verificar que la publicación existe
-    const publicacion = await prisma.publicacion.findUnique({
+    const publicacion = await prisma.Publicacion.findUnique({
       where: { id_publicacion: publicacionId }
     });
 
     if (!publicacion) {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
+    
+    console.log('👍 [LIKE] Publicación encontrada, procesando like...');
 
     // Verificar si el usuario ya dio like
-    const likeExistente = await prisma.publicacionLike.findUnique({
+    const likeExistente = await prisma.PublicacionLike.findUnique({
       where: {
         id_publicacion_id_usuario: {
           id_publicacion: publicacionId,
@@ -530,20 +574,21 @@ router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
     if (likeExistente) {
       // Quitar like
       await prisma.$transaction([
-        prisma.publicacionLike.delete({
+        prisma.PublicacionLike.delete({
           where: { id_like: likeExistente.id_like }
         }),
-        prisma.publicacion.update({
+        prisma.Publicacion.update({
           where: { id_publicacion: publicacionId },
           data: { num_megusta: { decrement: 1 } }
         })
       ]);
 
-      const updatedPublicacion = await prisma.publicacion.findUnique({
+      const updatedPublicacion = await prisma.Publicacion.findUnique({
         where: { id_publicacion: publicacionId },
         select: { num_megusta: true }
       });
 
+      console.log('👍 [LIKE] Like removido exitosamente');
       return res.json({
         liked: false,
         totalLikes: updatedPublicacion.num_megusta
@@ -551,23 +596,24 @@ router.post('/publicaciones/:id/like', authenticateToken, async (req, res) => {
     } else {
       // Dar like
       await prisma.$transaction([
-        prisma.publicacionLike.create({
+        prisma.PublicacionLike.create({
           data: {
             id_publicacion: publicacionId,
             id_usuario: userId
           }
         }),
-        prisma.publicacion.update({
+        prisma.Publicacion.update({
           where: { id_publicacion: publicacionId },
           data: { num_megusta: { increment: 1 } }
         })
       ]);
 
-      const updatedPublicacion = await prisma.publicacion.findUnique({
+      const updatedPublicacion = await prisma.Publicacion.findUnique({
         where: { id_publicacion: publicacionId },
         select: { num_megusta: true }
       });
 
+      console.log('👍 [LIKE] Like agregado exitosamente');
       return res.json({
         liked: true,
         totalLikes: updatedPublicacion.num_megusta
@@ -600,7 +646,7 @@ router.get('/publicaciones/:id/like', async (req, res) => {
     const publicacionId = parseInt(id);
 
     // Obtener el número de likes desde la publicación
-    const publicacion = await prisma.publicacion.findUnique({
+    const publicacion = await prisma.Publicacion.findUnique({
       where: { id_publicacion: publicacionId },
       select: { num_megusta: true }
     });
@@ -613,7 +659,7 @@ router.get('/publicaciones/:id/like', async (req, res) => {
 
     // Si hay usuario autenticado, verificar si dio like
     if (userId) {
-      const like = await prisma.publicacionLike.findUnique({
+      const like = await prisma.PublicacionLike.findUnique({
         where: {
           id_publicacion_id_usuario: {
             id_publicacion: publicacionId,
@@ -638,5 +684,105 @@ router.get('/publicaciones/:id/like', async (req, res) => {
 // router.get('/moderation/stats', authenticateToken, async (req, res) => {
 //   res.json({ warnings: 0, infractions: [], banned: false });
 // });
+
+// Actualizar una publicación existente
+router.put('/publicaciones/:id', 
+  authenticateToken, 
+  titleModerationMiddleware('titulo'),
+  moderationMiddleware({ fieldName: 'descripcion', strict: true }),
+  async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { titulo, descripcion, categorias, ubicacion, coordenadas, imagenes } = req.body;
+    const userId = req.user?.id_usuario;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    // Verificar que la publicación existe y pertenece al usuario
+    const publicacionExistente = await prisma.Publicacion.findUnique({
+      where: { id_publicacion: parseInt(id) },
+      include: {
+        usuario: {
+          select: { id_usuario: true, id_tipo_usuario: true }
+        }
+      }
+    });
+
+    if (!publicacionExistente) {
+      return res.status(404).json({ error: 'Publicación no encontrada' });
+    }
+
+    if (publicacionExistente.id_usuario !== userId) {
+      return res.status(403).json({ error: 'No tienes permisos para editar esta publicación' });
+    }
+
+    // Verificar que el usuario sea ONG
+    if (publicacionExistente.usuario.id_tipo_usuario !== 2) {
+      return res.status(403).json({ error: 'Solo las ONGs pueden editar publicaciones' });
+    }
+
+    // Preparar datos de ubicación
+    let ubicacionData = null;
+    if (ubicacion) {
+      if (coordenadas && Array.isArray(coordenadas) && coordenadas.length === 2) {
+        ubicacionData = JSON.stringify({
+          address: ubicacion,
+          coordinates: coordenadas
+        });
+      } else {
+        ubicacionData = ubicacion;
+      }
+    }
+
+    // Preparar datos de imágenes
+    let imagenesData = null;
+    if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
+      imagenesData = JSON.stringify(imagenes);
+    }
+
+    // Actualizar la publicación
+    const publicacionActualizada = await prisma.Publicacion.update({
+      where: { id_publicacion: parseInt(id) },
+      data: {
+        titulo,
+        descripcion_publicacion: descripcion,
+        ubicacion: ubicacionData,
+        imagenes: imagenesData,
+        ultima_fecha_actualizacion: new Date()
+      }
+    });
+
+    // Actualizar las etiquetas
+    if (categorias && categorias.length > 0) {
+      // Eliminar etiquetas existentes
+      await prisma.PublicacionEtiqueta.deleteMany({
+        where: { id_publicacion: parseInt(id) }
+      });
+
+      // Agregar nuevas etiquetas
+      for (const categoriaId of categorias) {
+        const parsedId = parseInt(categoriaId);
+        if (!isNaN(parsedId)) {
+          await prisma.PublicacionEtiqueta.create({
+            data: {
+              id_publicacion: parseInt(id),
+              id_etiqueta: parsedId
+            }
+          });
+        }
+      }
+    }
+
+    res.json({ 
+      message: 'Publicación actualizada exitosamente', 
+      publicacion: publicacionActualizada 
+    });
+  } catch (error) {
+    console.error('Error al actualizar publicación:', error);
+    res.status(500).json({ error: 'Error al actualizar la publicación' });
+  }
+});
 
 export default router; 

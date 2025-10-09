@@ -20,15 +20,15 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 
 // Callback de Google OAuth
 router.get('/google/callback', 
-  passport.authenticate('google', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
   async (req, res) => {
     try {
       console.log('🎉 Google OAuth exitoso para usuario:', req.user.email);
       
       // Obtener el detalle del usuario para acceder a auth_provider
-      const userWithDetails = await prisma.usuario.findUnique({
+      const userWithDetails = await prisma.Usuario.findUnique({
         where: { id_usuario: req.user.id_usuario },
-        include: { detalleUsuario: true }
+        include: { DetalleUsuario: true }
       });
       
       // Enviar email de notificación de login para usuarios existentes
@@ -66,7 +66,8 @@ router.get('/google/callback',
         { 
           userId: req.user.id_usuario,
           email: req.user.email,
-          provider: userWithDetails?.detalleUsuario?.auth_provider || 'google'
+          tipo_usuario: req.user.id_tipo_usuario,
+          provider: userWithDetails?.DetalleUsuario?.auth_provider || 'google'
         },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
@@ -86,7 +87,7 @@ router.get('/google/callback',
 // Callback de Twitter OAuth (solo si está configurado)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   router.get('/twitter/callback',
-    passport.authenticate('twitter', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+    passport.authenticate('twitter', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
     async (req, res) => {
       try {
         const user = req.user;
@@ -95,9 +96,9 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         }
 
         // Obtener el detalle del usuario para acceder a auth_provider
-        const userWithDetails = await prisma.usuario.findUnique({
+        const userWithDetails = await prisma.Usuario.findUnique({
           where: { id_usuario: user.id_usuario },
-          include: { detalleUsuario: true }
+          include: { DetalleUsuario: true }
         });
 
         // Enviar email de notificación de login para usuarios existentes
@@ -131,9 +132,9 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         }
 
         // Generar JWT
-        const authProvider = userWithDetails?.detalleUsuario?.auth_provider || 'twitter';
+        const authProvider = userWithDetails?.DetalleUsuario?.auth_provider || 'twitter';
         const token = jwt.sign(
-          { userId: user.id_usuario, email: user.email, provider: authProvider },
+          { userId: user.id_usuario, email: user.email, tipo_usuario: user.id_tipo_usuario, provider: authProvider },
           process.env.JWT_SECRET,
           { expiresIn: '7d' }
         );
@@ -166,7 +167,7 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('✅ [AUTH/ME] Token decodificado:', { userId: decoded.userId, email: decoded.email });
     
-    const user = await prisma.usuario.findUnique({
+    const user = await prisma.Usuario.findUnique({
       where: { id_usuario: decoded.userId },
       select: {
         id_usuario: true,
@@ -179,7 +180,7 @@ router.get('/me', async (req, res) => {
         redes_sociales: true,
         id_tipo_usuario: true,
         createdAt: true,
-        detalleUsuario: {
+        DetalleUsuario: {
           select: {
             auth_provider: true,
             profile_picture: true,
@@ -208,9 +209,9 @@ router.get('/me', async (req, res) => {
       redes_sociales: user.redes_sociales,
       createdAt: user.createdAt,
       tipo_usuario: user.id_tipo_usuario,
-      auth_provider: user.detalleUsuario?.auth_provider || 'email',
-      profile_picture: user.detalleUsuario?.profile_picture || null,
-      email_verified: user.detalleUsuario?.email_verified || false
+      auth_provider: user.DetalleUsuario?.auth_provider || 'email',
+      profile_picture: user.DetalleUsuario?.profile_picture || null,
+      email_verified: user.DetalleUsuario?.email_verified || false
     };
     
     console.log('📤 [AUTH/ME] Redes sociales enviadas:', userResponse.redes_sociales);

@@ -31,17 +31,18 @@ export interface SocialMediaLink {
 export interface ONG {
   id: number;
   name: string;
-  description: string;
+  description?: string;
   location: string;
   coordinates?: [number, number];
   socialMedia?: SocialMediaLink[];
   email: string;
-  type: 'public' | 'private';
-  rating: number;
-  volunteers_count: number;
-  projects_count: number;
-  website: string;
-  phone: string;
+  type?: 'public' | 'private';
+  rating?: number;
+  volunteers_count?: number;
+  projects_count?: number;
+  website?: string;
+  phone?: string;
+  puntos?: number;
 }
 
 // Clase API
@@ -308,7 +309,7 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getToken();
 
-    if (!token && endpoint !== '/auth/login' && endpoint !== '/auth/register') {
+    if (!token && endpoint !== '/auth/login' && endpoint !== '/auth/register' && !endpoint.startsWith('/api/ongs')) {
       throw new Error('No hay token de autenticación');
     }
 
@@ -577,6 +578,7 @@ class ApiService {
     categorias: number[];
     ubicacion?: string;
     coordenadas?: [number, number];
+    imagenes?: string[];
   }) {
     try {
       const response = await this.request<{ message: string; id: number }>(
@@ -589,6 +591,29 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al crear publicación:', error);
+      throw error;
+    }
+  }
+
+  async actualizarPublicacion(postId: string, data: {
+    titulo: string;
+    descripcion: string;
+    categorias: number[];
+    ubicacion?: string;
+    coordenadas?: [number, number];
+    imagenes?: string[];
+  }) {
+    try {
+      const response = await this.request<{ message: string; publicacion: any }>(
+        `/api/forum/publicaciones/${postId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar publicación:', error);
       throw error;
     }
   }
@@ -792,6 +817,43 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al comentar ONG:', error);
+      throw error;
+    }
+  }
+
+  // Categories API methods
+  async getCategories() {
+    try {
+      const response = await this.request('/api/categories');
+      return response;
+    } catch (error) {
+      console.error('Error al obtener categorías:', error);
+      throw error;
+    }
+  }
+
+  async getONGCategories(ongId: number) {
+    try {
+      const response = await this.request(`/api/categories/ong/${ongId}`);
+      return response;
+    } catch (error) {
+      console.error('Error al obtener categorías de ONG:', error);
+      throw error;
+    }
+  }
+
+  async updateONGCategories(ongId: number, categoriaIds: number[]) {
+    try {
+      const response = await this.request(
+        `/api/categories/ong/${ongId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ categoriaIds }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar categorías de ONG:', error);
       throw error;
     }
   }

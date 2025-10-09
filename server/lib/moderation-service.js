@@ -44,7 +44,7 @@ async function recordInfraction(userId, type, severity, content, actionTaken) {
  */
 async function addWarning(userId, reason) {
   try {
-    const usuario = await prisma.usuario.findUnique({
+    const usuario = await prisma.Usuario.findUnique({
       where: { id_usuario: userId },
       select: { warnings_count: true, is_banned: true }
     });
@@ -65,7 +65,7 @@ async function addWarning(userId, reason) {
     }
 
     // Actualizar contador de advertencias
-    const updatedUser = await prisma.usuario.update({
+    const updatedUser = await prisma.Usuario.update({
       where: { id_usuario: userId },
       data: { warnings_count: newWarningsCount }
     });
@@ -93,7 +93,7 @@ async function banUser(userId, reason, type = 'permanent') {
       ? new Date(Date.now() + MODERATION_CONFIG.TEMP_BAN_DURATION_DAYS * 24 * 60 * 60 * 1000)
       : null;
 
-    const bannedUser = await prisma.usuario.update({
+    const bannedUser = await prisma.Usuario.update({
       where: { id_usuario: userId },
       data: {
         is_banned: true,
@@ -122,7 +122,7 @@ async function banUser(userId, reason, type = 'permanent') {
  */
 async function checkBanStatus(userId) {
   try {
-    const usuario = await prisma.usuario.findUnique({
+    const usuario = await prisma.Usuario.findUnique({
       where: { id_usuario: userId },
       select: {
         is_banned: true,
@@ -139,7 +139,7 @@ async function checkBanStatus(userId) {
     // Si es baneo temporal y ya expiró, desbanear
     if (usuario.is_banned && usuario.banned_until) {
       if (new Date() > new Date(usuario.banned_until)) {
-        await prisma.usuario.update({
+        await prisma.Usuario.update({
           where: { id_usuario: userId },
           data: {
             is_banned: false,
@@ -377,7 +377,7 @@ async function getUserInfractions(userId) {
  */
 async function getUserModerationStats(userId) {
   try {
-    const usuario = await prisma.usuario.findUnique({
+    const usuario = await prisma.Usuario.findUnique({
       where: { id_usuario: userId },
       select: {
         warnings_count: true,

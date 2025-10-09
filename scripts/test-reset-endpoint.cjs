@@ -7,13 +7,13 @@ async function testResetEndpoint() {
     console.log('🧪 [TEST] Probando endpoint de reset de contraseña...\n');
 
     // 1. Obtener el token válido de la base de datos
-    const usuarioConToken = await prisma.usuario.findFirst({
+    const usuarioConToken = await prisma.Usuario.findFirst({
       where: {
         reset_token: { not: null },
         reset_token_expiry: { gte: new Date() }
       },
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
         reset_token: true,
         reset_token_expiry: true
@@ -57,7 +57,7 @@ async function testResetEndpoint() {
       
       // 3. Verificar que el token se limpió
       console.log('\n💾 [TEST] Verificando que el token se limpió...');
-      const usuarioActualizado = await prisma.usuario.findUnique({
+      const usuarioActualizado = await prisma.Usuario.findUnique({
         where: { id_usuario: usuarioConToken.id_usuario },
         select: {
           reset_token: true,
@@ -79,7 +79,7 @@ async function testResetEndpoint() {
         console.log('\n🔍 [TEST] Investigando por qué el token es inválido...');
         
         // Verificar si el token existe exactamente
-        const tokenExacto = await prisma.usuario.findFirst({
+        const tokenExacto = await prisma.Usuario.findFirst({
           where: { reset_token: usuarioConToken.reset_token }
         });
         

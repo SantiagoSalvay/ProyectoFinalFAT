@@ -41,14 +41,14 @@ async function testOAuthFlow() {
 
     // 3. Verificar usuarios con OAuth
     console.log('\n👥 [TEST] Verificando usuarios con OAuth...');
-    const usuariosOAuth = await prisma.usuario.findMany({
+    const usuariosOAuth = await prisma.Usuario.findMany({
       where: {
         auth_provider: {
           not: 'email'
         }
       },
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
         auth_provider: true,
         google_id: true,

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import ClickableMapModal from '../components/ClickableMapModal'
 import SocialMediaManager from '../components/SocialMediaManager'
 import { useAuth } from '../contexts/AuthContext'
 import { useONGNotifications } from '../hooks/useONGNotifications'
@@ -48,15 +47,15 @@ export default function ProfilePage() {
   const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>([])
   const [savingSocialMedia, setSavingSocialMedia] = useState(false)
 
+  // Estado para categorías
+  const [availableCategories, setAvailableCategories] = useState<Array<{id_categoria: number, nombre: string, descripcion?: string, color?: string, icono?: string}>>([])
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
+
   // Autocompletado de ubicación con LocationIQ
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationInput, setLocationInput] = useState('')
-  const [showLocationModal, setShowLocationModal] = useState(false)
-  const [selectedLocation, setSelectedLocation] = useState<{
-    address: string;
-    coordinates: [number, number];
-  } | null>(null);
 
   // Usar la variable de entorno VITE_LOCATIONIQ_API_KEY
   const LOCATIONIQ_API_KEY = (import.meta as any).env?.VITE_LOCATIONIQ_API_KEY
@@ -115,14 +114,6 @@ export default function ProfilePage() {
     }, 600)
     return () => clearTimeout(handler)
   }, [locationInput, isEditing])
-
-  // Modal: seleccionar ubicación en el mapa
-  const handleLocationSelect = (location: { address: string; coordinates: [number, number] }) => {
-    setSelectedLocation(location);
-    setLocationInput(location.address);
-    setProfileData(prev => ({ ...prev, location: location.address }));
-    setShowLocationModal(false);
-  };
 
   // Detectar si el usuario es ONG (tipo_usuario === 2)
   const isONG = user?.tipo_usuario === 2;
@@ -187,6 +178,38 @@ export default function ProfilePage() {
     }
   }, [user, isONG])
 
+  // Cargar categorías disponibles y categorías de la ONG
+  useEffect(() => {
+    if (isONG && user?.id_usuario) {
+      loadCategories()
+    }
+  }, [isONG, user?.id_usuario])
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true)
+      console.log('📥 Cargando categorías para ONG ID:', user?.id_usuario)
+      
+      // Cargar categorías disponibles
+      const categoriesResponse = await api.getCategories() as any
+      console.log('📥 Categorías disponibles:', categoriesResponse)
+      setAvailableCategories(categoriesResponse.categorias || [])
+      
+      // Cargar categorías de la ONG
+      const ongCategoriesResponse = await api.getONGCategories(user!.id_usuario) as any
+      console.log('📥 Categorías de la ONG:', ongCategoriesResponse)
+      const ongCategoryIds = (ongCategoriesResponse.categorias || []).map((cat: any) => cat.id_categoria)
+      console.log('📥 IDs de categorías seleccionadas:', ongCategoryIds)
+      setSelectedCategories(ongCategoryIds)
+      
+    } catch (error) {
+      console.error('❌ Error al cargar categorías:', error)
+      toast.error('Error al cargar las categorías')
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
   const handleSave = async () => {
     try {
       console.log('🔄 Iniciando guardado de perfil...')
@@ -217,6 +240,23 @@ export default function ProfilePage() {
       
       // Llamar a la función updateProfile del contexto
       await updateProfile(updateData)
+      
+      // Guardar categorías si es ONG
+      if (isONG && user?.id_usuario) {
+        try {
+          console.log('📂 Guardando categorías...')
+          console.log('📂 ID de usuario:', user.id_usuario)
+          console.log('📂 Categorías seleccionadas:', selectedCategories)
+          const result = await api.updateONGCategories(user.id_usuario, selectedCategories)
+          console.log('✅ Categorías guardadas exitosamente:', result)
+          toast.success('Categorías actualizadas exitosamente')
+        } catch (error) {
+          console.error('❌ Error al guardar categorías:', error)
+          console.error('❌ Detalles completos del error:', JSON.stringify(error, null, 2))
+          toast.error('Error al guardar las categorías')
+          // No lanzar el error para que el perfil se guarde de todos modos
+        }
+      }
       
       // Limpiar notificación de datos faltantes si se completó la biografía
       if (updateData.bio && updateData.bio.trim() !== '') {
@@ -439,21 +479,21 @@ export default function ProfilePage() {
                             setLocationInput(e.target.value)
                             setProfileData(prev => ({ ...prev, location: e.target.value }))
                           }}
+                          onKeyDown={e => {
+                            if (e.key === 'Tab' && locationSuggestions.length > 0) {
+                              e.preventDefault()
+                              const firstSuggestion = locationSuggestions[0]
+                              setLocationInput(firstSuggestion)
+                              setProfileData(prev => ({ ...prev, location: firstSuggestion }))
+                              setLocationSuggestions([])
+                            }
+                          }}
                           className="input-field flex-1"
-                          placeholder="Calle y numeración en Córdoba"
+                          placeholder="Calle y numeración en Córdoba (presiona TAB para autocompletar)"
                           autoComplete="off"
                         />
-                        <button
-                          type="button"
-                          className="p-2 rounded border flex items-center justify-center"
-                          title="Seleccionar ubicación en el mapa"
-                          onClick={() => setShowLocationModal(true)}
-                          style={{ background: 'color-mix(in oklab, var(--accent) 8%, transparent)', borderColor: 'var(--accent)' }}
-                        >
-                          <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                        </button>
                       </div>
-                      {/* Sugerencias de autocompletado - Máximo 3 con scroll */}
+                      {/* Sugerencias de autocompletado - Primera en negrita */}
                       {locationSuggestions.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
                           <div className="max-h-36 overflow-y-auto">
@@ -461,7 +501,9 @@ export default function ProfilePage() {
                               <button
                                 key={index}
                                 type="button"
-                                className="w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors"
+                                className={`w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors ${
+                                  index === 0 ? 'bg-purple-50' : ''
+                                }`}
                                 onClick={() => {
                                   setLocationInput(suggestion);
                                   setProfileData(prev => ({ ...prev, location: suggestion }))
@@ -473,7 +515,12 @@ export default function ProfilePage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                   </svg>
-                                  <span className="text-sm text-gray-700">{suggestion}</span>
+                                  <span className={`text-sm ${index === 0 ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+                                    {suggestion}
+                                  </span>
+                                  {index === 0 && (
+                                    <span className="ml-auto text-xs text-purple-600">Presiona TAB</span>
+                                  )}
                                 </div>
                               </button>
                             ))}
@@ -485,13 +532,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       )}
-                      {/* Modal del mapa para seleccionar ubicación */}
-                      <ClickableMapModal
-                        isOpen={showLocationModal}
-                        onClose={() => setShowLocationModal(false)}
-                        onLocationSelect={handleLocationSelect}
-                        initialLocation={locationInput}
-                      />
                     </div>
                   ) : (
                     <div className="flex items-center p-3 bg-gray-50 rounded-lg">
@@ -544,6 +584,95 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Categories - Solo para ONGs */}
+                {isONG && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Categorías de la Organización
+                    </label>
+                    {isEditing ? (
+                      <div>
+                        {loadingCategories ? (
+                          <div className="p-3 bg-gray-50 rounded-lg text-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                            <span className="text-gray-600">Cargando categorías...</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-sm text-gray-600">
+                              Selecciona una o más categorías que mejor describan tu organización:
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {availableCategories.map((category) => (
+                                <label
+                                  key={category.id_categoria}
+                                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                                    selectedCategories.includes(category.id_categoria)
+                                      ? 'border-purple-500 bg-purple-50'
+                                      : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedCategories.includes(category.id_categoria)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedCategories(prev => [...prev, category.id_categoria])
+                                      } else {
+                                        setSelectedCategories(prev => prev.filter(id => id !== category.id_categoria))
+                                      }
+                                    }}
+                                    className="sr-only"
+                                  />
+                                  <div className="flex items-center">
+                                    {category.color && (
+                                      <div 
+                                        className="w-4 h-4 rounded-full mr-2"
+                                        style={{ backgroundColor: category.color }}
+                                      ></div>
+                                    )}
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {category.icono && <span className="mr-1">{category.icono}</span>}
+                                      {category.nombre}
+                                    </span>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                            {availableCategories.length === 0 && (
+                              <p className="text-sm text-gray-500 text-center py-4">
+                                No hay categorías disponibles
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        {selectedCategories.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCategories.map((categoryId) => {
+                              const category = availableCategories.find(c => c.id_categoria === categoryId)
+                              return category ? (
+                                <span
+                                  key={categoryId}
+                                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white"
+                                  style={{ backgroundColor: category.color || '#6B7280' }}
+                                >
+                                  {category.icono && <span className="mr-1">{category.icono}</span>}
+                                  {category.nombre}
+                                </span>
+                              ) : null
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">No hay categorías seleccionadas</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Redes Sociales - Solo para ONGs */}
                 {isONG && (

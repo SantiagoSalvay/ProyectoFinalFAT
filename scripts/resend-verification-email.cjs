@@ -67,12 +67,12 @@ async function resendVerificationEmail() {
     console.log('📧 [REENVÍO] Iniciando reenvío de email de verificación...\n');
 
     // 1. Buscar registros pendientes
-    const registrosPendientes = await prisma.registroPendiente.findMany({
+    const registrosPendientes = await prisma.RegistroPendiente.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         correo: true,
-        usuario: true,
+        Usuario: true,
         verification_token: true,
         createdAt: true
       }

@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js';
 import oauthRoutes from './routes/oauth.js';
 import forumRoutes from './routes/forum.js';
 import ongsRoutes from './routes/ongs.js';
+import categoriesRoutes from './routes/categories.js';
 import mercadopagoRoutes from './routes/mercadopago.js';
 import adminRoutes from './routes/admin.js';
 import passport from './config/passport.js';
@@ -16,29 +17,33 @@ dotenv.config({ path: '../.env' });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configurar CORS para permitir frontend en 3000-3004 (Vite cambia de puerto)
+// Configurar CORS para permitir frontend en 3000 y 3002
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001', // en caso de preview/otros
+  'http://localhost:3000', 
   'http://localhost:3002',
-  'http://localhost:3003',
-  'http://localhost:3004',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3002'
 ];
+
 app.use(cors({
   origin: (origin, callback) => {
     // Permitir requests de herramientas (sin origin) y de orígenes permitidos
     if (!origin || allowedOrigins.includes(origin)) {
+      console.log('✅ CORS permitido para:', origin || 'sin origin');
       return callback(null, true);
     }
+    console.log('❌ CORS denegado para:', origin);
     return callback(new Error('CORS not allowed'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 }));
 
-// Middleware para parsear JSON
-app.use(express.json());
+// Middleware para parsear JSON con límite aumentado para imágenes
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Configurar sesiones para Passport
 app.use(session({
@@ -57,7 +62,7 @@ app.use('/auth', authRoutes);
 app.use('/api/auth', oauthRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/ongs', ongsRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/categories', categoriesRoutes);
 app.use('/mercadopago', mercadopagoRoutes);
 
 // Ruta de prueba

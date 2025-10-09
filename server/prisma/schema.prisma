@@ -28,9 +28,12 @@ model Usuario {
   telefono                 String?
   calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
-  detalleUsuario           DetalleUsuario?
+  DetalleUsuario           DetalleUsuario?
   infracciones             Infracciones[]
+<<<<<<< HEAD
   ONGCategoria             ONGCategoria[]
+=======
+>>>>>>> 787afd3889f37f7fb382e8beb9d947ada92b061c
   passwordResetTokens      PasswordResetToken[]
   pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
   pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")
@@ -53,7 +56,7 @@ model DetalleUsuario {
   twitter_id                 String?  @unique
   puntosActuales             Int      @default(0)
   ultima_fecha_actualizacion DateTime @default(now())
-  usuario                    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  Usuario                    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 }
 
 model Publicacion {

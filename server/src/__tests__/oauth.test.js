@@ -46,7 +46,7 @@ describe('OAuth Routes', () => {
           nombre: true,
           apellido: true,
           correo: true,
-          usuario: true,
+          Usuario: true,
           auth_provider: true,
           profile_picture: true,
           ubicacion: true,

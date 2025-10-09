@@ -36,12 +36,14 @@ interface InlineCommentsProps {
   publicacionId: string
   isExpanded: boolean
   onToggle: () => void
+  onCommentAdded?: () => void
 }
 
 export default function InlineComments({ 
   publicacionId, 
   isExpanded, 
-  onToggle 
+  onToggle,
+  onCommentAdded 
 }: InlineCommentsProps) {
   const { user } = useAuth()
   const { validateComment, lastResult } = useCommentValidation()
@@ -109,6 +111,11 @@ export default function InlineComments({
       // Agregar el nuevo comentario a la lista
       setComentarios(prev => [...prev, response.comentario])
       setNuevoComentario('')
+      
+      // Llamar al callback si existe para actualizar el contador
+      if (onCommentAdded) {
+        onCommentAdded()
+      }
       
       // Mostrar mensaje de éxito
       toast.success('Comentario publicado exitosamente')

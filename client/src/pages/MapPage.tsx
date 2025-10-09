@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
+import { GoogleMap, useJsApiLoader, Marker, Polygon } from '@react-google-maps/api'
 import { api, ONG } from '../services/api'
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC33z7pXbXF16KbIDIXX-ZhBOLRNWqVAoo'
-import { Heart, MapPin, Building, Users, Star, ExternalLink } from 'lucide-react'
+import { Heart, MapPin, Building, Users, Star, ExternalLink, X, Mail, Phone } from 'lucide-react'
+import { getSocialMediaIcon, getSocialMediaColor } from '../utils/socialMediaDetector'
 
 // Interfaz para ONG con datos del mapa
 interface ONGWithLocation {
@@ -13,13 +14,15 @@ interface ONGWithLocation {
   longitude?: number
   group: string
   need: string
-  rating: number
-  volunteers_count: number
-  projects_count: number
-  description: string
-  email: string
-  phone: string
-  website: string
+  rating?: number
+  volunteers_count?: number
+  projects_count?: number
+  description?: string
+  email?: string
+  phone?: string
+  website?: string
+  socialMedia?: { type: string; url: string; displayName?: string }[]
+  categories?: Array<{ id_categoria: number; nombre: string; descripcion?: string; color?: string; icono?: string }>
 }
 
 // Configuración del mapa
@@ -28,9 +31,27 @@ const mapContainerStyle = {
   height: '100%'
 }
 
+// Centro en Córdoba (punto medio de la provincia)
 const center = {
-  lat: -34.6037,
-  lng: -58.3816
+  lat: -31.5,
+  lng: -63.8
+}
+
+// Límites aproximados de la provincia de Córdoba
+const cordobaBoundary = [
+  { lat: -29.5, lng: -65.5 },
+  { lat: -29.5, lng: -62.0 },
+  { lat: -34.0, lng: -62.0 },
+  { lat: -34.0, lng: -65.5 },
+  { lat: -29.5, lng: -65.5 }
+]
+
+// Restricción de límites para que solo se vea Córdoba
+const cordobaBounds = {
+  north: -29.0,
+  south: -34.5,
+  east: -61.5,
+  west: -66.0
 }
 
 const options = {
@@ -39,6 +60,46 @@ const options = {
   streetViewControl: false,
   mapTypeControl: false,
   fullscreenControl: true,
+  restriction: {
+    latLngBounds: cordobaBounds,
+    strictBounds: true
+  },
+  minZoom: 6,
+  maxZoom: 18,
+  styles: [
+    // Ocultar todas las demás provincias y países
+    {
+      featureType: "administrative.country",
+      elementType: "all",
+      stylers: [{ visibility: "off" }]
+    },
+    {
+      featureType: "administrative.province",
+      elementType: "all",
+      stylers: [{ visibility: "off" }]
+    },
+    {
+      featureType: "administrative.locality",
+      elementType: "labels",
+      stylers: [{ visibility: "on" }]  // Mantener nombres de ciudades
+    },
+    // Mantener visible solo el mapa base
+    {
+      featureType: "road",
+      elementType: "all",
+      stylers: [{ visibility: "simplified" }]
+    },
+    {
+      featureType: "water",
+      elementType: "all",
+      stylers: [{ visibility: "on" }]
+    },
+    {
+      featureType: "landscape",
+      elementType: "all",
+      stylers: [{ visibility: "on" }]
+    }
+  ]
 }
 
 export default function MapPage() {
@@ -56,6 +117,8 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true)
   const [needFilter, setNeedFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<number[]>([])
+  const [availableCategories, setAvailableCategories] = useState<Array<{id_categoria: number, nombre: string, color?: string, icono?: string}>>([])
   const [map, setMap] = useState<google.maps.Map | null>(null)
 
   // Cargar Google Maps API
@@ -84,18 +147,36 @@ export default function MapPage() {
     'Otros': '#f44336', // rojo
   };
 
-  // Filtrado de ONGs por necesidad y grupo social
+  // Cargar categorías disponibles
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await api.getCategories() as any
+        setAvailableCategories(response.categorias || [])
+      } catch (error) {
+        console.error('Error cargando categorías:', error)
+      }
+    }
+    loadCategories()
+  }, [])
+
+  // Filtrado de ONGs por necesidad, grupo social y categorías
   const filteredOngs = ongs.filter(ong => {
     const needMatch = needFilter === '' || ong.need.toLowerCase().includes(needFilter.toLowerCase())
     const groupMatch = groupFilter === '' || ong.group === groupFilter
-    return needMatch && groupMatch
+    
+    // Filtro por categorías
+    const categoryMatch = categoryFilter.length === 0 || 
+      (ong.categories && ong.categories.some(cat => categoryFilter.includes(cat.id_categoria)))
+    
+    return needMatch && groupMatch && categoryMatch
   })
 
   useEffect(() => {
     if (isLoaded) {
     loadONGs()
     }
-  }, [needFilter, groupFilter, isLoaded])
+  }, [needFilter, groupFilter, categoryFilter, isLoaded])
 
   // Función para geocodificar usando Google Maps API
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
@@ -164,6 +245,16 @@ export default function MapPage() {
           if (tipoONG?.grupo_social) group = tipoONG.grupo_social;
           if (tipoONG?.necesidad) need = tipoONG.necesidad;
         } catch {}
+        
+        // Obtener categorías de la ONG
+        let categories: Array<{ id_categoria: number; nombre: string; descripcion?: string; color?: string; icono?: string }> = [];
+        try {
+          const categoriesResponse = await api.getONGCategories(ong.id) as any;
+          categories = categoriesResponse.categorias || [];
+        } catch (err) {
+          console.error('Error cargando categorías para ONG:', ong.id, err);
+        }
+        
         return {
           id: ong.id,
           name: ong.name,
@@ -178,7 +269,9 @@ export default function MapPage() {
           description: ong.description,
           email: ong.email,
           phone: ong.phone,
-          website: ong.website
+          website: ong.website,
+          socialMedia: ong.socialMedia || [],
+          categories
         }
       });
       const ongsWithLocation = await Promise.all(geocodePromises);
@@ -199,12 +292,13 @@ export default function MapPage() {
         </div>
       )}
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Mapa de ONGs</h1>
-        <p className="text-purple-100">Explora organizaciones cerca de ti</p>
-      </div>
-      {/* Filtros */}
+    <div className="mb-4">
+      <h1 className="text-2xl font-bold text-white">Mapa de ONGs - Córdoba</h1>
+      <p className="text-purple-100">Explora organizaciones en la provincia de Córdoba</p>
+    </div>
+    
+    <div className="space-y-3">
+      {/* Filtros principales */}
       <div className="flex flex-wrap items-center gap-4">
   {/* (Eliminado filtro tipo ONG) */}
         {/* Filtro por necesidad */}
@@ -242,15 +336,61 @@ export default function MapPage() {
             <option value="Otros">Otros</option>
           </select>
         </div>
-        {/* Leyenda por grupo social */}
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          {Object.entries(groupColors).map(([group, color]) => (
-            <div key={group} className="flex items-center space-x-1 mr-2">
-              <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: color }}></div>
-              <span className="text-white capitalize">{group}</span>
-            </div>
-          ))}
+      </div>
+      
+      {/* Filtro por categorías */}
+      <div>
+        <div className="flex items-center space-x-2 mb-2">
+          <span className="text-sm font-medium text-white">Categorías:</span>
+          <button
+            onClick={() => setCategoryFilter([])}
+            className="text-xs text-purple-200 hover:text-white underline"
+          >
+            Limpiar
+          </button>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {availableCategories.map((category) => {
+            const isSelected = categoryFilter.includes(category.id_categoria)
+            const count = ongs.filter(ong => 
+              ong.categories?.some(cat => cat.id_categoria === category.id_categoria)
+            ).length
+            
+            return (
+              <button
+                key={category.id_categoria}
+                onClick={() => {
+                  setCategoryFilter(prev => 
+                    isSelected 
+                      ? prev.filter(id => id !== category.id_categoria)
+                      : [...prev, category.id_categoria]
+                  )
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center ${
+                  isSelected
+                    ? 'bg-white text-purple-700 shadow-md'
+                    : 'bg-purple-700 text-white hover:bg-purple-800'
+                }`}
+                style={isSelected ? {} : { backgroundColor: category.color, opacity: 0.9 }}
+              >
+                {category.icono && <span className="mr-1">{category.icono}</span>}
+                {category.nombre}
+                <span className="ml-1.5 opacity-75">({count})</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      
+      {/* Leyenda por grupo social */}
+      <div className="flex flex-wrap items-center gap-2 text-sm pt-2 border-t border-purple-500">
+        <span className="text-sm font-medium text-white mr-2">Grupos:</span>
+        {Object.entries(groupColors).map(([group, color]) => (
+          <div key={group} className="flex items-center space-x-1 mr-2">
+            <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: color }}></div>
+            <span className="text-white capitalize text-xs">{group}</span>
+          </div>
+        ))}
       </div>
     </div>
   </div>
@@ -269,11 +409,23 @@ export default function MapPage() {
             <GoogleMap
               mapContainerStyle={mapContainerStyle}
               center={center}
-            zoom={6}
+              zoom={6.5}
               onLoad={onLoad}
               onUnmount={onUnmount}
               options={options}
             >
+              {/* Polígono de Córdoba resaltado en blanco */}
+              <Polygon
+                paths={cordobaBoundary}
+                options={{
+                  fillColor: "#ffffff",
+                  fillOpacity: 0.3,
+                  strokeColor: "#ffffff",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 2,
+                }}
+              />
+              
               {filteredOngs.map((ong) => (
               ong.latitude !== undefined && ong.longitude !== undefined ? (
                 <Marker
@@ -326,17 +478,33 @@ export default function MapPage() {
                         <div className="flex items-center mt-2 space-x-4 text-sm text-gray-500">
                           <div className="flex items-center">
                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                            <span className="ml-1">{ong.rating.toFixed(1)}</span>
+                            <span className="ml-1">{ong.rating?.toFixed(1) || '0.0'}</span>
                           </div>
                           <div className="flex items-center">
                             <Users className="w-4 h-4" />
-                            <span className="ml-1">{ong.volunteers_count}</span>
+                            <span className="ml-1">{ong.volunteers_count || 0}</span>
                           </div>
                           <div className="flex items-center">
                             <Building className="w-4 h-4" style={{ color: groupColors[ong.group] || '#f44336' }} />
                             <span className="ml-1 capitalize">{ong.group}</span>
                           </div>
                         </div>
+                        {/* Categorías en el panel lateral */}
+                        {ong.categories && ong.categories.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {ong.categories.map((category) => (
+                              <span
+                                key={category.id_categoria}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                                style={{ backgroundColor: category.color || '#6B7280' }}
+                                title={category.descripcion}
+                              >
+                                {category.icono && <span className="mr-0.5">{category.icono}</span>}
+                                {category.nombre}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div
                         className="w-3 h-3 rounded-full"
@@ -389,21 +557,21 @@ export default function MapPage() {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center">
                     <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                    <span className="ml-2 font-semibold">{selectedONG.rating.toFixed(1)}</span>
+                    <span className="ml-2 font-semibold">{selectedONG.rating?.toFixed(1) || '0.0'}</span>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">Calificación</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center">
                     <Users className="w-5 h-5 text-blue-500" />
-                    <span className="ml-2 font-semibold">{selectedONG.volunteers_count}</span>
+                    <span className="ml-2 font-semibold">{selectedONG.volunteers_count || 0}</span>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">Voluntarios</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center">
                     <Heart className="w-5 h-5 text-red-500" />
-                    <span className="ml-2 font-semibold">{selectedONG.projects_count}</span>
+                    <span className="ml-2 font-semibold">{selectedONG.projects_count || 0}</span>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">Proyectos</p>
                 </div>
@@ -418,8 +586,27 @@ export default function MapPage() {
 
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 mb-2">Descripción</h3>
-                <p className="text-gray-700">{selectedONG.description}</p>
+                <p className="text-gray-700">{selectedONG.description || 'Sin descripción disponible'}</p>
               </div>
+
+              {/* Categorías de la ONG */}
+              {selectedONG.categories && selectedONG.categories.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2">Categorías</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedONG.categories.map((category) => (
+                      <span
+                        key={category.id_categoria}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white"
+                        style={{ backgroundColor: category.color || '#6B7280' }}
+                      >
+                        {category.icono && <span className="mr-1">{category.icono}</span>}
+                        {category.nombre}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 mb-2">Información de contacto</h3>
@@ -428,39 +615,70 @@ export default function MapPage() {
                     <MapPin className="w-4 h-4 text-gray-400 mr-2" />
                     <span className="text-gray-700">{selectedONG.location}</span>
                   </div>
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-gray-700">{selectedONG.email}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    <span className="text-gray-700">{selectedONG.phone}</span>
-                  </div>
+                  {selectedONG.email && (
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-gray-700">{selectedONG.email}</span>
+                    </div>
+                  )}
+                  {selectedONG.phone && (
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <span className="text-gray-700">{selectedONG.phone}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex space-x-3">
-                <a
-                  href={selectedONG.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4 inline mr-2" />
-                  Visitar sitio web
-                </a>
-                <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">
-                  Ver más detalles
-                </button>
+              {/* Botones de acción (solo sitio web si existe) */}
+              <div className="flex space-x-2 mt-4">
+                {selectedONG.website && (
+                  <a
+                    href={selectedONG.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4 inline mr-1" />
+                    Sitio web
+                  </a>
+                )}
               </div>
+
+              {/* Redes Sociales - Agregado en el modal principal */}
+              {selectedONG.socialMedia && selectedONG.socialMedia.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Redes Sociales</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedONG.socialMedia.map((link, index) => {
+                      const IconComponent = getSocialMediaIcon(link.type as any);
+                      const color = getSocialMediaColor(link.type as any);
+                      return (
+                        <a
+                          key={index}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ backgroundColor: color }}
+                          className="flex items-center justify-center w-10 h-10 rounded-full text-white hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
+                          title={link.displayName || link.type}
+                        >
+                          <IconComponent className="w-5 h-5" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
+
     </div>
   )
 }

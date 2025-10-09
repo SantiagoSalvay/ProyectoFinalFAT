@@ -7,7 +7,7 @@ async function cleanPendingRegistrations() {
     console.log('🧹 [LIMPIEZA] Iniciando limpieza de registros pendientes...\n');
 
     // 1. Mostrar registros pendientes antes de la limpieza
-    const registrosAntes = await prisma.registroPendiente.findMany({
+    const registrosAntes = await prisma.RegistroPendiente.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -31,7 +31,7 @@ async function cleanPendingRegistrations() {
     // 2. Limpiar registros pendientes antiguos (más de 24 horas)
     const fechaLimite = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 horas atrás
     
-    const registrosEliminados = await prisma.registroPendiente.deleteMany({
+    const registrosEliminados = await prisma.RegistroPendiente.deleteMany({
       where: {
         createdAt: {
           lt: fechaLimite
@@ -42,7 +42,7 @@ async function cleanPendingRegistrations() {
     console.log(`\n🗑️ [LIMPIEZA] Registros eliminados (más de 24 horas): ${registrosEliminados.count}`);
 
     // 3. Limpiar registros duplicados (mismo correo)
-    const registrosRestantes = await prisma.registroPendiente.findMany({
+    const registrosRestantes = await prisma.RegistroPendiente.findMany({
       select: {
         correo: true,
         id: true,
@@ -70,7 +70,7 @@ async function cleanPendingRegistrations() {
         const idsAEliminar = registros.slice(1).map(reg => reg.id);
         
         if (idsAEliminar.length > 0) {
-          await prisma.registroPendiente.deleteMany({
+          await prisma.RegistroPendiente.deleteMany({
             where: {
               id: {
                 in: idsAEliminar
@@ -86,7 +86,7 @@ async function cleanPendingRegistrations() {
     console.log(`🗑️ [LIMPIEZA] Registros duplicados eliminados: ${duplicadosEliminados}`);
 
     // 4. Mostrar estado final
-    const registrosFinales = await prisma.registroPendiente.findMany({
+    const registrosFinales = await prisma.RegistroPendiente.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

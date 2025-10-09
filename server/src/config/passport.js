@@ -16,26 +16,26 @@ passport.use(new GoogleStrategy({
   try {
     console.log('🔍 Google OAuth Profile:', profile);
     
-    // Buscar usuario existente por google_id en DetalleUsuario
+    // Buscar Usuario existente por google_id en detalleUsuario
     let detalleUsuario = await prisma.detalleUsuario.findUnique({
       where: { google_id: profile.id },
-      include: { usuario: true }
+      include: { Usuario: true }
     });
 
     if (detalleUsuario) {
-      console.log('✅ Usuario existente encontrado:', detalleUsuario.usuario.email);
-      return done(null, detalleUsuario.usuario);
+      console.log('✅ Usuario existente encontrado:', detalleUsuario.Usuario.email);
+      return done(null, detalleUsuario.Usuario);
     }
 
-    // Buscar usuario existente por email
-    let user = await prisma.usuario.findUnique({
+    // Buscar Usuario existente por email
+    let user = await prisma.Usuario.findUnique({
       where: { email: profile.emails[0].value },
-      include: { detalleUsuario: true }
+      include: { DetalleUsuario: true }
     });
 
     if (user) {
-      // Si el usuario existe pero no tiene DetalleUsuario, crearlo
-      if (!user.detalleUsuario) {
+      // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
+      if (!user.DetalleUsuario) {
         await prisma.detalleUsuario.create({
           data: {
             id_usuario: user.id_usuario,
@@ -46,7 +46,7 @@ passport.use(new GoogleStrategy({
           }
         });
       } else {
-        // Si ya tiene DetalleUsuario, actualizar con google_id
+        // Si ya tiene detalleUsuario, actualizar con google_id
         await prisma.detalleUsuario.update({
           where: { id_usuario: user.id_usuario },
           data: {
@@ -61,14 +61,14 @@ passport.use(new GoogleStrategy({
       return done(null, user);
     }
 
-    // Crear nuevo usuario con su detalle
-    const newUser = await prisma.usuario.create({
+    // Crear nuevo Usuario con su detalle
+    const newUser = await prisma.Usuario.create({
       data: {
         nombre: profile.name.givenName,
         apellido: profile.name.familyName || '',
         email: profile.emails[0].value,
         id_tipo_usuario: 1, // Usuario regular por defecto
-        detalleUsuario: {
+        DetalleUsuario: {
           create: {
             google_id: profile.id,
             auth_provider: 'google',
@@ -79,9 +79,9 @@ passport.use(new GoogleStrategy({
       }
     });
 
-    console.log('🆕 Nuevo usuario creado:', newUser.email);
+    console.log('🆕 Nuevo Usuario creado:', newUser.email);
 
-    // Enviar emails de notificación para nuevo usuario OAuth
+    // Enviar emails de notificación para nuevo Usuario OAuth
     try {
       console.log('📧 [GOOGLE OAUTH] Enviando emails de notificación...');
       
@@ -123,26 +123,26 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         return done(new Error('No email found in Twitter profile'), null);
       }
 
-      // Buscar usuario existente por twitter_id en DetalleUsuario
+      // Buscar Usuario existente por twitter_id en detalleUsuario
       let detalleUsuario = await prisma.detalleUsuario.findUnique({
         where: { twitter_id: profile.id },
-        include: { usuario: true }
+        include: { Usuario: true }
       });
 
       if (detalleUsuario) {
-        console.log('🎉 Twitter OAuth exitoso para usuario:', detalleUsuario.usuario.email);
-        return done(null, detalleUsuario.usuario);
+        console.log('🎉 Twitter OAuth exitoso para Usuario:', detalleUsuario.Usuario.email);
+        return done(null, detalleUsuario.Usuario);
       }
 
-      // Buscar usuario existente por email
-      let user = await prisma.usuario.findUnique({
+      // Buscar Usuario existente por email
+      let user = await prisma.Usuario.findUnique({
         where: { email: email },
-        include: { detalleUsuario: true }
+        include: { DetalleUsuario: true }
       });
 
       if (user) {
-        // Si el usuario existe pero no tiene DetalleUsuario, crearlo
-        if (!user.detalleUsuario) {
+        // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
+        if (!user.DetalleUsuario) {
           await prisma.detalleUsuario.create({
             data: {
               id_usuario: user.id_usuario,
@@ -153,7 +153,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
             }
           });
         } else {
-          // Si ya tiene DetalleUsuario, actualizar con twitter_id
+          // Si ya tiene detalleUsuario, actualizar con twitter_id
           await prisma.detalleUsuario.update({
             where: { id_usuario: user.id_usuario },
             data: {
@@ -168,11 +168,11 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         return done(null, user);
       }
 
-      // Crear nuevo usuario con su detalle
+      // Crear nuevo Usuario con su detalle
       const firstName = profile.displayName ? profile.displayName.split(' ')[0] : 'Usuario';
       const lastName = profile.displayName ? profile.displayName.split(' ').slice(1).join(' ') : 'Twitter';
 
-      user = await prisma.usuario.create({
+      user = await prisma.Usuario.create({
         data: {
           nombre: firstName,
           apellido: lastName,
@@ -188,9 +188,9 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
           }
         }
       });
-      console.log('🆕 Nuevo usuario creado:', user.email);
+      console.log('🆕 Nuevo Usuario creado:', user.email);
 
-      // Enviar emails de notificación para nuevo usuario OAuth
+      // Enviar emails de notificación para nuevo Usuario OAuth
       try {
         console.log('📧 [TWITTER OAUTH] Enviando emails de notificación...');
         
@@ -220,15 +220,23 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 }
 
 
-// Serializar usuario para la sesión
+// Serializar Usuario para la sesión
 passport.serializeUser((user, done) => {
-  done(null, user.id_usuario);
+  // Asegurarse de que user existe y tiene id_usuario
+  if (user && user.id_usuario) {
+    done(null, user.id_usuario);
+  } else if (user && user.id) {
+    // fallback por si el campo es id
+    done(null, user.id);
+  } else {
+    done(new Error('No se puede serializar usuario: id_usuario no encontrado'), null);
+  }
 });
 
-// Deserializar usuario de la sesión
+// Deserializar Usuario de la sesión
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await prisma.usuario.findUnique({
+    const user = await prisma.Usuario.findUnique({
       where: { id_usuario: id }
     });
     done(null, user);

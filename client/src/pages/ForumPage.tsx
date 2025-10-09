@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { toast } from 'react-hot-toast'
 import { api } from '../services/api'
-import ClickableMapModal from '../components/ClickableMapModal'
 import InlineComments from '../components/InlineComments'
 import { usePostValidation } from '../hooks/useContentModeration'
 import { 
@@ -22,7 +21,10 @@ import {
   UserPlus,
   Loader2,
   AlertCircle,
-  Trash2
+  Trash2,
+  Image,
+  X,
+  Edit3
 } from 'lucide-react'
 
 interface Post {
@@ -38,6 +40,7 @@ interface Post {
   }
   id_usuario?: number
   image?: string
+  imagenes?: string[]
   tags: string[]
   location?: string
   likes: number
@@ -47,7 +50,7 @@ interface Post {
 }
 
 interface Categoria {
-  id_categoria: number
+  id_etiqueta: number
   etiqueta: string
 }
 
@@ -55,20 +58,23 @@ export default function ForumPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { addNotification } = useNotifications()
-  const { validatePost } = usePostValidation()
+  const { validatePost, validateTitle, validate } = usePostValidation()
   const [posts, setPosts] = useState<Post[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
   const [creatingPost, setCreatingPost] = useState(false)
-  const [showLocationModal, setShowLocationModal] = useState(false)
-  const [selectedLocation, setSelectedLocation] = useState<{
-    address: string;
-    coordinates: [number, number];
-  } | null>(null)
+  const [titleError, setTitleError] = useState<string>('')
+  const [contentError, setContentError] = useState<string>('')
+  
+  // Autocompletado de ubicación
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
+  const [locationLoading, setLocationLoading] = useState(false)
+  const LOCATIONIQ_API_KEY = (import.meta as any).env?.VITE_LOCATIONIQ_API_KEY
 
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
+  const [expandedPost, setExpandedPost] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<number[]>([])
   const [showAllCategories, setShowAllCategories] = useState(false)
@@ -82,13 +88,13 @@ export default function ForumPage() {
     if (filtro === 'voluntariado' || filtro === 'volunteering') {
         const voluntariadoCategory = categorias.find(c => c.etiqueta === 'Voluntariado');
         if (voluntariadoCategory) {
-          setSelectedCategories([voluntariadoCategory.id_categoria]);
+          setSelectedCategories([voluntariadoCategory.id_etiqueta]);
         }
     }
     if (filtro === 'donaciones' || filtro === 'donations') {
         const donacionCategory = categorias.find(c => c.etiqueta === 'Donacion');
         if (donacionCategory) {
-          setSelectedCategories([donacionCategory.id_categoria]);
+          setSelectedCategories([donacionCategory.id_etiqueta]);
         }
       }
     }
@@ -98,8 +104,75 @@ export default function ForumPage() {
     content: '',
     categorias: [] as number[],
     location: '',
-    coordinates: null as [number, number] | null
+    coordinates: null as [number, number] | null,
+    imagenes: [] as string[]
   })
+
+  // Estado separado para las categorías seleccionadas en el modal de creación
+  const [modalSelectedCategories, setModalSelectedCategories] = useState<number[]>([])
+  
+  // Estado para saber si estamos editando un post existente
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
+  
+  // Estado individual para cada categoría (como backup)
+  const [categoryStates, setCategoryStates] = useState<{[key: number]: boolean}>({})
+  
+  // Ref para manejar checkboxes directamente
+  const checkboxRefs = useRef<{[key: number]: HTMLInputElement | null}>({})
+
+  // Autocompletado de ubicación con debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (!newPost.location || newPost.location.length < 3) {
+        setLocationSuggestions([])
+        return
+      }
+      if (!LOCATIONIQ_API_KEY) {
+        setLocationSuggestions([])
+        return
+      }
+      setLocationLoading(true)
+      fetch(`https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(newPost.location)}&limit=8&countrycodes=ar&dedupe=1`)
+        .then(async res => {
+          if (!res.ok) {
+            setLocationSuggestions([])
+            return []
+          }
+          return res.json()
+        })
+        .then(data => {
+          if (!Array.isArray(data)) {
+            setLocationSuggestions([])
+            return
+          }
+          const filtered = data.filter((item: any) => {
+            return (
+              (item.address && (
+                (item.address.city && item.address.city.toLowerCase().includes('córdoba')) ||
+                (item.address.state && item.address.state.toLowerCase().includes('córdoba')) ||
+                (item.display_name && item.display_name.toLowerCase().includes('córdoba'))
+              ))
+            );
+          });
+          setLocationSuggestions(filtered.map((item: any) => {
+            const road = item.address?.road || item.address?.name || '';
+            const houseNumber = item.address?.house_number || '';
+            if (road && houseNumber) {
+              return `${road} ${houseNumber}, Córdoba`;
+            }
+            if (road) {
+              return `${road}, Córdoba`;
+            }
+            return item.display_name;
+          }));
+        })
+        .catch(() => {
+          setLocationSuggestions([])
+        })
+        .finally(() => setLocationLoading(false))
+    }, 600)
+    return () => clearTimeout(handler)
+  }, [newPost.location, showCreatePost])
 
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -203,6 +276,115 @@ export default function ForumPage() {
     })
   }
 
+  const handleTogglePostExpansion = (postId: string) => {
+    setExpandedPost(prev => prev === postId ? null : postId)
+  }
+
+  // Función simple para manejar categorías
+  const toggleCategory = (categoriaId: number) => {
+    console.log('🔍 [TOGGLE] Toggle categoría:', categoriaId);
+    console.log('🔍 [TOGGLE] Estado actual:', modalSelectedCategories);
+    
+    setModalSelectedCategories(prev => {
+      const isSelected = prev.includes(categoriaId);
+      let newCategories;
+      
+      if (isSelected) {
+        // Remover
+        newCategories = prev.filter(id => id !== categoriaId);
+        console.log('🔍 [TOGGLE] Removiendo categoría:', categoriaId);
+      } else {
+        // Agregar
+        newCategories = [...prev, categoriaId];
+        console.log('🔍 [TOGGLE] Agregando categoría:', categoriaId);
+      }
+      
+      console.log('🔍 [TOGGLE] Nuevo estado:', newCategories);
+      return newCategories;
+    });
+  }
+
+  // Función alternativa usando estado individual
+  const toggleCategoryIndividual = (categoriaId: number) => {
+    console.log('🔍 [INDIVIDUAL] Toggle categoría individual:', categoriaId);
+    
+    setCategoryStates(prev => {
+      const newState = {
+        ...prev,
+        [categoriaId]: !prev[categoriaId]
+      };
+      console.log('🔍 [INDIVIDUAL] Nuevo estado individual:', newState);
+      
+      // Actualizar también el array de categorías seleccionadas
+      const selectedIds = Object.keys(newState)
+        .filter(key => newState[parseInt(key)])
+        .map(key => parseInt(key));
+      
+      console.log('🔍 [INDIVIDUAL] IDs seleccionados:', selectedIds);
+      setModalSelectedCategories(selectedIds);
+      
+      return newState;
+    });
+  }
+
+  // Función que maneja checkboxes directamente con DOM
+  const handleCheckboxDirect = (categoriaId: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const checkbox = event.target;
+    const isChecked = checkbox.checked;
+    
+    console.log('🔍 [DIRECT] Checkbox directo:', categoriaId, 'Checked:', isChecked);
+    console.log('🔍 [DIRECT] Estado actual antes:', modalSelectedCategories);
+    
+    // Actualizar estado directamente
+    setModalSelectedCategories(prev => {
+      let newCategories;
+      if (isChecked) {
+        // Agregar si no está presente
+        newCategories = prev.includes(categoriaId) ? prev : [...prev, categoriaId];
+      } else {
+        // Remover
+        newCategories = prev.filter(id => id !== categoriaId);
+      }
+      
+      console.log('🔍 [DIRECT] Nuevo estado:', newCategories);
+      return newCategories;
+    });
+    
+    // Forzar el estado del checkbox
+    setTimeout(() => {
+      checkbox.checked = isChecked;
+    }, 0);
+  }
+
+  // Función ultra simple para manejar categorías
+  const handleCategoryClick = (categoriaId: number) => {
+    console.log('🔍 [ULTRA-SIMPLE] Click en categoría:', categoriaId);
+    console.log('🔍 [ULTRA-SIMPLE] Estado actual:', modalSelectedCategories);
+    
+    // Toggle simple
+    setModalSelectedCategories(prev => {
+      const isSelected = prev.includes(categoriaId);
+      let newCategories;
+      
+      if (isSelected) {
+        // Remover
+        newCategories = prev.filter(id => id !== categoriaId);
+        console.log('🔍 [ULTRA-SIMPLE] Removiendo:', categoriaId);
+      } else {
+        // Agregar
+        newCategories = [...prev, categoriaId];
+        console.log('🔍 [ULTRA-SIMPLE] Agregando:', categoriaId);
+      }
+      
+      console.log('🔍 [ULTRA-SIMPLE] Nuevo estado:', newCategories);
+      return newCategories;
+    });
+  }
+
+
   const handleShare = async (postId: string, postTitle: string) => {
     const shareUrl = `${window.location.origin}/forum/${postId}`
     
@@ -240,6 +422,32 @@ export default function ForumPage() {
     navigate(`/forum/${postId}`)
   }
 
+  const handleEditPost = (post: Post) => {
+    // Establecer el ID del post que se está editando
+    setEditingPostId(post.id)
+    
+    // Llenar el formulario con los datos del post
+    setNewPost({
+      title: post.title,
+      content: post.content,
+      categorias: [], // Las categorías se manejan por separado
+      location: post.location || '',
+      coordinates: null, // TODO: parsear coordenadas si están disponibles
+      imagenes: post.imagenes || []
+    })
+    
+    // Seleccionar las categorías del post
+    const postCategories = categorias
+      .filter(cat => post.tags.includes(cat.etiqueta))
+      .map(cat => cat.id_etiqueta)
+    setModalSelectedCategories(postCategories)
+    
+    // Abrir el modal de creación/edición
+    setShowCreatePost(true)
+    
+    toast.success('Post cargado para edición')
+  }
+
   const handleCreatePost = async () => {
     if (!user) {
       setShowAuthModal(true)
@@ -257,7 +465,7 @@ export default function ForumPage() {
       return
     }
 
-    if (newPost.categorias.length === 0) {
+    if (modalSelectedCategories.length === 0) {
       toast.error('Por favor selecciona al menos una categoría')
       return
     }
@@ -273,25 +481,38 @@ export default function ForumPage() {
     try {
       setCreatingPost(true)
       
-      console.log('📝 [CREATE POST] Datos a enviar:', {
+      const postData = {
         titulo: newPost.title.trim(),
         descripcion: newPost.content.trim(),
-        categorias: newPost.categorias,
+        categorias: modalSelectedCategories,
         ubicacion: newPost.location.trim() || undefined,
-        coordenadas: newPost.coordinates || undefined
-      })
+        coordenadas: newPost.coordinates || undefined,
+        imagenes: newPost.imagenes.length > 0 ? newPost.imagenes : undefined
+      }
       
-      await api.crearPublicacion({
-        titulo: newPost.title.trim(),
-        descripcion: newPost.content.trim(),
-        categorias: newPost.categorias,
-        ubicacion: newPost.location.trim() || undefined,
-        coordenadas: newPost.coordinates || undefined
-      })
+      console.log('📝 [POST] Datos a enviar:', postData)
+      console.log('📝 [POST] Categorías seleccionadas:', modalSelectedCategories);
+      console.log('📝 [POST] Cantidad de categorías seleccionadas:', modalSelectedCategories.length);
+      console.log('📝 [POST] Lista de categorías disponibles:', categorias);
+      
+      if (editingPostId) {
+        // Actualizar publicación existente
+        console.log('📝 [UPDATE] Actualizando publicación ID:', editingPostId)
+        await api.actualizarPublicacion(editingPostId, postData)
+        toast.success('Publicación actualizada exitosamente')
+      } else {
+        // Crear nueva publicación
+        console.log('📝 [CREATE] Creando nueva publicación')
+        await api.crearPublicacion(postData)
+        toast.success('Publicación creada exitosamente')
+      }
 
-      setNewPost({ title: '', content: '', categorias: [], location: '', coordinates: null })
+      // Limpiar formulario y estados
+      setNewPost({ title: '', content: '', categorias: [], location: '', coordinates: null, imagenes: [] })
+      setModalSelectedCategories([])
+      setCategoryStates({})
+      setEditingPostId(null)
       setShowCreatePost(false)
-      toast.success('Publicación creada exitosamente')
       
       // Recargar las publicaciones
       await loadData()
@@ -309,22 +530,195 @@ export default function ForumPage() {
     }
   }
 
-  // Función para manejar la selección de ubicación del modal
-  const handleLocationSelect = (location: { address: string; coordinates: [number, number] }) => {
-    setSelectedLocation(location);
-    setNewPost(prev => ({ 
-      ...prev, 
-      location: location.address,
-      coordinates: location.coordinates
+  // Función para comprimir imágenes (versión simplificada para debugging)
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      console.log('🔄 [COMPRESS] Iniciando compresión de:', file.name);
+      
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+
+        console.log('🔄 [COMPRESS] Canvas y contexto creados');
+
+        // Manejar errores de carga de imagen
+        img.onerror = (error) => {
+          console.error('❌ [COMPRESS] Error al cargar la imagen:', error);
+          reject(new Error(`No se pudo cargar la imagen ${file.name}`));
+        };
+
+        img.onload = () => {
+          console.log('🔄 [COMPRESS] Imagen cargada, dimensiones originales:', img.width, 'x', img.height);
+          
+          try {
+            // Verificar que el contexto del canvas esté disponible
+            if (!ctx) {
+              console.error('❌ [COMPRESS] No se pudo obtener el contexto del canvas');
+              reject(new Error('No se pudo obtener el contexto del canvas'));
+              return;
+            }
+
+            // Calcular nuevas dimensiones manteniendo la proporción
+            let { width, height } = img;
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+
+            console.log('🔄 [COMPRESS] Dimensiones calculadas:', width, 'x', height);
+
+            // Verificar dimensiones válidas
+            if (width <= 0 || height <= 0) {
+              console.error('❌ [COMPRESS] Dimensiones inválidas:', width, 'x', height);
+              reject(new Error('Dimensiones de imagen inválidas'));
+              return;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            console.log('🔄 [COMPRESS] Canvas configurado');
+
+            // Dibujar la imagen redimensionada
+            ctx.drawImage(img, 0, 0, width, height);
+            console.log('🔄 [COMPRESS] Imagen dibujada en canvas');
+
+            // Convertir a base64 con compresión
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+            console.log('🔄 [COMPRESS] Data URL generado, longitud:', compressedDataUrl.length);
+            
+            // Verificar que se generó el data URL
+            if (!compressedDataUrl || compressedDataUrl === 'data:,') {
+              console.error('❌ [COMPRESS] Data URL vacío o inválido');
+              reject(new Error('Error al generar la imagen comprimida'));
+              return;
+            }
+
+            console.log('✅ [COMPRESS] Compresión exitosa');
+            resolve(compressedDataUrl);
+          } catch (error) {
+            console.error('❌ [COMPRESS] Error en el procesamiento:', error);
+            reject(error);
+          }
+        };
+
+        // Crear URL del objeto y cargar la imagen
+        console.log('🔄 [COMPRESS] Creando URL del objeto');
+        const objectURL = URL.createObjectURL(file);
+        console.log('🔄 [COMPRESS] URL creada:', objectURL);
+        
+        img.src = objectURL;
+        console.log('🔄 [COMPRESS] Imagen asignada al src');
+        
+      } catch (error) {
+        console.error('❌ [COMPRESS] Error general:', error);
+        reject(error);
+      }
+    });
+  };
+
+  // Función para manejar la subida de imágenes
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const maxImages = 5;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (newPost.imagenes.length + files.length > maxImages) {
+      toast.error(`Máximo ${maxImages} imágenes permitidas`);
+      return;
+    }
+
+    // Procesar archivos uno por uno
+    for (const file of Array.from(files)) {
+      console.log('🖼️ Procesando imagen:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
+
+      // Validar tamaño
+      if (file.size > maxSize) {
+        toast.error(`La imagen ${file.name} es muy grande. Máximo 5MB`);
+        continue;
+      }
+
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        toast.error(`El archivo ${file.name} no es una imagen válida`);
+        continue;
+      }
+
+      // Validar tipos de imagen específicos
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`El formato ${file.type} no está soportado. Use JPEG, PNG, GIF o WebP`);
+        continue;
+      }
+
+      try {
+        console.log('🔄 Procesando imagen:', file.name);
+        
+        // Intentar comprimir primero
+        try {
+          const compressedImage = await compressImage(file, 800, 0.7);
+          console.log('✅ Imagen comprimida exitosamente:', file.name);
+          console.log('📏 Tamaño del data URL:', compressedImage.length);
+          
+          setNewPost(prev => ({
+            ...prev,
+            imagenes: [...prev.imagenes, compressedImage]
+          }));
+
+          toast.success(`Imagen ${file.name} procesada exitosamente`);
+        } catch (compressError) {
+          console.warn('⚠️ Error en compresión, intentando método alternativo:', compressError);
+          
+          // Método alternativo: usar FileReader sin compresión
+          const reader = new FileReader();
+          
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            if (result) {
+              console.log('✅ Imagen procesada con método alternativo:', file.name);
+              console.log('📏 Tamaño del data URL:', result.length);
+              
+              setNewPost(prev => ({
+                ...prev,
+                imagenes: [...prev.imagenes, result]
+              }));
+
+              toast.success(`Imagen ${file.name} procesada exitosamente (sin compresión)`);
+            } else {
+              throw new Error('No se pudo leer el archivo');
+            }
+          };
+          
+          reader.onerror = () => {
+            throw new Error('Error al leer el archivo');
+          };
+          
+          reader.readAsDataURL(file);
+        }
+      } catch (error) {
+        console.error('❌ Error al procesar imagen:', error);
+        toast.error(`Error al procesar la imagen ${file.name}: ${error.message || 'Error desconocido'}`);
+      }
+    }
+
+    // Limpiar el input para permitir seleccionar el mismo archivo nuevamente
+    event.target.value = '';
+  };
+
+  // Función para eliminar una imagen
+  const handleRemoveImage = (index: number) => {
+    setNewPost(prev => ({
+      ...prev,
+      imagenes: prev.imagenes.filter((_, i) => i !== index)
     }));
-    setShowLocationModal(false);
-    toast.success('Ubicación seleccionada correctamente');
   };
 
   // Función para verificar si una publicación requiere ubicación
   const requiresLocation = (categoriasIds: number[]) => {
     const locationRequiredCategories = categoriasIds.filter(catId => {
-      const categoria = categorias.find(c => c.id_categoria === catId)
+      const categoria = categorias.find(c => c.id_etiqueta === catId)
       return categoria?.etiqueta === 'Donacion' || categoria?.etiqueta === 'Voluntariado'
     })
     return locationRequiredCategories.length > 0
@@ -355,7 +749,7 @@ export default function ForumPage() {
     // Filtro de categorías
     const matchesCategory = selectedCategories.length === 0 || 
                            selectedCategories.some(catId => {
-                             const categoria = categorias.find(c => c.id_categoria === catId);
+                             const categoria = categorias.find(c => c.id_etiqueta === catId);
                              return categoria && post.tags.includes(categoria.etiqueta);
                            });
 
@@ -422,13 +816,13 @@ export default function ForumPage() {
 
               <div className="flex flex-wrap gap-2">
                 {(showAllCategories ? categorias : categorias.slice(0, 8)).map(categoria => {
-                  const isSelected = selectedCategories.includes(categoria.id_categoria);
+                  const isSelected = selectedCategories.includes(categoria.id_etiqueta);
                   const count = posts.filter(post => post.tags.includes(categoria.etiqueta)).length;
                   
                   return (
                     <button
-                      key={categoria.id_categoria}
-                      onClick={() => handleToggleCategory(categoria.id_categoria)}
+                      key={categoria.id_etiqueta}
+                      onClick={() => handleToggleCategory(categoria.id_etiqueta)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         isSelected
                           ? 'bg-purple-600 text-white shadow-md hover:bg-purple-700'
@@ -459,7 +853,7 @@ export default function ForumPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-medium text-gray-600">Filtros activos:</span>
                 {selectedCategories.map(catId => {
-                  const categoria = categorias.find(c => c.id_categoria === catId);
+                  const categoria = categorias.find(c => c.id_etiqueta === catId);
                   if (!categoria) return null;
                   
                   return (
@@ -538,11 +932,13 @@ export default function ForumPage() {
           </div>
         )}
 
-        {/* Create Post Modal */}
+        {/* Create/Edit Post Modal */}
         {showCreatePost && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Nueva Publicación</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {editingPostId ? 'Editar Publicación' : 'Nueva Publicación'}
+              </h2>
               
               <div className="space-y-4">
                 <div>
@@ -550,108 +946,220 @@ export default function ForumPage() {
                   <input
                     type="text"
                     value={newPost.title}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-                    className="input-field"
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setNewPost(prev => ({ ...prev, title: value }))
+                      // Validación en tiempo real
+                      if (value.length > 0) {
+                        const validation = validateTitle(value)
+                        if (!validation.isValid) {
+                          setTitleError(validation.errors[0] || 'Error de validación')
+                        } else {
+                          setTitleError('')
+                        }
+                      } else {
+                        setTitleError('')
+                      }
+                    }}
+                    className={`input-field ${titleError ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Título de la publicación"
                   />
+                  {titleError && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {titleError}
+                    </p>
+                  )}
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contenido</label>
                   <textarea
                     value={newPost.content}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-                    className="input-field"
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setNewPost(prev => ({ ...prev, content: value }))
+                      // Validación en tiempo real
+                      if (value.length > 0) {
+                        const validation = validate(value)
+                        if (!validation.isValid) {
+                          setContentError(validation.errors[0] || 'Error de validación')
+                        } else {
+                          setContentError('')
+                        }
+                      } else {
+                        setContentError('')
+                      }
+                    }}
+                    className={`input-field ${contentError ? 'border-red-500 focus:ring-red-500' : ''}`}
                     rows={4}
                     placeholder="Describe tu publicación..."
                   />
+                  {contentError && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {contentError}
+                    </p>
+                  )}
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Categorías</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                    {categorias.map(categoria => (
-                      <label 
-                        key={categoria.id_categoria} 
-                        className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          id={`categoria-${categoria.id_categoria}`}
-                          name={`categoria-${categoria.id_categoria}`}
-                          checked={newPost.categorias.includes(categoria.id_categoria)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            const categoriaId = categoria.id_categoria;
-                            if (e.target.checked) {
-                              setNewPost(prev => ({
-                                ...prev,
-                                categorias: [...prev.categorias, categoriaId]
-                              }))
-                            } else {
-                              setNewPost(prev => ({
-                                ...prev,
-                                categorias: prev.categorias.filter(id => id !== categoriaId)
-                              }))
-                            }
+                    {categorias.map(categoria => {
+                      console.log('🔍 [DEBUG] Estructura completa de categoría:', categoria);
+                      const isSelected = modalSelectedCategories.includes(categoria.id_etiqueta);
+                      console.log(`🔍 [RENDER] Renderizando categoría ${categoria.etiqueta} (ID: ${categoria.id_etiqueta}):`, { isSelected, modalSelectedCategories });
+                      
+                      return (
+                        <label 
+                          key={categoria.id_etiqueta} 
+                          className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                          style={{
+                            // En modo oscuro evitar blanco puro en hover
+                            // El CSS global ya ajusta .hover:bg-gray-50, esto es por si falta la clase
+                            backgroundColor: 'transparent'
                           }}
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        />
-                        <span className="text-sm text-gray-700">{categoria.etiqueta}</span>
-                      </label>
-                    ))}
+                        >
+                          <input
+                            type="checkbox"
+                            id={`categoria-${categoria.id_etiqueta}`}
+                            name={`categoria-${categoria.id_etiqueta}`}
+                            checked={isSelected}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              console.log('🔍 [CHECKBOX] Click directo en:', categoria.etiqueta, 'ID:', categoria.id_etiqueta);
+                              console.log('🔍 [CHECKBOX] Checkbox checked:', e.target.checked);
+                              handleCategoryClick(categoria.id_etiqueta);
+                            }}
+                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          />
+                          <span className="text-sm text-gray-700">{categoria.etiqueta}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
                 
-                {/* Campo de ubicación condicional */}
-                {(newPost.categorias.some(catId => {
-                  const categoria = categorias.find(c => c.id_categoria === catId)
-                  return categoria?.etiqueta === 'Donacion' || categoria?.etiqueta === 'Voluntariado'
-                })) && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {newPost.categorias.some(catId => {
-                        const categoria = categorias.find(c => c.id_categoria === catId)
-                        return categoria?.etiqueta === 'Donacion'
-                      }) && newPost.categorias.some(catId => {
-                        const categoria = categorias.find(c => c.id_categoria === catId)
-                        return categoria?.etiqueta === 'Voluntariado'
-                      }) 
-                        ? 'Ubicación de Donación/Voluntariado'
-                        : newPost.categorias.some(catId => {
-                            const categoria = categorias.find(c => c.id_categoria === catId)
-                            return categoria?.etiqueta === 'Donacion'
-                          })
-                        ? 'Ubicación de Donación'
-                        : 'Ubicación de Voluntariado'
+                {/* Campo de ubicación opcional */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ubicación (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newPost.location}
+                    onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Tab' && locationSuggestions.length > 0) {
+                        e.preventDefault()
+                        const firstSuggestion = locationSuggestions[0]
+                        setNewPost(prev => ({ ...prev, location: firstSuggestion }))
+                        setLocationSuggestions([])
                       }
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newPost.location}
-                        onChange={(e) => setNewPost(prev => ({ ...prev, location: e.target.value }))}
-                        className="input-field flex-1"
-                        placeholder="Ciudad, País"
-                      />
-                      <button
-                        type="button"
-                        className="p-2 rounded border flex items-center justify-center hover:bg-gray-50 transition-colors"
-                        title="Seleccionar ubicación en el mapa"
-                        onClick={() => setShowLocationModal(true)}
-                        style={{ background: 'color-mix(in oklab, var(--accent) 8%, transparent)', borderColor: 'var(--accent)' }}
-                      >
-                        <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                      </button>
+                    }}
+                    className="input-field w-full"
+                    placeholder="Calle y numeración en Córdoba (presiona TAB para autocompletar)"
+                    autoComplete="off"
+                  />
+                  
+                  {/* Sugerencias de autocompletado - Primera en negrita */}
+                  {locationSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                      <div className="max-h-36 overflow-y-auto">
+                        {locationSuggestions.slice(0, 3).map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className={`w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors ${
+                              index === 0 ? 'bg-purple-50' : ''
+                            }`}
+                            onClick={() => {
+                              setNewPost(prev => ({ ...prev, location: suggestion }))
+                              setLocationSuggestions([])
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                              <span className={`text-sm ${index === 0 ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+                                {suggestion}
+                              </span>
+                              {index === 0 && (
+                                <span className="ml-auto text-xs text-purple-600">Presiona TAB</span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                        {locationSuggestions.length > 3 && (
+                          <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-t border-gray-200">
+                            +{locationSuggestions.length - 3} sugerencias más disponibles
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Sección de imágenes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Imágenes (opcional)
+                  </label>
+                  
+                  {/* Input para subir imágenes */}
+                  <div className="mb-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <Image className="w-4 h-4 mr-2" />
+                      Subir Imágenes
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Máximo 5 imágenes, 5MB cada una
+                    </p>
                   </div>
-                )}
+
+                  {/* Vista previa de imágenes */}
+                  {newPost.imagenes.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {newPost.imagenes.map((imagen, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={imagen}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex justify-end space-x-4 mt-6">
                 <button
-                  onClick={() => setShowCreatePost(false)}
+                  onClick={() => {
+                    setShowCreatePost(false)
+                    setModalSelectedCategories([])
+                    setCategoryStates({})
+                    setEditingPostId(null) // Reset editing state
+                  }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
                   disabled={creatingPost}
                 >
@@ -663,7 +1171,7 @@ export default function ForumPage() {
                   disabled={creatingPost}
                 >
                   {creatingPost && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {creatingPost ? 'Publicando...' : 'Publicar'}
+                  {creatingPost ? (editingPostId ? 'Actualizando...' : 'Publicando...') : (editingPostId ? 'Actualizar' : 'Publicar')}
                 </button>
               </div>
             </div>
@@ -705,27 +1213,9 @@ export default function ForumPage() {
                     )}
                   </div>
                   
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                    <span>{post.author.name}</span>
-                    {post.author.organization && (
-                      <span>• {post.author.organization}</span>
-                    )}
-                    {post.location && (
-                      <span className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {post.location}
-                      </span>
-                    )}
-                    <span className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      {post.createdAt.toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-700 mb-4">{post.content}</p>
-                  
+                  {/* Solo mostrar categorías en la vista de lista */}
                   {post.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {post.tags.map(tag => (
                         <span
                           key={tag}
@@ -737,6 +1227,41 @@ export default function ForumPage() {
                       ))}
                     </div>
                   )}
+                  
+                  {/* Mensaje para ver detalles y botones de acción */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500 italic">
+                      Haz clic para ver la descripción completa, ubicación, imágenes y comentarios
+                    </p>
+                    
+                    {/* Botones de editar/eliminar para el autor */}
+                    {user && user.id_usuario === post.id_usuario && (
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditPost(post)
+                          }}
+                          className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 transition-colors"
+                          title="Editar publicación"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          <span className="text-xs">Editar</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEliminarPublicacion(post.id)
+                          }}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
+                          title="Eliminar publicación"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="text-xs">Eliminar</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center space-x-6">
@@ -765,6 +1290,28 @@ export default function ForumPage() {
                         <Share2 className="w-5 h-5" />
                         <span>Compartir</span>
                       </button>
+
+                      {/* Botón de editar para posts propios */}
+                      {user && user.id_usuario === post.id_usuario && (
+                        <button 
+                          onClick={() => handleEditPost(post)}
+                          className="flex items-center space-x-2 text-gray-500 hover:text-blue-600"
+                          title="Editar publicación"
+                        >
+                          <Edit3 className="w-5 h-5" />
+                          <span>Editar</span>
+                        </button>
+                      )}
+
+                      {post.imagenes && post.imagenes.length > 0 && (
+                        <button 
+                          onClick={() => handleTogglePostExpansion(post.id)}
+                          className="flex items-center space-x-2 text-gray-500 hover:text-purple-600"
+                        >
+                          <Image className="w-5 h-5" />
+                          <span>{expandedPost === post.id ? 'Ver menos' : 'Ver más'}</span>
+                        </button>
+                      )}
                     </div>
                     
                     {/* Botón eliminar - solo visible para el autor */}
@@ -781,15 +1328,33 @@ export default function ForumPage() {
                   </div>
                 </div>
               </div>
-              
-              {/* Comentarios inline */}
-              <div onClick={(e) => e.stopPropagation()}>
-              <InlineComments
-                publicacionId={post.id}
-                isExpanded={expandedComments.has(post.id)}
-                onToggle={() => handleToggleComments(post.id)}
-              />
-              </div>
+
+              {/* Vista expandida de imágenes */}
+              {expandedPost === post.id && post.imagenes && post.imagenes.length > 0 && (
+                <div className="mt-4 border-t pt-4" onClick={(e) => e.stopPropagation()}>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Galería de Imágenes</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {post.imagenes.map((imagen, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={imagen}
+                          alt={`Imagen ${index + 1} de ${post.title}`}
+                          className="w-full h-64 object-cover rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => {
+                            // Abrir imagen en nueva ventana
+                            window.open(imagen, '_blank');
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white bg-opacity-90 rounded-full p-2">
+                            <Image className="w-6 h-6 text-gray-700" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             ))
           )}
@@ -802,14 +1367,6 @@ export default function ForumPage() {
             </div>
           )}
         </div>
-
-        {/* Modal de selección de ubicación */}
-        <ClickableMapModal
-          isOpen={showLocationModal}
-          onClose={() => setShowLocationModal(false)}
-          onLocationSelect={handleLocationSelect}
-          initialLocation={newPost.location}
-        />
 
       </div>
     </div>

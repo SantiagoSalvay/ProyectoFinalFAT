@@ -8,7 +8,7 @@ async function main() {
 
   // 1. Tipos de Usuario
   console.log('📝 Insertando Tipos de Usuario...');
-  const tiposUsuario = await prisma.tipoUsuario.createMany({
+  const tiposUsuario = await prisma.TipoUsuario.createMany({
     data: [
       { tipo_usuario: 'Persona' },    // id: 1
       { tipo_usuario: 'ONG' },        // id: 2
@@ -20,7 +20,7 @@ async function main() {
 
   // 2. Tipos de Ranking
   console.log('\n📝 Insertando Tipos de Ranking...');
-  const tiposRanking = await prisma.tipoRanking.createMany({
+  const tiposRanking = await prisma.TipoRanking.createMany({
     data: [
       { tipo_ranking: 'Ranking ONG' },
       { tipo_ranking: 'Ranking Usuarios' },
@@ -31,7 +31,7 @@ async function main() {
 
   // 3. Tipos de Infracción
   console.log('\n📝 Insertando Tipos de Infracción...');
-  const tiposInfraccion = await prisma.tipoInfraccion.createMany({
+  const tiposInfraccion = await prisma.TipoInfraccion.createMany({
     data: [
       { tipo_infraccion: 'Contenido inapropiado', severidad: 'Media' },
       { tipo_infraccion: 'Spam', severidad: 'Baja' },
@@ -47,7 +47,7 @@ async function main() {
 
   // 4. Etiquetas
   console.log('\n📝 Insertando Etiquetas...');
-  const etiquetas = await prisma.etiqueta.createMany({
+  const etiquetas = await prisma.Etiqueta.createMany({
     data: [
       { etiqueta: 'Alimentos' },
       { etiqueta: 'Ropa' },
@@ -76,7 +76,7 @@ async function main() {
 
   // 5. Tipos de Donación
   console.log('\n📝 Insertando Tipos de Donación...');
-  const tiposDonacion = await prisma.tipoDonacion.createMany({
+  const tiposDonacion = await prisma.TipoDonacion.createMany({
     data: [
       { tipo_donacion: 'Alimentos', descripcion: 'Donación de productos alimenticios', puntos: 10 },
       { tipo_donacion: 'Ropa', descripcion: 'Donación de prendas de vestir', puntos: 5 },
@@ -94,6 +94,7 @@ async function main() {
   });
   console.log(`   ✅ ${tiposDonacion.count} tipos de donación insertados`);
 
+<<<<<<< HEAD
   // 6. Super Admin
   console.log('\n🛡️  Creando Super Admin por defecto...');
   // Asegurar que el tipo Admin exista y obtener su ID
@@ -122,6 +123,31 @@ async function main() {
   } else {
     console.log('   ℹ️  Super Admin ya existe, no se modifica.');
   }
+=======
+  // 6. Categorías para ONGs
+  console.log('\n📝 Insertando Categorías...');
+  const categorias = await prisma.Categoria.createMany({
+    data: [
+      { nombre: 'Educación', descripcion: 'Organizaciones dedicadas a la educación y capacitación', color: '#3B82F6', icono: '📚' },
+      { nombre: 'Salud', descripcion: 'Organizaciones enfocadas en salud y bienestar', color: '#10B981', icono: '🏥' },
+      { nombre: 'Medio Ambiente', descripcion: 'Protección del medio ambiente y sustentabilidad', color: '#059669', icono: '🌱' },
+      { nombre: 'Derechos Humanos', descripcion: 'Defensa de derechos humanos y justicia social', color: '#8B5CF6', icono: '⚖️' },
+      { nombre: 'Animales', descripcion: 'Protección y cuidado de animales', color: '#F59E0B', icono: '🐾' },
+      { nombre: 'Alimentación', descripcion: 'Combate al hambre y seguridad alimentaria', color: '#EF4444', icono: '🍽️' },
+      { nombre: 'Niñez y Adolescencia', descripcion: 'Protección y desarrollo de niños y adolescentes', color: '#EC4899', icono: '👶' },
+      { nombre: 'Adultos Mayores', descripcion: 'Apoyo y cuidado de adultos mayores', color: '#6366F1', icono: '👴' },
+      { nombre: 'Vivienda', descripcion: 'Acceso a vivienda digna', color: '#14B8A6', icono: '🏠' },
+      { nombre: 'Cultura y Arte', descripcion: 'Promoción de la cultura y las artes', color: '#F97316', icono: '🎨' },
+      { nombre: 'Deportes', descripcion: 'Fomento del deporte y la recreación', color: '#06B6D4', icono: '⚽' },
+      { nombre: 'Discapacidad', descripcion: 'Inclusión y apoyo a personas con discapacidad', color: '#A855F7', icono: '♿' },
+      { nombre: 'Género', descripcion: 'Igualdad de género y derechos de la mujer', color: '#E11D48', icono: '👥' },
+      { nombre: 'Comunidad', descripcion: 'Desarrollo comunitario y participación ciudadana', color: '#84CC16', icono: '🤝' },
+      { nombre: 'Empleo', descripcion: 'Capacitación laboral y generación de empleo', color: '#0EA5E9', icono: '💼' },
+    ],
+    skipDuplicates: true,
+  });
+  console.log(`   ✅ ${categorias.count} categorías insertadas`);
+>>>>>>> 787afd3889f37f7fb382e8beb9d947ada92b061c
 
   console.log('\n✅ Seed completado exitosamente!\n');
 }

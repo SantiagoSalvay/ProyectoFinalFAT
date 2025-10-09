@@ -8,12 +8,12 @@ async function generateNewResetToken() {
     console.log('🔑 [GENERAR] Generando nuevo token de reset...\n');
 
     // 1. Buscar un usuario
-    const usuarios = await prisma.usuario.findMany({
+    const usuarios = await prisma.Usuario.findMany({
       take: 1,
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
-        usuario: true
+        Usuario: true
       }
     });
 
@@ -33,7 +33,7 @@ async function generateNewResetToken() {
     console.log(`⏰ [GENERAR] Expira: ${resetTokenExpiry}`);
 
     // 3. Actualizar en la base de datos
-    await prisma.usuario.update({
+    await prisma.Usuario.update({
       where: { id_usuario: usuario.id_usuario },
       data: {
         reset_token: resetToken,

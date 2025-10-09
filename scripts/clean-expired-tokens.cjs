@@ -7,10 +7,10 @@ async function cleanExpiredTokens() {
     console.log('🧹 [LIMPIEZA] Limpiando tokens de reset expirados...\n');
 
     // 1. Mostrar tokens antes de la limpieza
-    const tokensAntes = await prisma.usuario.findMany({
+    const tokensAntes = await prisma.Usuario.findMany({
       where: { reset_token: { not: null } },
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
         reset_token: true,
         reset_token_expiry: true
@@ -35,7 +35,7 @@ async function cleanExpiredTokens() {
 
     // 2. Limpiar tokens expirados
     const ahora = new Date();
-    const resultado = await prisma.usuario.updateMany({
+    const resultado = await prisma.Usuario.updateMany({
       where: {
         reset_token: { not: null },
         reset_token_expiry: { lt: ahora }
@@ -49,10 +49,10 @@ async function cleanExpiredTokens() {
     console.log(`🗑️ [LIMPIEZA] Tokens expirados eliminados: ${resultado.count}`);
 
     // 3. Mostrar estado final
-    const tokensFinales = await prisma.usuario.findMany({
+    const tokensFinales = await prisma.Usuario.findMany({
       where: { reset_token: { not: null } },
       select: {
-        id_usuario: true,
+        id_Usuario: true,
         correo: true,
         reset_token: true,
         reset_token_expiry: true

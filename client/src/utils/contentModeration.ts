@@ -84,7 +84,64 @@ const PALABRAS_PROHIBIDAS = [
   
   // Otras palabras ofensivas
   'maldito', 'maldita', 'desgraciado', 'desgraciada', 'miserable',
-  'basura', 'escoria', 'parásito', 'parasito', 'rata', 'cucaracha'
+  'basura', 'escoria', 'parásito', 'parasito', 'rata', 'cucaracha',
+  
+  // Insultos argentinos y modismos ofensivos
+  'boludo', 'boluda', 'boludito', 'boludita', 'boludazo', 'boludaza',
+  'pelotudo', 'pelotuda', 'pelotudito', 'pelotudita', 'pelotudazo',
+  'gil', 'gila', 'gilastro', 'gilazo', 'gilada',
+  'tarado', 'tarada', 'taradito', 'taradita', 'taradazo',
+  'mogólico', 'mogolico', 'mongolon', 'mongui',
+  'garca', 'garcón', 'garcha', 'garchado', 'garchada',
+  'forro', 'forra', 'forrito', 'forrazo', 'forraso',
+  'chupapija', 'chupaverga', 'chupamedias', 'lameculos',
+  'la concha de tu madre', 'la concha de tu hermana', 'la concha de la lora',
+  'andate a la mierda', 'andate al carajo', 'rajá de acá', 'raja de aca',
+  'la puta que te parió', 'la puta que te pario', 'la re puta madre',
+  'hijo de puta', 'hijo de mil putas', 'hijo de re mil putas',
+  'la re concha de tu madre', 'la reconcha', 're concha',
+  'sorete', 'soretito', 'soretazo', 'soreteada',
+  'choto', 'chota', 'chotazo', 'al pedo',
+  'la concha de dios', 'me cago en dios', 'la puta madre',
+  'chupame', 'chupamela', 'chupate esta', 'chupenla',
+  'mamita', 'mamadera', 'mamerto', 'mamón', 'mamon',
+  'turro', 'turra', 'turrito', 'turraso', 'turrón',
+  'negro villero', 'negrada', 'negros de mierda',
+  'planero', 'planera', 'vago', 'vaga', 'vago de mierda',
+  
+  // Insultos específicos cordobeses - EXPANDIDO
+  'culiado', 'culia', 'culiau', 'culiada', 'culiá', 'culiadazo', 'culiadita',
+  'la puta', 'la pucha', 'qué culiado', 'que culiado', 'culiado loco',
+  'nabo', 'nabito', 'nabaso', 're nabo', 'nabazo',
+  'chamuyero', 'chamuyera', 'chanta', 'chantazo', 'chantada', 'chantún',
+  'botón', 'boton', 'buchón', 'buchon', 'cagón', 'cagon', 'buchón de mierda',
+  'ortiva', 'ortibas', 'ortibón', 'ortibon', 'ortivo',
+  'pecho frío', 'pecho frio', 'pechofrío', 'pechofrio',
+  'gato', 'gata', 'gatubi', 'minusa', 'minuza', 'gatito', 'gatote',
+  'groncho', 'groncha', 'gronchada', 'grasa', 'grasada', 'grasoso',
+  'cagaste', 'te cagaron', 'la cagaste', 'cagador', 'cagadora',
+  'pedorro', 'pedorra', 'pedorrito', 'pedorrazo', 'pedo', 'pedazo',
+  'chupame un huevo', 'me importa un carajo', 'me chupa un huevo',
+  'andate a cagar', 'andate al chori', 'rajá gil', 'raja gil',
+  'la concha bien de tu madre', 'recontra', 're contra', 'recontra puta',
+  'malparido', 'malparida', 'malnacido', 'malnacida', 'malparidazo',
+  'trolaso', 'trola', 'trolo', 'trollo', 'trollito', 'trollaso',
+  'careta', 'caretazo', 'careteada', 'careteo',
+  'gil de goma', 'gilaso', 'gilún', 'gilastra', 'gilipollas',
+  'rompero ortos', 'rompeculos', 'rompehuevos', 'rompebolas',
+  'choro', 'chorito', 'chorra', 'chorro', 'chorizada',
+  'boludo culiado', 'culiado boludo', 'la re culia',
+  'qué culiado que sos', 'que culiado que sos', 'sos un culiado',
+  'termo culiado', 'termo', 'terma', 'termín', 'termazo',
+  'salame', 'salamín', 'salamin', 'salamazo', 'salame culiado',
+  'cabeza de termo', 'cabeza de tacho', 'termo', 'termo culiado',
+  'la re mil', 'la re putísima', 're putísima', 'la re culiada',
+  'villero', 'villera', 'villa miseria', 'negro villero', 'villero culiado',
+  'cabeza', 'cabecita', 'cabecita negra', 'cabeza de tacho',
+  'choriplanero', 'choriplanera', 'ñoqui', 'ñoquis', 'chori',
+  'vende patria', 'vendepatria', 'cipayo', 'gorila', 'cipayo culiado',
+  'zurdo', 'zurdito', 'comunista de mierda', 'peroncho', 'peroncha',
+  'kirchnerista', 'k', 'macrista', 'choriplaneros', 'kirchnerista culiado',
 ]
 
 // Patrones sospechosos
@@ -97,7 +154,7 @@ const PATRONES_SPAM = [
 
 // Palabras que requieren contexto (no siempre son malas)
 // NOTA: Estas palabras solo se permiten en contextos específicos
-const PALABRAS_CONTEXTUALES = [
+const PALABRAS_CONTEXTUALES: string[] = [
   // Ya no incluimos palabras discriminatorias aquí - todas se bloquean
 ]
 
