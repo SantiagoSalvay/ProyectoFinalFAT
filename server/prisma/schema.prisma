@@ -30,10 +30,7 @@ model Usuario {
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
   DetalleUsuario           DetalleUsuario?
   infracciones             Infracciones[]
-<<<<<<< HEAD
   ONGCategoria             ONGCategoria[]
-=======
->>>>>>> 787afd3889f37f7fb382e8beb9d947ada92b061c
   passwordResetTokens      PasswordResetToken[]
   pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
   pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")

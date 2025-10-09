@@ -40,11 +40,23 @@ import AdminPage from './pages/AdminPage'
 
 function App() {
   return (
+<<<<<<< HEAD
     <>
       <AuthProvider>
         <NotificationProvider>
           <NotificationManager />
           <div className="min-h-screen">
+=======
+    <AuthProvider>
+      <NotificationProvider>
+        <NotificationManager />
+        <div className="min-h-screen">
+          {isAdminRoute ? (
+            <Routes>
+              <Route path="/admin/*" element={<AdminPage />} />
+            </Routes>
+          ) : (
+>>>>>>> efd0bb6123ac5e71e3f7c9bb5dd7cb9a3e88a993
             <Layout>
               <Routes>
                 <Route path="/" element={<HomePage />} />
@@ -54,6 +66,7 @@ function App() {
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route path="/verificar/:token" element={<VerifyEmailPage />} />
                 <Route path="/auth/callback" element={<AuthCallbackPage />} />
+<<<<<<< HEAD
                 <Route path="/mission" element={<UnauthenticatedOnlyRoute><MissionPage /></UnauthenticatedOnlyRoute>} />
                 <Route path="/donaciones" element={<AuthenticatedOnlyRoute><Donaciones /></AuthenticatedOnlyRoute>} />
                 <Route path="/map" element={<AuthenticatedOnlyRoute><MapPage /></AuthenticatedOnlyRoute>} />
@@ -62,6 +75,55 @@ function App() {
                 <Route path="/forum" element={<ProtectedRoute><ForumPage /></ProtectedRoute>} />
                 <Route path="/forum/:id" element={<ProtectedRoute><PostDetailPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+=======
+                
+                {/* Rutas solo para usuarios NO registrados */}
+                <Route path="/mission" element={
+                  <UnauthenticatedOnlyRoute>
+                    <MissionPage />
+                  </UnauthenticatedOnlyRoute>
+                } />
+                
+                {/* Rutas solo para usuarios registrados */}
+                <Route path="/donaciones" element={
+                  <AuthenticatedOnlyRoute>
+                    <Donaciones />
+                  </AuthenticatedOnlyRoute>
+                } />
+                <Route path="/map" element={
+                  <AuthenticatedOnlyRoute>
+                    <MapPage />
+                  </AuthenticatedOnlyRoute>
+                } />
+                <Route path="/ranking" element={
+                  <AuthenticatedOnlyRoute>
+                    <RankingPage />
+                  </AuthenticatedOnlyRoute>
+                } />
+                
+                {/* Rutas protegidas (requieren autenticación) */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/forum" element={
+                  <ProtectedRoute>
+                    <ForumPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/forum/:id" element={
+                  <ProtectedRoute>
+                    <PostDetailPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                } />
+                {/* Quick Actions routes */}
+>>>>>>> efd0bb6123ac5e71e3f7c9bb5dd7cb9a3e88a993
                 <Route path="/acciones/crear-campania" element={<ProtectedRoute><CreateCampaignPage /></ProtectedRoute>} />
                 <Route path="/acciones/gestionar-voluntarios" element={<ProtectedRoute><ManageVolunteersPage /></ProtectedRoute>} />
                 <Route path="/acciones/reportes" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
@@ -70,10 +132,22 @@ function App() {
                 <Route path="/acciones/oportunidades-voluntariado" element={<ProtectedRoute><VolunteerOpportunitiesPage /></ProtectedRoute>} />
                 <Route path="/acciones/mi-historial" element={<ProtectedRoute><MyHistoryPage /></ProtectedRoute>} />
                 <Route path="/acciones/mis-donaciones" element={<ProtectedRoute><MyDonationsPage /></ProtectedRoute>} />
+<<<<<<< HEAD
                 <Route path="/complete-data" element={<ProtectedRoute><CompleteDataPage /></ProtectedRoute>} />
               </Routes>
             </Layout>
           </div>
+=======
+                <Route path="/complete-data" element={
+                  <ProtectedRoute>
+                    <CompleteDataPage />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </Layout>
+          )}
+          
+>>>>>>> efd0bb6123ac5e71e3f7c9bb5dd7cb9a3e88a993
           <Toaster
             position="top-right"
             toastOptions={{

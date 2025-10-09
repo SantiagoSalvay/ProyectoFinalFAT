@@ -58,14 +58,15 @@ export function useUserNotifications() {
     if (!user) return null
 
     try {
-      // Obtener publicaciones del usuario (necesitaría filtrar por usuario en el servidor)
+      // Obtener publicaciones del usuario (nota: actualmente no filtra por usuario en el servidor)
       const publicaciones = await api.getPublicaciones()
-      const comentarios = await api.getComentarios('') // Esto necesitaría modificarse en el servidor
+      // No solicitar comentarios sin un ID de publicación válido para evitar URLs con doble slash
+      // const comentarios = await api.getComentarios('')
 
       // Por ahora, asumir que necesitamos implementar estos métodos en el servidor
       // Para demostración, usar datos simulados
       const publicacionesCount = publicaciones?.length || 0
-      const comentariosCount = 0 // comentarios?.length || 0
+      const comentariosCount = 0 // Placeholder hasta tener endpoint para listar comentarios del usuario
 
       // Analizar preguntas sin responder (publicaciones con preguntas abiertas)
       const preguntasSinResponder = publicaciones?.filter(pub =>
