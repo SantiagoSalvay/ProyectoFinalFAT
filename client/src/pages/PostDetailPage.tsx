@@ -13,9 +13,7 @@ import {
   Calendar, 
   User, 
   Building,
-  Image,
-  Edit3,
-  Trash2
+  Image
 } from 'lucide-react'
 import InlineComments from '../components/InlineComments'
 
@@ -225,26 +223,6 @@ export default function PostDetailPage() {
                 </div>
               </div>
             </div>
-
-            {/* Botones de acción del autor */}
-            {user && post.id_usuario === user.id_usuario && (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleEdit}
-                  className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
-                  title="Editar publicación"
-                >
-                  <Edit3 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="p-2 text-gray-500 hover:text-red-600 transition-colors"
-                  title="Eliminar publicación"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Título */}

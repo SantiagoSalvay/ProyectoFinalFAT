@@ -109,58 +109,39 @@ const PALABRAS_PROHIBIDAS = [
   'negro villero', 'negrada', 'negros de mierda',
   'planero', 'planera', 'vago', 'vaga', 'vago de mierda',
   
-  // Insultos específicos cordobeses
-  'culiado', 'culia', 'culiau', 'culiada', 'culiá',
-  'la puta', 'la pucha', 'qué culiado', 'que culiado',
-  'nabo', 'nabito', 'nabaso', 're nabo',
-  'chamuyero', 'chamuyera', 'chanta', 'chantazo', 'chantada',
-  'botón', 'boton', 'buchón', 'buchon', 'cagón', 'cagon',
-  'ortiva', 'ortibas', 'ortibón', 'ortibon',
+  // Insultos específicos cordobeses - EXPANDIDO
+  'culiado', 'culia', 'culiau', 'culiada', 'culiá', 'culiadazo', 'culiadita',
+  'la puta', 'la pucha', 'qué culiado', 'que culiado', 'culiado loco',
+  'nabo', 'nabito', 'nabaso', 're nabo', 'nabazo',
+  'chamuyero', 'chamuyera', 'chanta', 'chantazo', 'chantada', 'chantún',
+  'botón', 'boton', 'buchón', 'buchon', 'cagón', 'cagon', 'buchón de mierda',
+  'ortiva', 'ortibas', 'ortibón', 'ortibon', 'ortivo',
   'pecho frío', 'pecho frio', 'pechofrío', 'pechofrio',
-  'gato', 'gata', 'gatubi', 'minusa', 'minuza',
-  'groncho', 'groncha', 'gronchada', 'grasa', 'grasada',
-  'cagaste', 'te cagaron', 'la cagaste', 'cagador',
-  'pedorro', 'pedorra', 'pedorrito', 'pedorrazo',
+  'gato', 'gata', 'gatubi', 'minusa', 'minuza', 'gatito', 'gatote',
+  'groncho', 'groncha', 'gronchada', 'grasa', 'grasada', 'grasoso',
+  'cagaste', 'te cagaron', 'la cagaste', 'cagador', 'cagadora',
+  'pedorro', 'pedorra', 'pedorrito', 'pedorrazo', 'pedo', 'pedazo',
   'chupame un huevo', 'me importa un carajo', 'me chupa un huevo',
   'andate a cagar', 'andate al chori', 'rajá gil', 'raja gil',
-  'la concha bien de tu madre', 'recontra', 're contra',
-  'malparido', 'malparida', 'malnacido', 'malnacida',
-  
-  // Variantes cordobesas con "culia"
-  'culiado loco', 'culiado man', 'culia loco', 'culia chabon',
-  'andá a cagar', 'anda a cagar', 'andá al carajo',
+  'la concha bien de tu madre', 'recontra', 're contra', 'recontra puta',
+  'malparido', 'malparida', 'malnacido', 'malnacida', 'malparidazo',
+  'trolaso', 'trola', 'trolo', 'trollo', 'trollito', 'trollaso',
+  'careta', 'caretazo', 'careteada', 'careteo',
+  'gil de goma', 'gilaso', 'gilún', 'gilastra', 'gilipollas',
+  'rompero ortos', 'rompeculos', 'rompehuevos', 'rompebolas',
+  'choro', 'chorito', 'chorra', 'chorro', 'chorizada',
   'boludo culiado', 'culiado boludo', 'la re culia',
-  'qué culiado que sos', 'que culiado que sos',
-  
-  // Expresiones ofensivas cordobesas
-  'la puta que lo parió', 'la puta que lo pario',
-  'me cago en vos', 'me cago en todos', 'cagón de mierda',
-  'la re puta madre que te parió', 'la re puta madre que te pario',
-  'sos un pelotudo', 'sos una pelotuda', 'sos un gil',
-  'sos un forro', 'sos una forra', 'sos un nabo',
-  
-  // Diminutivos y aumentativos ofensivos
-  'putito', 'putita', 'putón', 'puton', 'putazo',
-  'mierdita', 'mierdero', 'cagadita', 'cagadón', 'cagadon',
-  'forrito', 'forrazo', 'gillito', 'gilazo',
-  
-  // Vulgaridades adicionales argentinas
-  'la concha bien', 'me recontra cago', 'te recontra cago',
-  'chupame bien', 'metete', 'metételo', 'metetelo',
-  'pajero', 'pajera', 'pajerito', 'pajerón', 'pajeron',
-  'buchón de mierda', 'buchon de mierda', 'cagón de mierda',
-  'culo roto', 'rompeculos', 'rompehuevos', 'rompebolas',
-  'salame', 'salamín', 'salamin', 'salamazo',
+  'qué culiado que sos', 'que culiado que sos', 'sos un culiado',
+  'termo culiado', 'termo', 'terma', 'termín', 'termazo',
+  'salame', 'salamín', 'salamin', 'salamazo', 'salame culiado',
   'cabeza de termo', 'cabeza de tacho', 'termo', 'termo culiado',
-  'la re mil', 'la re putísima', 're putísima',
-  
-  // Expresiones discriminatorias argentinas
-  'villero', 'villera', 'villa miseria', 'negro villero',
+  'la re mil', 'la re putísima', 're putísima', 'la re culiada',
+  'villero', 'villera', 'villa miseria', 'negro villero', 'villero culiado',
   'cabeza', 'cabecita', 'cabecita negra', 'cabeza de tacho',
-  'choriplanero', 'choriplanera', 'ñoqui', 'ñoquis',
-  'vende patria', 'vendepatria', 'cipayo', 'gorila',
-  'zurdo', 'zurdito', 'comunista de mierda', 'peroncho',
-  'kirchnerista', 'k', 'macrista', 'choriplaneros'
+  'choriplanero', 'choriplanera', 'ñoqui', 'ñoquis', 'chori',
+  'vende patria', 'vendepatria', 'cipayo', 'gorila', 'cipayo culiado',
+  'zurdo', 'zurdito', 'comunista de mierda', 'peroncho', 'peroncha',
+  'kirchnerista', 'k', 'macrista', 'choriplaneros', 'kirchnerista culiado',
 ]
 
 // Patrones sospechosos
@@ -173,7 +154,7 @@ const PATRONES_SPAM = [
 
 // Palabras que requieren contexto (no siempre son malas)
 // NOTA: Estas palabras solo se permiten en contextos específicos
-const PALABRAS_CONTEXTUALES = [
+const PALABRAS_CONTEXTUALES: string[] = [
   // Ya no incluimos palabras discriminatorias aquí - todas se bloquean
 ]
 
