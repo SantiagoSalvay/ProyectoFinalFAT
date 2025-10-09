@@ -55,8 +55,6 @@ app.use(session({
 
 // Inicializar Passport
 app.use(passport.initialize());
-app.use(passport.session());
-
 // Rutas
 app.use('/auth', authRoutes);
 app.use('/api/auth', oauthRoutes);
@@ -64,6 +62,7 @@ app.use('/api/forum', forumRoutes);
 app.use('/api/ongs', ongsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/mercadopago', mercadopagoRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
