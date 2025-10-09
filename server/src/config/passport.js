@@ -2,7 +2,6 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { emailService } from '../../lib/email-service.js';
 
 const prisma = new PrismaClient();
@@ -109,10 +108,13 @@ passport.use(new GoogleStrategy({
 
 // Configurar estrategia de Twitter (solo si las credenciales están disponibles)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
+  // Importación dinámica para evitar fallos si 'passport-twitter' no está instalado
+  const { Strategy: TwitterStrategy } = await import('passport-twitter');
+  
   passport.use(new TwitterStrategy({
     consumerKey: process.env.TWITTER_CONSUMER_KEY,
     consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
-    callbackURL: 'http://localhost:3001/api/auth/twitter/callback'
+    callbackURL: process.env.TWITTER_CALLBACK_URL || 'http://localhost:3001/api/auth/twitter/callback'
   },
   async (token, tokenSecret, profile, done) => {
     try {
