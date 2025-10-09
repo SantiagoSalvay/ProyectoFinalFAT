@@ -16,8 +16,14 @@ dotenv.config({ path: '../.env' });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configurar CORS para permitir frontend en 3000 y 3002
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:3002'];
+// Configurar CORS para permitir frontend en 3000-3004 (Vite cambia de puerto)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001', // en caso de preview/otros
+  'http://localhost:3002',
+  'http://localhost:3003',
+  'http://localhost:3004',
+];
 app.use(cors({
   origin: (origin, callback) => {
     // Permitir requests de herramientas (sin origin) y de orígenes permitidos

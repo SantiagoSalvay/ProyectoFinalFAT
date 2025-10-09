@@ -463,8 +463,31 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Verificar si el usuario está baneado - TEMPORALMENTE DESHABILITADO
-    // TODO: Implementar sistema de baneo con la nueva estructura
+    // Verificar si el usuario está baneado (Infracciones activas de tipo 'Ban')
+    const banType = await prisma.tipoInfraccion.upsert({
+      where: { id_tipo_infraccion: 9999 },
+      update: {},
+      create: { id_tipo_infraccion: 9999, tipo_infraccion: 'Ban', severidad: 'Crítica' }
+    });
+    const activeBan = await prisma.infracciones.findFirst({
+      where: {
+        id_usuario: user.id_usuario,
+        id_tipo_infraccion: banType.id_tipo_infraccion,
+        OR: [
+          { fecha_expiracion: null },
+          { fecha_expiracion: { gt: new Date() } }
+        ]
+      }
+    });
+    if (activeBan) {
+      return res.status(403).json({
+        error: 'Cuenta baneada',
+        userBanned: true,
+        reason: 'Ban administrativo',
+        permanent: activeBan.fecha_expiracion === null,
+        bannedUntil: activeBan.fecha_expiracion
+      });
+    }
 
     // Verificar contraseña
     const isValidPassword = await bcrypt.compare(contrasena, user.contrasena);

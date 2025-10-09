@@ -22,22 +22,23 @@ model Usuario {
   contrasena               String?
   id_tipo_usuario          Int
   ubicacion                String?
+  createdAt                DateTime               @default(now())
   coordenadas              String?
   redes_sociales           String?
   telefono                 String?
-  createdAt                DateTime               @default(now())
   calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
   detalleUsuario           DetalleUsuario?
   infracciones             Infracciones[]
+  ONGCategoria             ONGCategoria[]
+  passwordResetTokens      PasswordResetToken[]
   pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
   pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")
   publicaciones            Publicacion[]
+  likesRealizados          PublicacionLike[]      @relation("LikesRealizados")
   rankings                 Ranking[]
   respuestas               RespuestaPublicacion[]
   tiposONG                 TipoONG[]
-  passwordResetTokens      PasswordResetToken[]
-  likesRealizados          PublicacionLike[]      @relation("LikesRealizados")
   tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
@@ -64,10 +65,11 @@ model Publicacion {
   fecha_publicacion          DateTime               @default(now())
   ultima_fecha_actualizacion DateTime               @default(now())
   ubicacion                  String?
+  imagenes                   String?
   usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
   publicacionEtiquetas       PublicacionEtiqueta[]
-  respuestas                 RespuestaPublicacion[]
   likes                      PublicacionLike[]
+  respuestas                 RespuestaPublicacion[]
 }
 
 model PublicacionLike {
@@ -204,11 +206,11 @@ model RegistroPendiente {
   correo             String   @unique
   contrasena         String
   ubicacion          String?
-  coordenadas        String?
   verification_token String   @unique
   token_expiry       DateTime
   createdAt          DateTime @default(now())
   tipo_usuario       Int
+  coordenadas        String?
 }
 
 model PasswordResetToken {
@@ -219,7 +221,28 @@ model PasswordResetToken {
   createdAt  DateTime @default(now())
   used       Boolean  @default(false)
   usuario    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
-  
+
   @@index([token])
   @@index([id_usuario])
+}
+
+model Categoria {
+  id_categoria Int            @id @default(autoincrement())
+  nombre       String
+  descripcion  String?
+  color        String?
+  icono        String?
+  createdAt    DateTime       @default(now())
+  ONGCategoria ONGCategoria[]
+}
+
+model ONGCategoria {
+  id_ong_categoria Int       @id @default(autoincrement())
+  id_usuario       Int
+  id_categoria     Int
+  createdAt        DateTime  @default(now())
+  Categoria        Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Cascade)
+  Usuario          Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_usuario, id_categoria])
 }

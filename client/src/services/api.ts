@@ -132,6 +132,56 @@ class ApiService {
       method: 'DELETE'
     });
   }
+
+  // Combined Users (Usuarios + ONGs)
+  async adminListUsersAll(params?: { type?: 'all'|'user'|'ong'; q?: string }) {
+    const search = new URLSearchParams();
+    if (params?.type) search.set('type', params.type);
+    if (params?.q) search.set('q', params.q);
+    const qs = search.toString();
+    return this.request<{ users: any[] }>(`/api/admin/users-all${qs ? `?${qs}` : ''}`, { method: 'GET' });
+  }
+  async adminUpdateActor(id: number, data: { nombre?: string; apellido?: string; ubicacion?: string }) {
+    return this.request<{ message: string; actor: any }>(`/api/admin/actors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Posts moderation
+  async adminListPosts(q?: string) {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+    return this.request<{ posts: any[] }>(`/api/admin/posts${qs}`, { method: 'GET' });
+  }
+  async adminUpdatePost(id: number, data: { titulo?: string; descripcion_publicacion?: string; moderate?: boolean; reason?: string }) {
+    return this.request<{ message: string; post: any }>(`/api/admin/posts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Donations control
+  async adminListDonations(q?: string) {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+    return this.request<{ donations: any[] }>(`/api/admin/donations${qs}`, { method: 'GET' });
+  }
+  async adminUpdateDonation(id: number, data: { cantidad?: number; horas_donadas?: number; puntos_otorgados?: number }) {
+    return this.request<{ message: string; donation: any }>(`/api/admin/donations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+  async adminFlagDonation(id: number, reason?: string) {
+    return this.request<{ message: string; infraction: any }>(`/api/admin/donations/${id}/flag`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+  }
+
+  // Logs
+  async adminGetLogs(limit = 200) {
+    return this.request<{ logs: any[] }>(`/api/admin/logs?limit=${limit}`, { method: 'GET' });
+  }
   // Obtener donaciones realizadas por el usuario autenticado
   async getDonacionesRealizadas() {
     try {
