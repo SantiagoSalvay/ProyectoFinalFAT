@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
 import { NotificationProvider } from './contexts/NotificationContext'
@@ -39,11 +39,13 @@ import MyDonationsPage from './pages/MyDonationsPage'
 import AdminPage from './pages/AdminPage'
 
 function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
   return (
     <AuthProvider>
       <NotificationProvider>
         <div className="min-h-screen">
-          <Layout>
+          {isAdminRoute ? (
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -53,73 +55,84 @@ function App() {
               <Route path="/verificar/:token" element={<VerifyEmailPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               
-              {/* Rutas solo para usuarios NO registrados */}
-              <Route path="/mission" element={
-                <UnauthenticatedOnlyRoute>
-                  <MissionPage />
-                </UnauthenticatedOnlyRoute>
-              } />
-              <Route path="/ongs" element={<ONGsPage />} />
-              
-              {/* Rutas solo para usuarios registrados */}
-              <Route path="/donaciones" element={
-                <AuthenticatedOnlyRoute>
-                  <Donaciones />
-                </AuthenticatedOnlyRoute>
-              } />
-              <Route path="/map" element={
-                <AuthenticatedOnlyRoute>
-                  <MapPage />
-                </AuthenticatedOnlyRoute>
-              } />
-              <Route path="/ranking" element={
-                <AuthenticatedOnlyRoute>
-                  <RankingPage />
-                </AuthenticatedOnlyRoute>
-              } />
-              
-              {/* Rutas protegidas (requieren autenticación) */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/forum" element={
-                <ProtectedRoute>
-                  <ForumPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/forum/:postId" element={
-                <ProtectedRoute>
-                  <ForumPostDetailPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              } />
+              {/* Admin only route without Layout */}
               <Route path="/admin" element={
                 <ProtectedRoute>
                   <AdminPage />
                 </ProtectedRoute>
               } />
-              {/* Quick Actions routes */}
-              <Route path="/acciones/crear-campania" element={<ProtectedRoute><CreateCampaignPage /></ProtectedRoute>} />
-              <Route path="/acciones/gestionar-voluntarios" element={<ProtectedRoute><ManageVolunteersPage /></ProtectedRoute>} />
-              <Route path="/acciones/reportes" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-              <Route path="/acciones/historial-donaciones" element={<ProtectedRoute><DonationsHistoryPage /></ProtectedRoute>} />
-              <Route path="/acciones/buscar-organizaciones" element={<ProtectedRoute><SearchOrgsPage /></ProtectedRoute>} />
-              <Route path="/acciones/oportunidades-voluntariado" element={<ProtectedRoute><VolunteerOpportunitiesPage /></ProtectedRoute>} />
-              <Route path="/acciones/mi-historial" element={<ProtectedRoute><MyHistoryPage /></ProtectedRoute>} />
-              <Route path="/acciones/mis-donaciones" element={<ProtectedRoute><MyDonationsPage /></ProtectedRoute>} />
-            <Route path="/complete-data" element={
-              <ProtectedRoute>
-                <CompleteDataPage />
-              </ProtectedRoute>
-            } />
             </Routes>
-          </Layout>
+          ) : (
+            <Layout>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+                <Route path="/verificar/:token" element={<VerifyEmailPage />} />
+                <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                {/* Rutas solo para usuarios NO registrados */}
+                <Route path="/mission" element={
+                  <UnauthenticatedOnlyRoute>
+                    <MissionPage />
+                  </UnauthenticatedOnlyRoute>
+                } />
+                <Route path="/ongs" element={<ONGsPage />} />
+                {/* Rutas solo para usuarios registrados */}
+                <Route path="/donaciones" element={
+                  <AuthenticatedOnlyRoute>
+                    <Donaciones />
+                  </AuthenticatedOnlyRoute>
+                } />
+                <Route path="/map" element={
+                  <AuthenticatedOnlyRoute>
+                    <MapPage />
+                  </AuthenticatedOnlyRoute>
+                } />
+                <Route path="/ranking" element={
+                  <AuthenticatedOnlyRoute>
+                    <RankingPage />
+                  </AuthenticatedOnlyRoute>
+                } />
+                {/* Rutas protegidas (requieren autenticación) */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/forum" element={
+                  <ProtectedRoute>
+                    <ForumPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/forum/:postId" element={
+                  <ProtectedRoute>
+                    <ForumPostDetailPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                } />
+                {/* Quick Actions routes */}
+                <Route path="/acciones/crear-campania" element={<ProtectedRoute><CreateCampaignPage /></ProtectedRoute>} />
+                <Route path="/acciones/gestionar-voluntarios" element={<ProtectedRoute><ManageVolunteersPage /></ProtectedRoute>} />
+                <Route path="/acciones/reportes" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+                <Route path="/acciones/historial-donaciones" element={<ProtectedRoute><DonationsHistoryPage /></ProtectedRoute>} />
+                <Route path="/acciones/buscar-organizaciones" element={<ProtectedRoute><SearchOrgsPage /></ProtectedRoute>} />
+                <Route path="/acciones/oportunidades-voluntariado" element={<ProtectedRoute><VolunteerOpportunitiesPage /></ProtectedRoute>} />
+                <Route path="/acciones/mi-historial" element={<ProtectedRoute><MyHistoryPage /></ProtectedRoute>} />
+                <Route path="/acciones/mis-donaciones" element={<ProtectedRoute><MyDonationsPage /></ProtectedRoute>} />
+                <Route path="/complete-data" element={
+                  <ProtectedRoute>
+                    <CompleteDataPage />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </Layout>
+          )}
           
           <Toaster
             position="top-right"
