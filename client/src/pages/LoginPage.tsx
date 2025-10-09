@@ -36,9 +36,14 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data.email, data.password)
+      const logged = await login(data.email, data.password)
       toast.success('¡Bienvenido de vuelta!')
-      navigate('/dashboard')
+      // Redirigir a Admin si el rol es admin o si el email es el del superusuario
+      if ((((logged as any).tipo_usuario ?? 0) >= 3) || data.email.toLowerCase() === 'admin@demos.local') {
+        navigate('/admin')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (error: any) {
       // Verificar si es error de cuenta baneada
       if (error.response?.status === 403 && error.response.data?.userBanned) {

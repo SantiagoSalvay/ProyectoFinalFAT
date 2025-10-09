@@ -20,7 +20,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 
 // Callback de Google OAuth
 router.get('/google/callback', 
-  passport.authenticate('google', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
   async (req, res) => {
     try {
       console.log('🎉 Google OAuth exitoso para usuario:', req.user.email);
@@ -66,6 +66,7 @@ router.get('/google/callback',
         { 
           userId: req.user.id_usuario,
           email: req.user.email,
+          tipo_usuario: req.user.id_tipo_usuario,
           provider: userWithDetails?.DetalleUsuario?.auth_provider || 'google'
         },
         process.env.JWT_SECRET,
@@ -86,7 +87,7 @@ router.get('/google/callback',
 // Callback de Twitter OAuth (solo si está configurado)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   router.get('/twitter/callback',
-    passport.authenticate('twitter', { failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+    passport.authenticate('twitter', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
     async (req, res) => {
       try {
         const user = req.user;
@@ -133,7 +134,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         // Generar JWT
         const authProvider = userWithDetails?.DetalleUsuario?.auth_provider || 'twitter';
         const token = jwt.sign(
-          { userId: user.id_usuario, email: user.email, provider: authProvider },
+          { userId: user.id_usuario, email: user.email, tipo_usuario: user.id_tipo_usuario, provider: authProvider },
           process.env.JWT_SECRET,
           { expiresIn: '7d' }
         );

@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<User>
   register: (userData: RegisterData) => Promise<any>
   logout: () => void
   updateProfile: (profileData: UpdateProfileData) => Promise<void>
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       console.log('Intentando login con:', { email, password: '[PROTECTED]' });
       const response = await api.login({ email, password });
@@ -115,14 +115,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.user) {
         setUser(response.user);
         toast.success('¡Inicio de sesión exitoso!');
+        return response.user;
       } else {
         console.error('No se recibieron datos del usuario en la respuesta');
         toast.error('Error en el inicio de sesión: datos de usuario no recibidos');
+        throw new Error('Datos de usuario no recibidos');
       }
     } catch (error) {
       console.error('Error detallado en login:', error);
       toast.error('Error en el inicio de sesión');
-      throw error;
+      throw error as any;
     }
   }
 

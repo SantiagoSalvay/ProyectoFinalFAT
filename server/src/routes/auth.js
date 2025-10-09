@@ -220,10 +220,25 @@ router.get('/ongs', async (req, res) => {
         id_usuario: true,
         nombre: true,
         email: true,
-        ubicacion: true
+        ubicacion: true,
+        detalleUsuario: {
+          select: {
+            puntosActuales: true
+          }
+        }
       }
     });
-    res.json({ ongs });
+    
+    // Mapear los datos para incluir puntos y mantener compatibilidad
+    const ongsWithPoints = ongs.map(ong => ({
+      id: ong.id_usuario,
+      name: ong.nombre,
+      email: ong.email,
+      location: ong.ubicacion || 'Sin ubicación',
+      puntos: ong.detalleUsuario?.puntosActuales || 0
+    }));
+    
+    res.json({ ongs: ongsWithPoints });
   } catch (error) {
     console.error('Error al obtener ONGs:', error);
     res.status(500).json({ error: 'Error al obtener ONGs' });
@@ -463,8 +478,31 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Verificar si el usuario está baneado - TEMPORALMENTE DESHABILITADO
-    // TODO: Implementar sistema de baneo con la nueva estructura
+    // Verificar si el usuario está baneado (Infracciones activas de tipo 'Ban')
+    const banType = await prisma.tipoInfraccion.upsert({
+      where: { id_tipo_infraccion: 9999 },
+      update: {},
+      create: { id_tipo_infraccion: 9999, tipo_infraccion: 'Ban', severidad: 'Crítica' }
+    });
+    const activeBan = await prisma.infracciones.findFirst({
+      where: {
+        id_usuario: user.id_usuario,
+        id_tipo_infraccion: banType.id_tipo_infraccion,
+        OR: [
+          { fecha_expiracion: null },
+          { fecha_expiracion: { gt: new Date() } }
+        ]
+      }
+    });
+    if (activeBan) {
+      return res.status(403).json({
+        error: 'Cuenta baneada',
+        userBanned: true,
+        reason: 'Ban administrativo',
+        permanent: activeBan.fecha_expiracion === null,
+        bannedUntil: activeBan.fecha_expiracion
+      });
+    }
 
     // Verificar contraseña
     const isValidPassword = await bcrypt.compare(contrasena, user.contrasena);
@@ -474,7 +512,7 @@ router.post('/login', async (req, res) => {
 
     // Generar token JWT
     const token = jwt.sign(
-      { userId: user.id_usuario, email: user.email },
+      { userId: user.id_usuario, email: user.email, tipo_usuario: user.id_tipo_usuario },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );
@@ -916,7 +954,7 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // Generar token JWT para login automático
     const authToken = jwt.sign(
-      { userId: newUser.id_usuario, email: newUser.email },
+      { userId: newUser.id_usuario, email: newUser.email, tipo_usuario: newUser.id_tipo_usuario },
       process.env.JWT_SECRET || 'tu-secreto-jwt',
       { expiresIn: '7d' }
     );

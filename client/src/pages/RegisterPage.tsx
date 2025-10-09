@@ -6,7 +6,6 @@ import { toast } from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { User, Building, Eye, EyeOff, ArrowLeft, MapPin } from 'lucide-react'
 import { UserRole } from '../contexts/AuthContext'
-import ClickableMapModal from '../components/ClickableMapModal'
 import SocialLoginButtons from '../components/SocialLoginButtons'
 import { useRegisterLoading } from '../hooks/useAuthLoading'
 import { ButtonLoading } from '../components/GlobalLoading'
@@ -23,21 +22,6 @@ interface RegisterFormData {
 }
 
 export default function RegisterPage() {
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{
-    address: string;
-    coordinates: [number, number];
-  } | null>(null);
-
-  // Función para manejar la selección de ubicación del modal
-  const handleLocationSelect = (location: { address: string; coordinates: [number, number] }) => {
-    setSelectedLocation(location);
-    setLocationInput(location.address); // Actualizar el estado del input
-    setValue('location', location.address); // Actualizar el valor del formulario
-    setShowLocationModal(false);
-    toast.success('Ubicación seleccionada correctamente');
-  };
-
   // Autocompletado de ubicación con LocationIQ
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
@@ -157,7 +141,6 @@ export default function RegisterPage() {
       role: selectedRole,
       organization,
       location: data.location,
-      coordinates: selectedLocation?.coordinates,
       tipo_usuario,
     });
     
@@ -385,22 +368,22 @@ export default function RegisterPage() {
                     setLocationInput(e.target.value)
                     setValue('location', e.target.value)
                   }}
+                  onKeyDown={e => {
+                    if (e.key === 'Tab' && locationSuggestions.length > 0) {
+                      e.preventDefault()
+                      const firstSuggestion = locationSuggestions[0]
+                      setLocationInput(firstSuggestion)
+                      setValue('location', firstSuggestion)
+                      setLocationSuggestions([])
+                    }
+                  }}
                   className="input-field flex-1"
-                  placeholder="Calle y numeración en Córdoba"
+                  placeholder="Calle y numeración en Córdoba (presiona TAB para autocompletar)"
                   autoComplete="off"
                 />
-                <button
-                  type="button"
-                  className="p-2 rounded border flex items-center justify-center"
-                  title="Seleccionar ubicación en el mapa"
-                  onClick={() => setShowLocationModal(true)}
-                  style={{ background: 'color-mix(in oklab, var(--accent) 8%, transparent)', borderColor: 'var(--accent)' }}
-                >
-                  <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                </button>
               </div>
               
-              {/* Sugerencias de autocompletado - Máximo 3 con scroll */}
+              {/* Sugerencias de autocompletado - Primera en negrita */}
               {locationSuggestions.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
                   <div className="max-h-36 overflow-y-auto">
@@ -408,7 +391,9 @@ export default function RegisterPage() {
                       <button
                         key={index}
                         type="button"
-                        className="w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors"
+                        className={`w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors ${
+                          index === 0 ? 'bg-purple-50' : ''
+                        }`}
                         onClick={() => {
                           setLocationInput(suggestion);
                           setValue('location', suggestion);
@@ -420,7 +405,12 @@ export default function RegisterPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                          <span className="text-sm text-gray-700">{suggestion}</span>
+                          <span className={`text-sm ${index === 0 ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+                            {suggestion}
+                          </span>
+                          {index === 0 && (
+                            <span className="ml-auto text-xs text-purple-600">Presiona TAB</span>
+                          )}
                         </div>
                       </button>
                     ))}
@@ -433,14 +423,6 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
-              
-              {/* Modal del mapa para seleccionar ubicación */}
-              <ClickableMapModal
-                isOpen={showLocationModal}
-                onClose={() => setShowLocationModal(false)}
-                onLocationSelect={handleLocationSelect}
-                initialLocation={locationInput}
-              />
             </div>
 
             {/* Password */}

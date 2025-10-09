@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 export interface Notification {
   id: string
@@ -8,6 +8,10 @@ export interface Notification {
   timestamp: Date
   read: boolean
   link?: string
+  priority?: 'low' | 'medium' | 'high'
+  category?: 'profile' | 'activity' | 'social' | 'system'
+  autoHide?: boolean
+  autoHideDelay?: number
 }
 
 interface NotificationContextType {
@@ -17,6 +21,7 @@ interface NotificationContextType {
   markAllAsRead: () => void
   removeNotification: (id: string) => void
   unreadCount: number
+  clearCategory: (category: Notification['category']) => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -29,10 +34,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       ...notification,
       id: notification.id || Date.now().toString(),
       timestamp: new Date(),
-      read: false
+      read: false,
+      priority: notification.priority || 'medium',
+      category: notification.category || 'system',
+      autoHide: notification.autoHide || false,
+      autoHideDelay: notification.autoHideDelay || 5000
     }
-    
+
     setNotifications(prev => [newNotification, ...prev])
+
+    // Auto-hide functionality
+    if (newNotification.autoHide) {
+      setTimeout(() => {
+        removeNotification(newNotification.id)
+      }, newNotification.autoHideDelay)
+    }
   }
 
   const markAsRead = (id: string) => {
@@ -55,6 +71,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications(prev => prev.filter(notification => notification.id !== id))
   }
 
+  const clearCategory = (category: Notification['category']) => {
+    setNotifications(prev => prev.filter(notification => notification.category !== category))
+  }
+
   const unreadCount = notifications.filter(notification => !notification.read).length
 
   const value = {
@@ -63,7 +83,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAsRead,
     markAllAsRead,
     removeNotification,
-    unreadCount
+    unreadCount,
+    clearCategory
   }
 
   return (
@@ -79,4 +100,4 @@ export function useNotifications() {
     throw new Error('useNotifications must be used within a NotificationProvider')
   }
   return context
-} 
+}

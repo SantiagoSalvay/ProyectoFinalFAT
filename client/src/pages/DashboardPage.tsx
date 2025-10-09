@@ -291,7 +291,7 @@ export default function DashboardPage() {
                   className="w-full btn-primary text-sm"
                   onClick={() => {
                     if (!isONG) {
-                      navigate('/ongs');
+                      navigate('/map');
                     }
                   }}
                 >

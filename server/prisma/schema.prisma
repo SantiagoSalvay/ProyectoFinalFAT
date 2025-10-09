@@ -30,6 +30,7 @@ model Usuario {
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
   DetalleUsuario           DetalleUsuario?
   infracciones             Infracciones[]
+  ONGCategoria             ONGCategoria[]
   passwordResetTokens      PasswordResetToken[]
   pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
   pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")
@@ -64,7 +65,7 @@ model Publicacion {
   fecha_publicacion          DateTime               @default(now())
   ultima_fecha_actualizacion DateTime               @default(now())
   ubicacion                  String?
-  imagenes                   String?                // JSON string con array de URLs de imágenes
+  imagenes                   String?
   usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
   publicacionEtiquetas       PublicacionEtiqueta[]
   likes                      PublicacionLike[]
@@ -223,4 +224,25 @@ model PasswordResetToken {
 
   @@index([token])
   @@index([id_usuario])
+}
+
+model Categoria {
+  id_categoria Int            @id @default(autoincrement())
+  nombre       String
+  descripcion  String?
+  color        String?
+  icono        String?
+  createdAt    DateTime       @default(now())
+  ONGCategoria ONGCategoria[]
+}
+
+model ONGCategoria {
+  id_ong_categoria Int       @id @default(autoincrement())
+  id_usuario       Int
+  id_categoria     Int
+  createdAt        DateTime  @default(now())
+  Categoria        Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Cascade)
+  Usuario          Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_usuario, id_categoria])
 }

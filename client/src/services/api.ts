@@ -31,17 +31,18 @@ export interface SocialMediaLink {
 export interface ONG {
   id: number;
   name: string;
-  description: string;
+  description?: string;
   location: string;
   coordinates?: [number, number];
   socialMedia?: SocialMediaLink[];
   email: string;
-  type: 'public' | 'private';
-  rating: number;
-  volunteers_count: number;
-  projects_count: number;
-  website: string;
-  phone: string;
+  type?: 'public' | 'private';
+  rating?: number;
+  volunteers_count?: number;
+  projects_count?: number;
+  website?: string;
+  phone?: string;
+  puntos?: number;
 }
 
 // Clase API
@@ -71,6 +72,116 @@ class ApiService {
       console.error('Error al obtener resumen del dashboard:', error);
       throw error;
     }
+  }
+
+  // Admin API
+  async adminListComments(status: 'pending' | 'approved' | 'rejected' = 'pending') {
+    return this.request<{ comentarios: any[] }>(`/api/admin/comments?status=${status}`, { method: 'GET' });
+  }
+
+  async adminUpdateComment(id: number, data: { mensaje?: string; moderation_status?: string; rejection_reason?: string }) {
+    return this.request<{ message: string; comentario: any }>(`/api/admin/comments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminListUsers() {
+    return this.request<{ users: any[] }>(`/api/admin/users`, { method: 'GET' });
+  }
+
+  async adminUpdateUser(id: number, data: { nombre?: string; apellido?: string; ubicacion?: string }) {
+    return this.request<{ message: string; user: any }>(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminBanUser(id: number, data: { reason?: string; days?: number; permanent?: boolean }) {
+    return this.request<{ message: string }>(`/api/admin/users/${id}/ban`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminUnbanUser(id: number) {
+    return this.request<{ message: string; updated: number }>(`/api/admin/users/${id}/ban`, {
+      method: 'DELETE'
+    });
+  }
+
+  async adminListONGs() {
+    return this.request<{ ongs: any[] }>(`/api/admin/ongs`, { method: 'GET' });
+  }
+
+  async adminUpdateONG(id: number, data: { nombre?: string; ubicacion?: string }) {
+    return this.request<{ message: string; ong: any }>(`/api/admin/ongs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminBanONG(id: number, data: { reason?: string; days?: number; permanent?: boolean }) {
+    return this.request<{ message: string }>(`/api/admin/ongs/${id}/ban`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async adminUnbanONG(id: number) {
+    return this.request<{ message: string; updated: number }>(`/api/admin/ongs/${id}/ban`, {
+      method: 'DELETE'
+    });
+  }
+
+  // Combined Users (Usuarios + ONGs)
+  async adminListUsersAll(params?: { type?: 'all'|'user'|'ong'; q?: string }) {
+    const search = new URLSearchParams();
+    if (params?.type) search.set('type', params.type);
+    if (params?.q) search.set('q', params.q);
+    const qs = search.toString();
+    return this.request<{ users: any[] }>(`/api/admin/users-all${qs ? `?${qs}` : ''}`, { method: 'GET' });
+  }
+  async adminUpdateActor(id: number, data: { nombre?: string; apellido?: string; ubicacion?: string }) {
+    return this.request<{ message: string; actor: any }>(`/api/admin/actors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Posts moderation
+  async adminListPosts(q?: string) {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+    return this.request<{ posts: any[] }>(`/api/admin/posts${qs}`, { method: 'GET' });
+  }
+  async adminUpdatePost(id: number, data: { titulo?: string; descripcion_publicacion?: string; moderate?: boolean; reason?: string }) {
+    return this.request<{ message: string; post: any }>(`/api/admin/posts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Donations control
+  async adminListDonations(q?: string) {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+    return this.request<{ donations: any[] }>(`/api/admin/donations${qs}`, { method: 'GET' });
+  }
+  async adminUpdateDonation(id: number, data: { cantidad?: number; horas_donadas?: number; puntos_otorgados?: number }) {
+    return this.request<{ message: string; donation: any }>(`/api/admin/donations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+  async adminFlagDonation(id: number, reason?: string) {
+    return this.request<{ message: string; infraction: any }>(`/api/admin/donations/${id}/flag`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+  }
+
+  // Logs
+  async adminGetLogs(limit = 200) {
+    return this.request<{ logs: any[] }>(`/api/admin/logs?limit=${limit}`, { method: 'GET' });
   }
   // Obtener donaciones realizadas por el usuario autenticado
   async getDonacionesRealizadas() {
@@ -467,6 +578,7 @@ class ApiService {
     categorias: number[];
     ubicacion?: string;
     coordenadas?: [number, number];
+    imagenes?: string[];
   }) {
     try {
       const response = await this.request<{ message: string; id: number }>(
@@ -479,6 +591,29 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al crear publicación:', error);
+      throw error;
+    }
+  }
+
+  async actualizarPublicacion(postId: string, data: {
+    titulo: string;
+    descripcion: string;
+    categorias: number[];
+    ubicacion?: string;
+    coordenadas?: [number, number];
+    imagenes?: string[];
+  }) {
+    try {
+      const response = await this.request<{ message: string; publicacion: any }>(
+        `/api/forum/publicaciones/${postId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar publicación:', error);
       throw error;
     }
   }
@@ -682,6 +817,43 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Error al comentar ONG:', error);
+      throw error;
+    }
+  }
+
+  // Categories API methods
+  async getCategories() {
+    try {
+      const response = await this.request('/api/categories');
+      return response;
+    } catch (error) {
+      console.error('Error al obtener categorías:', error);
+      throw error;
+    }
+  }
+
+  async getONGCategories(ongId: number) {
+    try {
+      const response = await this.request(`/api/categories/ong/${ongId}`);
+      return response;
+    } catch (error) {
+      console.error('Error al obtener categorías de ONG:', error);
+      throw error;
+    }
+  }
+
+  async updateONGCategories(ongId: number, categoriaIds: number[]) {
+    try {
+      const response = await this.request(
+        `/api/categories/ong/${ongId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ categoriaIds }),
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar categorías de ONG:', error);
       throw error;
     }
   }
