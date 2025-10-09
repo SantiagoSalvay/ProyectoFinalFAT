@@ -19,23 +19,23 @@ passport.use(new GoogleStrategy({
     // Buscar Usuario existente por google_id en detalleUsuario
     let detalleUsuario = await prisma.detalleUsuario.findUnique({
       where: { google_id: profile.id },
-      include: { Usuario: true }
+      include: { usuario: true }
     });
 
     if (detalleUsuario) {
-      console.log('✅ Usuario existente encontrado:', detalleUsuario.Usuario.email);
-      return done(null, detalleUsuario.Usuario);
+      console.log('✅ Usuario existente encontrado:', detalleUsuario.usuario.email);
+      return done(null, detalleUsuario.usuario);
     }
 
     // Buscar Usuario existente por email
     let user = await prisma.Usuario.findUnique({
       where: { email: profile.emails[0].value },
-      include: { DetalleUsuario: true }
+      include: { detalleUsuario: true }
     });
 
     if (user) {
       // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
-      if (!user.DetalleUsuario) {
+  if (!user.detalleUsuario) {
         await prisma.detalleUsuario.create({
           data: {
             id_usuario: user.id_usuario,
@@ -68,7 +68,7 @@ passport.use(new GoogleStrategy({
         apellido: profile.name.familyName || '',
         email: profile.emails[0].value,
         id_tipo_usuario: 1, // Usuario regular por defecto
-        DetalleUsuario: {
+        detalleUsuario: {
           create: {
             google_id: profile.id,
             auth_provider: 'google',
