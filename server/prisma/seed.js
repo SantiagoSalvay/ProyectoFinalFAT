@@ -94,7 +94,6 @@ async function main() {
   });
   console.log(`   ✅ ${tiposDonacion.count} tipos de donación insertados`);
 
-<<<<<<< HEAD
   // 6. Super Admin
   console.log('\n🛡️  Creando Super Admin por defecto...');
   // Asegurar que el tipo Admin exista y obtener su ID
@@ -123,8 +122,8 @@ async function main() {
   } else {
     console.log('   ℹ️  Super Admin ya existe, no se modifica.');
   }
-=======
-  // 6. Categorías para ONGs
+
+  // 7. Categorías para ONGs
   console.log('\n📝 Insertando Categorías...');
   const categorias = await prisma.Categoria.createMany({
     data: [
@@ -147,7 +146,6 @@ async function main() {
     skipDuplicates: true,
   });
   console.log(`   ✅ ${categorias.count} categorías insertadas`);
->>>>>>> 787afd3889f37f7fb382e8beb9d947ada92b061c
 
   console.log('\n✅ Seed completado exitosamente!\n');
 }
