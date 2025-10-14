@@ -922,7 +922,7 @@ router.get('/verify-email/:token', async (req, res) => {
         id_tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
         coordenadas: pendingRegistration.coordenadas,
-        DetalleUsuario: {
+        detalleUsuario: {
           create: {
             email_verified: true
           }

@@ -45,6 +45,7 @@ import DonationPendingPage from './pages/DonationPendingPage'
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
     <AuthProvider>
       <NotificationProvider>
@@ -64,14 +65,14 @@ function App() {
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route path="/verificar/:token" element={<VerifyEmailPage />} />
                 <Route path="/auth/callback" element={<AuthCallbackPage />} />
-                
+
                 {/* Rutas solo para usuarios NO registrados */}
                 <Route path="/mission" element={
                   <UnauthenticatedOnlyRoute>
                     <MissionPage />
                   </UnauthenticatedOnlyRoute>
                 } />
-                
+
                 {/* Rutas solo para usuarios registrados */}
                 <Route path="/donaciones" element={
                   <AuthenticatedOnlyRoute>
@@ -88,7 +89,7 @@ function App() {
                     <RankingPage />
                   </AuthenticatedOnlyRoute>
                 } />
-                
+
                 {/* Rutas protegidas (requieren autenticación) */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
@@ -110,6 +111,7 @@ function App() {
                     <ProfilePage />
                   </ProtectedRoute>
                 } />
+
                 {/* Quick Actions routes */}
                 <Route path="/acciones/crear-campania" element={<ProtectedRoute><CreateCampaignPage /></ProtectedRoute>} />
                 <Route path="/acciones/gestionar-voluntarios" element={<ProtectedRoute><ManageVolunteersPage /></ProtectedRoute>} />
@@ -132,12 +134,10 @@ function App() {
               </Routes>
             </Layout>
           )}
-          
           <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
-              // Usamos variables CSS (index.css) para respetar html[data-theme]
               style: {
                 background: 'var(--color-card)',
                 color: 'var(--color-fg)',
@@ -155,7 +155,7 @@ function App() {
         </div>
       </NotificationProvider>
     </AuthProvider>
-  )
+  );
 }
 
-export default App 
+export default App;
