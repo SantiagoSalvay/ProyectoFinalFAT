@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "CalificacionONG" (
+CREATE TABLE IF NOT EXISTS "CalificacionONG" (
     "id_calificacion" SERIAL NOT NULL,
     "id_ong" INTEGER NOT NULL,
     "id_usuario" INTEGER NOT NULL,

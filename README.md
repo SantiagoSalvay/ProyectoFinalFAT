@@ -25,7 +25,6 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
   - ✅ **Inicio de sesión con redes sociales** (IMPLEMENTADO)
 
 - 💰 **Gestión de Donaciones**
-  - Integración con MercadoPago
   - Seguimiento de donaciones
   - Historial de transacciones
   - Generación de comprobantes
@@ -73,7 +72,6 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
 - **UUID** (Generación de tokens únicos)
 
 ### Integraciones y Servicios
-- **MercadoPago API** (Procesamiento de pagos)
 - **Gmail SMTP** (Envío de emails de verificación)
 - **Railway/PostgreSQL** (Base de datos en la nube)
 

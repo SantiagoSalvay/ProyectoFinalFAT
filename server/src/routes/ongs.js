@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { encryptSecret } from '../../lib/encryption-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -169,6 +170,115 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Token inválido' });
   }
 };
+
+// Ver estado de pagos (público) de una ONG
+router.get('/:id/mp-status', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+
+    const detalle = await prisma.DetalleUsuario.findUnique({
+      where: { id_usuario: id },
+      select: { mp_enabled: true }
+    });
+
+    res.json({ enabled: !!detalle?.mp_enabled });
+  } catch (error) {
+    console.error('Error mp-status:', error);
+    res.status(500).json({ error: 'Error al obtener estado de pagos' });
+  }
+});
+
+// Configurar token de MP (solo ONG autenticada)
+router.post('/mp-token', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id_usuario;
+    // Confirmar que es ONG
+    const user = await prisma.Usuario.findUnique({
+      where: { id_usuario: userId },
+      select: { id_tipo_usuario: true }
+    });
+    if (!user || user.id_tipo_usuario !== 2) {
+      return res.status(403).json({ error: 'Solo ONGs pueden configurar pagos' });
+    }
+
+    const { accessToken, enable } = req.body || {};
+    if (!accessToken || typeof accessToken !== 'string') {
+      return res.status(400).json({ error: 'accessToken es requerido' });
+    }
+
+    // Validación básica de MP: producción APP_USR-
+    if (accessToken.startsWith('TEST-') || !accessToken.startsWith('APP_USR-')) {
+      return res.status(400).json({ error: 'Se requiere Access Token de producción de Mercado Pago (APP_USR-...)' });
+    }
+
+    // Validar ENCRYPTION_KEY configurada
+    if (!process.env.ENCRYPTION_KEY) {
+      return res.status(500).json({ error: 'Falta configurar ENCRYPTION_KEY en el servidor' });
+    }
+
+    const enc = encryptSecret(accessToken);
+
+    const detalle = await prisma.DetalleUsuario.upsert({
+      where: { id_usuario: userId },
+      update: {
+        mp_token_cipher: enc.cipher,
+        mp_token_iv: enc.iv,
+        mp_token_tag: enc.tag,
+        mp_enabled: enable === false ? false : true,
+        mp_onboarded_at: new Date()
+      },
+      create: {
+        id_usuario: userId,
+        mp_token_cipher: enc.cipher,
+        mp_token_iv: enc.iv,
+        mp_token_tag: enc.tag,
+        mp_enabled: enable === false ? false : true,
+        mp_onboarded_at: new Date()
+      }
+    });
+
+    res.json({ message: 'Token configurado', enabled: detalle.mp_enabled });
+  } catch (error) {
+    console.error('Error al configurar mp-token:', error);
+    const message = error?.message || 'Error al configurar token';
+    res.status(500).json({ error: 'Error al configurar token', details: message });
+  }
+});
+
+// Eliminar token de MP (deshabilitar)
+router.delete('/mp-token', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id_usuario;
+    const user = await prisma.Usuario.findUnique({
+      where: { id_usuario: userId },
+      select: { id_tipo_usuario: true }
+    });
+    if (!user || user.id_tipo_usuario !== 2) {
+      return res.status(403).json({ error: 'Solo ONGs pueden modificar pagos' });
+    }
+
+    await prisma.DetalleUsuario.update({
+      where: { id_usuario: userId },
+      data: {
+        mp_token_cipher: null,
+        mp_token_iv: null,
+        mp_token_tag: null,
+        mp_enabled: false
+      }
+    }).catch(async () => {
+      // Si no existe, crear registro deshabilitado
+      await prisma.DetalleUsuario.create({
+        data: { id_usuario: userId, mp_enabled: false }
+      });
+    });
+
+    res.json({ message: 'Pagos deshabilitados', enabled: false });
+  } catch (error) {
+    console.error('Error al eliminar mp-token:', error);
+    res.status(500).json({ error: 'Error al eliminar token' });
+  }
+});
 
 // Calificar una ONG
 router.post('/:id/calificar', authenticateToken, async (req, res) => {

@@ -183,6 +183,31 @@ class ApiService {
   async adminGetLogs(limit = 200) {
     return this.request<{ logs: any[] }>(`/api/admin/logs?limit=${limit}`, { method: 'GET' });
   }
+
+  // Mercado Pago / ONGs - estado de onboarding y gestión de token
+  async getOngMPStatus(ongId: number) {
+    return this.request<{ enabled: boolean }>(`/api/ongs/${ongId}/mp-status`, { method: 'GET' });
+  }
+
+  async setOngMPToken(accessToken: string, enable = true) {
+    return this.request<{ message: string; enabled: boolean }>(`/api/ongs/mp-token`, {
+      method: 'POST',
+      body: JSON.stringify({ accessToken, enable })
+    });
+  }
+
+  async deleteOngMPToken() {
+    return this.request<{ message: string; enabled: boolean }>(`/api/ongs/mp-token`, {
+      method: 'DELETE'
+    });
+  }
+
+  async createMPPreference(params: { ongId: number; description: string; amount: number; quantity?: number }) {
+    return this.request<{ id: string; init_point: string }>(`/api/payments/mp/create`, {
+      method: 'POST',
+      body: JSON.stringify(params)
+    });
+  }
   // Obtener donaciones realizadas por el usuario autenticado
   async getDonacionesRealizadas() {
     try {

@@ -37,6 +37,10 @@ import VolunteerOpportunitiesPage from './pages/VolunteerOpportunitiesPage'
 import MyHistoryPage from './pages/MyHistoryPage'
 import MyDonationsPage from './pages/MyDonationsPage'
 import AdminPage from './pages/AdminPage'
+import PaymentsSetupPage from './pages/PaymentsSetupPage'
+import DonationSuccessPage from './pages/DonationSuccessPage'
+import DonationFailurePage from './pages/DonationFailurePage'
+import DonationPendingPage from './pages/DonationPendingPage'
 
 function App() {
   const location = useLocation();
@@ -115,6 +119,11 @@ function App() {
                 <Route path="/acciones/oportunidades-voluntariado" element={<ProtectedRoute><VolunteerOpportunitiesPage /></ProtectedRoute>} />
                 <Route path="/acciones/mi-historial" element={<ProtectedRoute><MyHistoryPage /></ProtectedRoute>} />
                 <Route path="/acciones/mis-donaciones" element={<ProtectedRoute><MyDonationsPage /></ProtectedRoute>} />
+                <Route path="/pagos/configurar" element={<ProtectedRoute><PaymentsSetupPage /></ProtectedRoute>} />
+                {/* Rutas públicas de retorno de pagos */}
+                <Route path="/donaciones/exito" element={<DonationSuccessPage />} />
+                <Route path="/donaciones/error" element={<DonationFailurePage />} />
+                <Route path="/donaciones/pendiente" element={<DonationPendingPage />} />
                 <Route path="/complete-data" element={
                   <ProtectedRoute>
                     <CompleteDataPage />

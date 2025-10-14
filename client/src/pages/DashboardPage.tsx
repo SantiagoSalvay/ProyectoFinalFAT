@@ -6,6 +6,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useONGNotifications } from '../hooks/useONGNotifications';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -34,6 +35,8 @@ export default function DashboardPage() {
   const [expandDonations, setExpandDonations] = useState(false);
   const [expandTotal, setExpandTotal] = useState(false);
   const [expandPoints, setExpandPoints] = useState(false);
+  const [mpStatus, setMpStatus] = useState<{ enabled: boolean } | null>(null);
+  const [loadingMP, setLoadingMP] = useState(false);
 
   useEffect(() => {
     const fetchTipoONG = async () => {
@@ -58,6 +61,23 @@ export default function DashboardPage() {
     };
     fetchTipoONG();
   }, [isONG]);
+
+  // Check MP status for ONGs to show banner
+  useEffect(() => {
+    const run = async () => {
+      if (!isONG || !user?.id_usuario) return;
+      setLoadingMP(true);
+      try {
+        const status = await api.getOngMPStatus(user.id_usuario);
+        setMpStatus(status);
+      } catch (e) {
+        setMpStatus({ enabled: true });
+      } finally {
+        setLoadingMP(false);
+      }
+    };
+    run();
+  }, [isONG, user?.id_usuario]);
 
   // Fetch dashboard summary
   useEffect(() => {
@@ -106,6 +126,31 @@ export default function DashboardPage() {
             {isONG ? 'Panel de control de tu organización' : 'Tu centro de actividades'}
           </p>
         </div>
+
+        {/* MP Setup Banner for ONGs */}
+        {isONG && mpStatus && mpStatus.enabled === false && (
+          <div className="mb-6 p-4 rounded-lg border-l-4" style={{ backgroundColor: '#fef3c7', borderColor: '#f59e0b' }}>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5">
+                <AlertTriangle className="w-5 h-5" color="#92400e" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold" style={{ color: '#92400e' }}>Configura tus donaciones monetarias</p>
+                <p className="text-sm" style={{ color: '#92400e' }}>
+                  Aún no configuraste la recepción de donaciones por pagos. Sigue los pasos para habilitarlas y poder recibir aportes.
+                </p>
+              </div>
+              <div>
+                <button
+                  className="btn-primary text-sm"
+                  onClick={() => navigate('/pagos/configurar')}
+                >
+                  Configurar ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div

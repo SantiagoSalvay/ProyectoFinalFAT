@@ -92,28 +92,26 @@ export default function Donaciones() {
       }
 
       try {
-        const res = await fetch('/mercadopago/create-preference', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userToken}`
-          },
-          body: JSON.stringify({ 
-            description: `Donación a ${ongs.find(o => o.id === selectedOng)?.name || ''}`, 
-            price: parsedPrice, 
-            quantity, 
-            ongId: selectedOng,
-            amount: parsedPrice
-          })
+        // Comprobar que la ONG tiene pagos habilitados
+        const status = await api.getOngMPStatus(Number(selectedOng));
+        if (!status.enabled) {
+          setError('Esta ONG no tiene habilitadas las donaciones monetarias.');
+          setLoading(false);
+          return;
+        }
+
+        const data = await api.createMPPreference({
+          ongId: Number(selectedOng),
+          description: `Donación a ${ongs.find(o => o.id === selectedOng)?.name || ''}`,
+          amount: parsedPrice,
+          quantity
         });
-        
-        const data = await res.json();
-        
-        if (res.ok && data.init_point) {
+
+        if (data.init_point) {
           setInitPoint(data.init_point);
-          setSuccess('¡Link de pago generado exitosamente! Haz clic en "Ir a MercadoPago" para completar tu donación.');
+          setSuccess('¡Link de pago generado!');
         } else {
-          setError(data.error || 'No se pudo generar el link de pago.');
+          setError('No se pudo generar el link de pago.');
         }
       } catch (err) {
         setError('Error al conectar con el servidor. Verifica tu conexión e intenta nuevamente.');
@@ -193,7 +191,7 @@ export default function Donaciones() {
                 required
               >
                 <option value="" disabled>Selecciona el tipo de donación</option>
-                <option value="dinero">Dinero (MercadoPago)</option>
+                <option value="dinero">Dinero</option>
                 <option value="ropa">Ropa</option>
                 <option value="juguetes">Juguetes</option>
                 <option value="comida">Comida</option>
@@ -265,7 +263,7 @@ export default function Donaciones() {
                   className="btn-primary w-full text-lg py-3"
                   disabled={loading || !isAuthenticated}
                 >
-                  {loading ? '⏳ Generando link de pago...' : 'Donar con MercadoPago'}
+                  {loading ? '⏳ Generando link de pago...' : 'Donar ahora'}
                 </button>
               </div>
             )}
@@ -341,10 +339,10 @@ export default function Donaciones() {
                 className="btn-primary w-full inline-block text-center text-lg py-3"
                 style={{ backgroundColor: '#00a650', borderColor: '#00a650' }}
               >
-                Ir a MercadoPago para completar el pago
+                Ir al proveedor de pagos para completar el pago
               </a>
               <p className="text-xs mt-2 text-center" style={{ color: 'var(--color-muted)' }}>
-                Serás redirigido a MercadoPago para completar tu donación de forma segura
+                Serás redirigido para completar tu donación de forma segura
               </p>
             </div>
           )}

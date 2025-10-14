@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { toast } from 'react-hot-toast'
@@ -39,6 +40,7 @@ export function useUserNotifications() {
   const { addNotification } = useNotifications()
   const [analysis, setAnalysis] = useState<NotificationAnalysis | null>(null)
   const [lastCheck, setLastCheck] = useState<number>(0)
+  const navigate = useNavigate()
 
   // Función para analizar el perfil del usuario
   const analyzeUserProfile = useCallback(async (): Promise<UserProfileData | null> => {
@@ -341,6 +343,37 @@ export function useUserNotifications() {
         }
         sessionStorage.setItem(`welcome_${user.id_usuario}`, 'true')
       }, 1000)
+    }
+
+    // Aviso para ONGs: donaciones monetarias no configuradas
+    const mpFlagKey = `mp_setup_prompt_${user.id_usuario}`
+    const shouldCheckMP = user.tipo_usuario === 2 && !sessionStorage.getItem(mpFlagKey)
+    if (shouldCheckMP) {
+      (async () => {
+        try {
+          const status = await api.getOngMPStatus(user.id_usuario)
+          if (!status.enabled) {
+            addNotification({
+              id: `mp-setup-${user.id_usuario}`,
+              type: 'warning',
+              title: 'Configura tus donaciones',
+              message: 'Aún no configuraste las donaciones monetarias. Sigue los pasos para habilitarlas.',
+              link: '/pagos/configurar',
+              autoHide: false,
+              category: 'system',
+              priority: 'high'
+            })
+            // Redirigir a la UI de configuración
+            setTimeout(() => {
+              navigate('/pagos/configurar')
+            }, 1200)
+          }
+        } catch (e) {
+          // silencioso
+        } finally {
+          sessionStorage.setItem(mpFlagKey, 'true')
+        }
+      })()
     }
 
     // Análisis inicial y notificaciones inteligentes
