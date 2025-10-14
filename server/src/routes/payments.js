@@ -86,6 +86,57 @@ router.post('/mp/create', auth, async (req, res) => {
 
     const prefResult = await preference.create({ body });
 
+    // Registrar pedido de donación (solo Dinero) sin afectar la respuesta si falla
+    try {
+      const dineroTipo = await prisma.TipoDonacion.findFirst({
+        where: { tipo_donacion: 'Dinero' },
+        select: { id_tipo_donacion: true }
+      });
+
+      if (dineroTipo) {
+        // Asegurar etiqueta y publicación "contenedor" para donaciones monetarias de esta ONG
+        let etiqueta = await prisma.Etiqueta.findFirst({ where: { etiqueta: 'Donaciones Monetarias' } });
+        if (!etiqueta) {
+          etiqueta = await prisma.Etiqueta.create({ data: { etiqueta: 'Donaciones Monetarias' } });
+        }
+
+        let publicacion = await prisma.Publicacion.findFirst({
+          where: { id_usuario: parseInt(ongId), titulo: 'Donación Monetaria Directa' }
+        });
+        if (!publicacion) {
+          publicacion = await prisma.Publicacion.create({
+            data: {
+              id_usuario: parseInt(ongId),
+              titulo: 'Donación Monetaria Directa',
+              descripcion_publicacion: 'Registro de donaciones monetarias directas',
+              ubicacion: null,
+              imagenes: null
+            }
+          });
+        }
+
+        let pubEtiqueta = await prisma.PublicacionEtiqueta.findFirst({
+          where: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
+        });
+        if (!pubEtiqueta) {
+          pubEtiqueta = await prisma.PublicacionEtiqueta.create({
+            data: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
+          });
+        }
+
+        await prisma.PedidoDonacion.create({
+          data: {
+            id_publicacion_etiqueta: pubEtiqueta.id_publicacion_etiqueta,
+            id_usuario: req.user.id_usuario,
+            id_tipo_donacion: dineroTipo.id_tipo_donacion,
+            cantidad: Math.round(amt)
+          }
+        });
+      }
+    } catch (logErr) {
+      console.warn('No se pudo registrar PedidoDonacion (no crítico):', logErr?.message || logErr);
+    }
+
     return res.json({ id: prefResult.id, init_point: prefResult.init_point });
   } catch (error) {
     console.error('Error creando preferencia MP:', error);
