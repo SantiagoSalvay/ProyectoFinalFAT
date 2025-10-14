@@ -84,11 +84,6 @@ router.post('/mp/create', auth, async (req, res) => {
       }
     };
 
-    // auto_return requiere back_urls.success válido
-    if (successUrl && typeof successUrl === 'string' && /^https?:\/\//.test(successUrl)) {
-      body.auto_return = 'approved';
-    }
-
     const prefResult = await preference.create({ body });
 
     return res.json({ id: prefResult.id, init_point: prefResult.init_point });
