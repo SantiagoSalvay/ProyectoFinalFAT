@@ -31,7 +31,7 @@ const authenticateToken = (req, res, next) => {
 // Obtener todas las categorías
 router.get('/', async (req, res) => {
   try {
-    const categorias = await prisma.Categoria.findMany({
+    const categorias = await prisma.categoria.findMany({
       orderBy: { nombre: 'asc' }
     });
     res.json({ categorias });
@@ -46,9 +46,14 @@ router.get('/ong/:ongId', async (req, res) => {
   try {
     const { ongId } = req.params;
     
-    // TODO: Implementar cuando exista el modelo ONGCategoria en el schema
-    // Por ahora devolver array vacío
-    res.json({ categorias: [] });
+    const ongCategorias = await prisma.oNGCategoria.findMany({
+      where: { id_usuario: parseInt(ongId) },
+      include: {
+        categoria: true
+      }
+    });
+    
+    res.json({ categorias: ongCategorias.map(oc => oc.categoria) });
   } catch (error) {
     console.error('Error al obtener categorías de ONG:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -78,7 +83,7 @@ router.post('/ong/:ongId', authenticateToken, async (req, res) => {
     }
 
     // Eliminar categorías existentes
-    await prisma.ONGCategoria.deleteMany({
+    await prisma.oNGCategoria.deleteMany({
       where: { id_usuario: parseInt(ongId) }
     });
 
@@ -89,13 +94,13 @@ router.post('/ong/:ongId', authenticateToken, async (req, res) => {
         id_categoria: parseInt(categoriaId)
       }));
 
-      await prisma.ONGCategoria.createMany({
+      await prisma.oNGCategoria.createMany({
         data: ongCategorias
       });
     }
 
     // Obtener las categorías actualizadas
-    const ongCategorias = await prisma.ONGCategoria.findMany({
+    const ongCategorias = await prisma.oNGCategoria.findMany({
       where: { id_usuario: parseInt(ongId) },
       include: {
         categoria: true
@@ -122,7 +127,7 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
 
-    const categoria = await prisma.Categoria.create({
+    const categoria = await prisma.categoria.create({
       data: {
         nombre,
         descripcion,

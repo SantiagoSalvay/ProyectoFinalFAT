@@ -38,6 +38,7 @@ model Usuario {
   rankings                 Ranking[]
   respuestas               RespuestaPublicacion[]
   tiposONG                 TipoONG[]
+  categorias               ONGCategoria[]
   tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
@@ -226,4 +227,27 @@ model PasswordResetToken {
 
   @@index([token])
   @@index([id_usuario])
+}
+
+model Categoria {
+  id_categoria Int             @id @default(autoincrement())
+  nombre       String          @unique
+  descripcion  String?
+  color        String?
+  icono        String?
+  createdAt    DateTime        @default(now())
+  ongCategorias ONGCategoria[]
+}
+
+model ONGCategoria {
+  id_ong_categoria Int       @id @default(autoincrement())
+  id_usuario       Int
+  id_categoria     Int
+  createdAt        DateTime  @default(now())
+  usuario          Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  categoria        Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Cascade)
+
+  @@unique([id_usuario, id_categoria])
+  @@index([id_usuario])
+  @@index([id_categoria])
 }
