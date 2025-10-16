@@ -46,14 +46,9 @@ router.get('/ong/:ongId', async (req, res) => {
   try {
     const { ongId } = req.params;
     
-    const ongCategorias = await prisma.ONGCategoria.findMany({
-      where: { id_usuario: parseInt(ongId) },
-      include: {
-        categoria: true
-      }
-    });
-    
-    res.json({ categorias: ongCategorias.map(oc => oc.categoria) });
+    // TODO: Implementar cuando exista el modelo ONGCategoria en el schema
+    // Por ahora devolver array vacío
+    res.json({ categorias: [] });
   } catch (error) {
     console.error('Error al obtener categorías de ONG:', error);
     res.status(500).json({ error: 'Error interno del servidor' });

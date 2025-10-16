@@ -291,23 +291,22 @@ export default function MapPage() {
           {geoError}
         </div>
       )}
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-    <div className="mb-4">
-      <h1 className="text-2xl font-bold text-white">Mapa de ONGs - Córdoba</h1>
-      <p className="text-purple-100">Explora organizaciones en la provincia de Córdoba</p>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+    <div className="mb-3 sm:mb-4">
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Mapa de ONGs - Córdoba</h1>
+      <p className="text-sm sm:text-base text-purple-100">Explora organizaciones en la provincia de Córdoba</p>
     </div>
     
     <div className="space-y-3">
       {/* Filtros principales */}
-      <div className="flex flex-wrap items-center gap-4">
-  {/* (Eliminado filtro tipo ONG) */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
         {/* Filtro por necesidad */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-white">Necesidad:</span>
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+          <span className="text-xs sm:text-sm font-medium text-white">Necesidad:</span>
           <select
             value={needFilter}
             onChange={e => setNeedFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+            className="border border-gray-300 rounded-md px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
           >
             <option value="">Todas</option>
             <option value="dinero">Dinero</option>
@@ -319,12 +318,12 @@ export default function MapPage() {
           </select>
         </div>
         {/* Filtro por grupo social */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-white">Grupo:</span>
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+          <span className="text-xs sm:text-sm font-medium text-white">Grupo:</span>
           <select
             value={groupFilter}
             onChange={e => setGroupFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+            className="border border-gray-300 rounded-md px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
           >
             <option value="">Todos</option>
             <option value="Niños">Niños</option>
@@ -395,9 +394,10 @@ export default function MapPage() {
     </div>
   </div>
 
-      <div className="flex h-[calc(100vh-120px)]">
+      {/* Contenedor Flex: En mobile (vertical), en desktop (horizontal) */}
+      <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-200px)]">
         {/* Mapa */}
-        <div className="flex-1">
+        <div className="w-full lg:flex-1 h-[400px] sm:h-[500px] lg:h-full">
           {!isLoaded ? (
             <div className="h-full w-full flex items-center justify-center bg-gray-100">
               <div className="text-center">
@@ -414,45 +414,45 @@ export default function MapPage() {
               onUnmount={onUnmount}
               options={options}
             >
-              {/* Polígono de Córdoba resaltado en blanco */}
-              <Polygon
-                paths={cordobaBoundary}
-                options={{
-                  fillColor: "#ffffff",
-                  fillOpacity: 0.3,
-                  strokeColor: "#ffffff",
-                  strokeOpacity: 0.8,
-                  strokeWeight: 2,
-                }}
-              />
-              
-              {filteredOngs.map((ong) => (
-              ong.latitude !== undefined && ong.longitude !== undefined ? (
-                <Marker
-                  key={ong.id}
-                    position={{ lat: ong.latitude, lng: ong.longitude }}
-                    onClick={() => setSelectedONG(ong)}
-                    icon={{
-                      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="16" cy="16" r="12" fill="${groupColors[ong.group] || '#f44336'}" stroke="white" stroke-width="2"/>
-                          <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">${ong.group.charAt(0)}</text>
-                        </svg>
-                      `)}`,
-                      scaledSize: new google.maps.Size(32, 32),
-                      anchor: new google.maps.Point(16, 16)
-                    }}
+                {/* Polígono de Córdoba resaltado en blanco */}
+                <Polygon
+                  paths={cordobaBoundary}
+                  options={{
+                    fillColor: "#ffffff",
+                    fillOpacity: 0.3,
+                    strokeColor: "#ffffff",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                  }}
                 />
-              ) : null
-            ))}
-            </GoogleMap>
-          )}
+                
+                {filteredOngs.map((ong) => (
+                ong.latitude !== undefined && ong.longitude !== undefined ? (
+                  <Marker
+                    key={ong.id}
+                      position={{ lat: ong.latitude, lng: ong.longitude }}
+                      onClick={() => setSelectedONG(ong)}
+                      icon={{
+                        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="16" cy="16" r="12" fill="${groupColors[ong.group] || '#f44336'}" stroke="white" stroke-width="2"/>
+                            <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">${ong.group.charAt(0)}</text>
+                          </svg>
+                        `)}`,
+                        scaledSize: new google.maps.Size(32, 32),
+                        anchor: new google.maps.Point(16, 16)
+                      }}
+                  />
+                ) : null
+              ))}
+              </GoogleMap>
+            )}
         </div>
 
-        {/* Panel lateral */}
-        <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        {/* Listado de ONGs - Abajo en mobile, al lado en desktop */}
+        <div className="w-full lg:w-96 bg-white lg:border-l border-gray-200 overflow-y-auto">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
               ONGs en el mapa ({filteredOngs.length})
             </h2>
             {filteredOngs.length === 0 ? (
@@ -464,53 +464,56 @@ export default function MapPage() {
                 {filteredOngs.map((ong) => (
                   <div
                     key={ong.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-lg ${
                       selectedONG?.id === ong.id
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-purple-500 bg-purple-50 shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                     onClick={() => setSelectedONG(ong)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{ong.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{ong.location}</p>
-                        <div className="flex items-center mt-2 space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                            <span className="ml-1">{ong.rating?.toFixed(1) || '0.0'}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4" />
-                            <span className="ml-1">{ong.volunteers_count || 0}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Building className="w-4 h-4" style={{ color: groupColors[ong.group] || '#f44336' }} />
-                            <span className="ml-1 capitalize">{ong.group}</span>
-                          </div>
-                        </div>
-                        {/* Categorías en el panel lateral */}
-                        {ong.categories && ong.categories.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {ong.categories.map((category) => (
-                              <span
-                                key={category.id_categoria}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
-                                style={{ backgroundColor: category.color || '#6B7280' }}
-                                title={category.descripcion}
-                              >
-                                {category.icono && <span className="mr-0.5">{category.icono}</span>}
-                                {category.nombre}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base flex-1 pr-2">{ong.name}</h3>
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: groupColors[ong.group] || 'gray' }}
                       ></div>
                     </div>
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">{ong.location}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-2">
+                      <div className="flex items-center">
+                        <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                        <span className="ml-1">{ong.rating?.toFixed(1) || '0.0'}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Users className="w-3 h-3" />
+                        <span className="ml-1">{ong.volunteers_count || 0}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Building className="w-3 h-3" style={{ color: groupColors[ong.group] || '#f44336' }} />
+                        <span className="ml-1 capitalize">{ong.group}</span>
+                      </div>
+                    </div>
+                    {/* Categorías */}
+                    {ong.categories && ong.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {ong.categories.slice(0, 2).map((category) => (
+                          <span
+                            key={category.id_categoria}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium text-white"
+                            style={{ backgroundColor: category.color || '#6B7280' }}
+                            title={category.descripcion}
+                          >
+                            {category.icono && <span className="mr-0.5">{category.icono}</span>}
+                            {category.nombre}
+                          </span>
+                        ))}
+                        {ong.categories.length > 2 && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+                            +{ong.categories.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
