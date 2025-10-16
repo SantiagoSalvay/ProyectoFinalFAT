@@ -221,7 +221,7 @@ router.get('/ongs', async (req, res) => {
         nombre: true,
         email: true,
         ubicacion: true,
-        detalleUsuario: {
+        DetalleUsuario: {
           select: {
             puntosActuales: true
           }
@@ -235,7 +235,7 @@ router.get('/ongs', async (req, res) => {
       name: ong.nombre,
       email: ong.email,
       location: ong.ubicacion || 'Sin ubicación',
-      puntos: ong.detalleUsuario?.puntosActuales || 0
+      puntos: ong.DetalleUsuario?.puntosActuales || 0
     }));
     
     res.json({ ongs: ongsWithPoints });
@@ -922,7 +922,7 @@ router.get('/verify-email/:token', async (req, res) => {
         id_tipo_usuario: tipoUsuarioId,
         ubicacion: pendingRegistration.ubicacion,
         coordenadas: pendingRegistration.coordenadas,
-        detalleUsuario: {
+        DetalleUsuario: {
           create: {
             email_verified: true
           }

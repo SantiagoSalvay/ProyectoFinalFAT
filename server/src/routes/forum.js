@@ -94,22 +94,14 @@ router.get('/publicaciones', async (req, res) => {
           select: {
             id_respuesta: true
           }
-        },
-        likes: userId ? {
-          where: {
-            id_usuario: userId
-          },
-          select: {
-            id_like: true
-          }
-        } : false
+        }
       },
       orderBy: {
         fecha_publicacion: 'desc'
       }
     });
 
-    // Transformar los datos para el frontend
+    // Formatear las publicaciones para el frontend
     const publicacionesFormateadas = publicaciones.map(publicacion => {
       let location = publicacion.ubicacion;
       
@@ -154,7 +146,7 @@ router.get('/publicaciones', async (req, res) => {
         likes: publicacion.num_megusta || 0,
         comments: publicacion.respuestas.length,
         createdAt: publicacion.fecha_publicacion,
-        isLiked: userId && publicacion.likes && publicacion.likes.length > 0
+        isLiked: false
       };
     });
 
@@ -295,15 +287,7 @@ router.get('/publicaciones/:id', async (req, res) => {
           select: {
             id_respuesta: true
           }
-        },
-        likes: userId ? {
-          where: {
-            id_usuario: userId
-          },
-          select: {
-            id_like: true
-          }
-        } : false
+        }
       }
     });
 
@@ -354,7 +338,7 @@ router.get('/publicaciones/:id', async (req, res) => {
       likes: publicacion.num_megusta || 0,
       comments: publicacion.respuestas.length,
       createdAt: publicacion.fecha_publicacion,
-      isLiked: userId && publicacion.likes && publicacion.likes.length > 0
+      isLiked: false
     };
 
     res.json(publicacionFormateada);

@@ -34,6 +34,7 @@ model Usuario {
   pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
   pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")
   publicaciones            Publicacion[]
+  publicacionLikes         PublicacionLike[]
   rankings                 Ranking[]
   respuestas               RespuestaPublicacion[]
   tiposONG                 TipoONG[]
@@ -41,22 +42,22 @@ model Usuario {
 }
 
 model DetalleUsuario {
-  id_detalle_usuario         Int      @id @default(autoincrement())
-  id_usuario                 Int      @unique
-  email_verified             Boolean  @default(false)
-  auth_provider              String   @default("email")
-  facebook_id                String?  @unique
-  google_id                  String?  @unique
+  id_detalle_usuario         Int       @id @default(autoincrement())
+  id_usuario                 Int       @unique
+  email_verified             Boolean   @default(false)
+  auth_provider              String    @default("email")
+  facebook_id                String?   @unique
+  google_id                  String?   @unique
   profile_picture            String?
-  twitter_id                 String?  @unique
-  puntosActuales             Int      @default(0)
-  ultima_fecha_actualizacion DateTime @default(now())
+  twitter_id                 String?   @unique
+  puntosActuales             Int       @default(0)
+  ultima_fecha_actualizacion DateTime  @default(now())
   mp_token_cipher            String?
   mp_token_iv                String?
   mp_token_tag               String?
-  mp_enabled                 Boolean  @default(false)
+  mp_enabled                 Boolean   @default(false)
   mp_onboarded_at            DateTime?
-  Usuario                    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  Usuario                    Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 }
 
 model Publicacion {
@@ -72,8 +73,19 @@ model Publicacion {
   usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
   publicacionEtiquetas       PublicacionEtiqueta[]
   respuestas                 RespuestaPublicacion[]
+  likes                      PublicacionLike[]
 }
 
+model PublicacionLike {
+  id_like        Int         @id @default(autoincrement())
+  id_publicacion Int
+  id_usuario     Int
+  createdAt      DateTime    @default(now())
+  publicacion    Publicacion @relation(fields: [id_publicacion], references: [id_publicacion], onDelete: Cascade)
+  usuario        Usuario     @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([id_publicacion, id_usuario], name: "id_publicacion_id_usuario")
+}
 
 model Etiqueta {
   id_etiqueta          Int                   @id @default(autoincrement())
@@ -215,4 +227,3 @@ model PasswordResetToken {
   @@index([token])
   @@index([id_usuario])
 }
-
