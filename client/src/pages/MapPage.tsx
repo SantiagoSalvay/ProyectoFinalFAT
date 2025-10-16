@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { GoogleMap, useJsApiLoader, Marker, Polygon } from '@react-google-maps/api'
 import { api, ONG } from '../services/api'
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC33z7pXbXF16KbIDIXX-ZhBOLRNWqVAoo'
-import { Heart, MapPin, Building, Users, Star, ExternalLink, X, Mail, Phone } from 'lucide-react'
+import { Heart, MapPin, Building, Users, ExternalLink, X, Mail, Phone } from 'lucide-react'
 import { getSocialMediaIcon, getSocialMediaColor } from '../utils/socialMediaDetector'
 
 // Interfaz para ONG con datos del mapa
@@ -481,10 +481,6 @@ export default function MapPage() {
                     <p className="text-xs text-gray-600 mb-2 line-clamp-2">{ong.location}</p>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-2">
                       <div className="flex items-center">
-                        <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                        <span className="ml-1">{ong.rating?.toFixed(1) || '0.0'}</span>
-                      </div>
-                      <div className="flex items-center">
                         <Users className="w-3 h-3" />
                         <span className="ml-1">{ong.volunteers_count || 0}</span>
                       </div>
@@ -556,14 +552,7 @@ export default function MapPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                    <span className="ml-2 font-semibold">{selectedONG.rating?.toFixed(1) || '0.0'}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">Calificación</p>
-                </div>
+              <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center">
                     <Users className="w-5 h-5 text-blue-500" />

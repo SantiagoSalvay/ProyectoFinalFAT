@@ -814,21 +814,22 @@ class ApiService {
     }
   }
 
-  async rateONG(ongId: number, rating: number, comment: string) {
-    try {
-      const response = await this.request<{ message: string }>(
-        `/api/ongs/${ongId}/rate`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ rating, comment }),
-        }
-      );
-      return response;
-    } catch (error) {
-      console.error('Error al calificar ONG:', error);
-      throw error;
-    }
-  }
+  // Sistema de calificaciones deshabilitado
+  // async rateONG(ongId: number, rating: number, comment: string) {
+  //   try {
+  //     const response = await this.request<{ message: string }>(
+  //       `/api/ongs/${ongId}/rate`,
+  //       {
+  //         method: 'POST',
+  //         body: JSON.stringify({ rating, comment }),
+  //       }
+  //     );
+  //     return response;
+  //   } catch (error) {
+  //     console.error('Error al calificar ONG:', error);
+  //     throw error;
+  //   }
+  // }
 
   async commentONG(ongId: number, content: string) {
     try {

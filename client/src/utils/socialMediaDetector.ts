@@ -101,16 +101,16 @@ export function getSocialMediaIcon(type: SocialMediaType): IconType {
 
 export function getSocialMediaColor(type: SocialMediaType): string {
   const colors: Record<SocialMediaType, string> = {
-    facebook: '#1877F2',
-    instagram: '#E4405F',
-    twitter: '#1DA1F2',
-    linkedin: '#0A66C2',
-    youtube: '#FF0000',
-    tiktok: '#000000',
-    whatsapp: '#25D366',
-    website: '#6B7280',
-    email: '#EA4335',
-    other: '#9CA3AF'
+    facebook: '#1877F2', // Azul Facebook
+    instagram: '#E1306C', // Rosa Instagram
+    twitter: '#1DA1F2',  // Azul Twitter
+    linkedin: '#0A66C2', // Azul LinkedIn
+    youtube: '#FF0000',  // Rojo YouTube
+    tiktok: '#000000',   // Negro TikTok
+    whatsapp: '#25D366', // Verde WhatsApp
+    website: '#4B5563',  // Gris oscuro para website
+    email: '#D44638',    // Rojo Gmail
+    other: '#4B5563'     // Gris oscuro para otros
   };
   
   return colors[type] || colors.other;

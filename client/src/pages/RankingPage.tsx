@@ -67,7 +67,6 @@ export default function RankingPage() {
   const getSortLabel = (sort: string) => {
     switch (sort) {
       case 'impact': return 'Impacto Social'
-      case 'rating': return 'Calificación'
       case 'projects': return 'Proyectos'
       case 'volunteers': return 'Voluntarios'
       case 'donations': return 'Donaciones'
@@ -180,7 +179,6 @@ export default function RankingPage() {
                   className="flex-1 sm:flex-none border border-gray-300 rounded-md px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="impact">Impacto Social</option>
-                  <option value="rating">Calificación</option>
                   <option value="projects">Proyectos</option>
                   <option value="volunteers">Voluntarios</option>
                   <option value="donations">Donaciones</option>
