@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
+import path from "path";
+import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.js";
 import oauthRoutes from "./routes/oauth.js";
 import forumRoutes from "./routes/forum.js";
@@ -11,6 +13,9 @@ import adminRoutes from "./routes/admin.js";
 import paymentsRoutes from "./routes/payments.js";
 import passport from "./config/passport.js";
 import { PrismaClient } from "@prisma/client";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Cargar variables de entorno
 dotenv.config();
@@ -46,6 +51,9 @@ app.use(
 // Middleware para parsear JSON con límite aumentado para imágenes
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+// Servir archivos estáticos (imágenes subidas)
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 // Configurar sesiones para Passport
 app.use(
@@ -99,14 +107,12 @@ app.get("/health/db", async (req, res) => {
       P1001: "No se pudo conectar al servidor de base de datos (P1001).",
       P1003: "La base de datos especificada no existe (P1003).",
     };
-    res
-      .status(500)
-      .json({
-        ok: false,
-        reason: "db_error",
-        code,
-        message: map[code] || err?.message || "Error de conexión",
-      });
+    res.status(500).json({
+      ok: false,
+      reason: "db_error",
+      code,
+      message: map[code] || err?.message || "Error de conexión",
+    });
   }
 });
 

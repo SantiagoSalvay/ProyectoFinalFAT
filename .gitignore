@@ -108,3 +108,6 @@ Thumbs.db
 # Server dependencies
 server/node_modules/
 # server/package-lock.json
+
+# Uploaded files (images, etc.)
+server/public/uploads/
