@@ -495,11 +495,16 @@ router.post('/login', async (req, res) => {
       }
     });
     if (activeBan) {
+      const isPermanent = activeBan.fecha_expiracion === null;
+      const message = isPermanent 
+        ? 'Tu cuenta ha sido baneada permanentemente por los administradores. No puedes acceder a la plataforma.'
+        : `Tu cuenta está suspendida hasta el ${new Date(activeBan.fecha_expiracion).toLocaleDateString('es-AR')}. Razón: ${activeBan.contenido || 'Violación de normas de la comunidad'}.`;
+      
       return res.status(403).json({
-        error: 'Cuenta baneada',
+        error: message,
         userBanned: true,
-        reason: 'Ban administrativo',
-        permanent: activeBan.fecha_expiracion === null,
+        reason: activeBan.contenido || 'Ban administrativo',
+        permanent: isPermanent,
         bannedUntil: activeBan.fecha_expiracion
       });
     }

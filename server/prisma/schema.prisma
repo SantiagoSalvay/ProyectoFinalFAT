@@ -39,6 +39,7 @@ model Usuario {
   respuestas               RespuestaPublicacion[]
   tiposONG                 TipoONG[]
   categorias               ONGCategoria[]
+  notificaciones           Notificacion[]
   tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
@@ -250,4 +251,17 @@ model ONGCategoria {
   @@unique([id_usuario, id_categoria])
   @@index([id_usuario])
   @@index([id_categoria])
+}
+
+model Notificacion {
+  id_notificacion   Int      @id @default(autoincrement())
+  id_usuario        Int
+  tipo_notificacion String
+  mensaje           String   @db.Text
+  leida             Boolean  @default(false)
+  fecha_creacion    DateTime @default(now())
+  usuario           Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@index([id_usuario])
+  @@index([leida])
 }

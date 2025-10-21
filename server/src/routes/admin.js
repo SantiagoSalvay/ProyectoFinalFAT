@@ -141,6 +141,8 @@ router.post('/users/:id/ban', requireAdmin, async (req, res) => {
     const { reason, days, permanent } = req.body || {};
     const banType = await getOrCreateBanType();
     const expiry = permanent ? null : new Date(Date.now() + (Math.max(1, parseInt(days || 7, 10)) * 24 * 60 * 60 * 1000));
+    
+    // Crear infracción de baneo
     const inf = await prisma.infracciones.create({
       data: {
         id_usuario: id,
@@ -149,8 +151,30 @@ router.post('/users/:id/ban', requireAdmin, async (req, res) => {
         fecha_expiracion: expiry
       }
     });
-    adminLog({ actor: req.userId, action: 'ban_user', target: { type: 'usuario', id }, reason, days, permanent });
-    res.json({ message: 'Usuario baneado', ban: inf });
+
+    // Crear notificación para el usuario
+    const banMessage = permanent 
+      ? 'Tu cuenta ha sido baneada permanentemente por los administradores. No podrás acceder a la plataforma.'
+      : `Tu cuenta ha sido suspendida por ${days || 7} días. Razón: ${reason || 'Violación de normas de la comunidad'}.`;
+    
+    await prisma.notificacion.create({
+      data: {
+        id_usuario: id,
+        tipo_notificacion: 'ban',
+        mensaje: banMessage,
+        leida: false
+      }
+    });
+
+    adminLog({ 
+      actor: req.userId, 
+      action: 'ban_user', 
+      target: { type: 'usuario', id }, 
+      reason, 
+      days, 
+      permanent
+    });
+    res.json({ message: 'Usuario baneado y notificado', ban: inf });
   } catch (e) {
     console.error('Error al banear usuario:', e);
     res.status(500).json({ error: 'Error al banear usuario' });
@@ -437,6 +461,92 @@ router.post('/donations/:id/flag', requireAdmin, async (req, res) => {
   } catch (e) {
     console.error('Error al marcar exceso de donación:', e);
     res.status(500).json({ error: 'Error al marcar exceso de donación' });
+  }
+});
+
+// ========= FORUM MODERATION =========
+// Listar todos los mensajes del foro (posts con respuestas y subrespuestas)
+router.get('/forum', requireAdmin, async (req, res) => {
+  try {
+    const posts = await prisma.publicacion.findMany({
+      orderBy: { fecha_publicacion: 'desc' },
+      take: 100,
+      include: {
+        usuario: {
+          select: { id_usuario: true, nombre: true, apellido: true, email: true }
+        },
+        respuestas: {
+          where: { id_respuesta_padre: null }, // Solo respuestas de primer nivel
+          orderBy: { fecha_respuesta: 'asc' },
+          include: {
+            usuario: {
+              select: { id_usuario: true, nombre: true, apellido: true, email: true }
+            },
+            respuestasHijas: {
+              orderBy: { fecha_respuesta: 'asc' },
+              include: {
+                usuario: {
+                  select: { id_usuario: true, nombre: true, apellido: true, email: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    res.json({ posts });
+  } catch (e) {
+    console.error('Error al listar mensajes del foro:', e);
+    res.status(500).json({ error: 'Error al listar mensajes del foro' });
+  }
+});
+
+// Borrar mensaje del foro (post o reply) y notificar al autor
+router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
+  try {
+    const { type, id } = req.params;
+    const { authorId } = req.body;
+    const messageId = parseInt(id, 10);
+    
+    let deletedMessage;
+    let messageType;
+    
+    // Borrar según el tipo
+    if (type === 'post') {
+      deletedMessage = await prisma.publicacion.delete({
+        where: { id_publicacion: messageId }
+      });
+      messageType = 'anuncio';
+    } else if (type === 'reply') {
+      deletedMessage = await prisma.respuestaPublicacion.delete({
+        where: { id_respuesta: messageId }
+      });
+      messageType = 'respuesta';
+    } else {
+      return res.status(400).json({ error: 'Tipo de mensaje inválido' });
+    }
+
+    // Crear notificación para el autor
+    await prisma.notificacion.create({
+      data: {
+        id_usuario: parseInt(authorId, 10),
+        tipo_notificacion: 'mensaje_borrado',
+        mensaje: `Tu ${messageType} fue eliminado por los administradores de la página por no cumplir con las normas de la comunidad.`,
+        leida: false
+      }
+    });
+
+    adminLog({ 
+      actor: req.userId, 
+      action: 'delete_forum_message', 
+      target: { type, id: messageId, authorId },
+      messageType
+    });
+
+    res.json({ message: `${messageType} eliminado y autor notificado` });
+  } catch (e) {
+    console.error('Error al borrar mensaje del foro:', e);
+    res.status(500).json({ error: 'Error al borrar mensaje del foro' });
   }
 });
 

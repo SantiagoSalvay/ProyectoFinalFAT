@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
-import { Shield, Users, MessageSquare, Ban, Check, X, Loader2, Edit3, LogOut, Search, Save, FileText, HandCoins, List } from 'lucide-react';
+import { Shield, Users, MessageSquare, Ban, Check, X, Loader2, Edit3, LogOut, Search, Save, FileText, HandCoins, List, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type Tab = 'comments' | 'usuarios' | 'posts' | 'donations' | 'logs';
+type Tab = 'forum' | 'usuarios' | 'donations' | 'logs';
 
 export default function AdminPage() {
   const { user, logout, isLoading, isAuthenticated } = useAuth();
@@ -13,23 +13,22 @@ export default function AdminPage() {
   const isAdmin = role >= 3;
 
   // Estado UI
-  const [tab, setTab] = useState<Tab>('comments');
+  const [tab, setTab] = useState<Tab>('forum');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [comments, setComments] = useState<any[]>([]);
+  const [forumMessages, setForumMessages] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
   const [donations, setDonations] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
-  const [commentStatus, setCommentStatus] = useState<'pending'|'approved'|'rejected'>('pending');
   const [query, setQuery] = useState('');
   const [userType, setUserType] = useState<'all'|'user'|'ong'>('all');
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   // Modales de edición
   const [editingUser, setEditingUser] = useState<any|null>(null);
-  const [editingComment, setEditingComment] = useState<any|null>(null);
-  const [editingPost, setEditingPost] = useState<any|null>(null);
   const [editingDonation, setEditingDonation] = useState<any|null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{type: 'post'|'reply'|'subreply', id: number, authorId: number} | null>(null);
+  const [confirmBan, setConfirmBan] = useState<{id: number, name: string} | null>(null);
 
   useEffect(() => {
     // Evitar redirecciones hasta que termine la carga de auth
@@ -42,21 +41,30 @@ export default function AdminPage() {
     if (!isAdmin) return;
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, commentStatus, userType, query]);
+  }, [tab, userType, query]);
+
+  // Auto-refresh cada 30 segundos para el foro
+  useEffect(() => {
+    if (!isAdmin || tab !== 'forum') return;
+    
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, isAdmin]);
 
   const loadData = async () => {
     setError(null);
     try {
       setLoading(true);
-      if (tab === 'comments') {
-        const { comentarios } = await api.adminListComments(commentStatus);
-        setComments(comentarios || []);
+      if (tab === 'forum') {
+        const { posts } = await api.adminListForumMessages();
+        setForumMessages(posts || []);
       } else if (tab === 'usuarios') {
         const { users } = await api.adminListUsersAll({ type: userType, q: query });
         setUsuarios(users || []);
-      } else if (tab === 'posts') {
-        const { posts } = await api.adminListPosts(query);
-        setPosts(posts || []);
       } else if (tab === 'donations') {
         const { donations } = await api.adminListDonations(query);
         setDonations(donations || []);
@@ -64,36 +72,56 @@ export default function AdminPage() {
         const { logs } = await api.adminGetLogs(200);
         setLogs(logs || []);
       }
+      setLastUpdate(new Date());
     } catch (e) {
       console.error('Error cargando datos del admin:', e);
       setError('Ocurrió un error al cargar datos. Intentá recargar.');
     } finally { setLoading(false); }
   };
 
-  // Acciones
-  const moderate = async (id: number, status: 'approved'|'rejected') => {
+  // Acciones de moderación del foro
+  const deleteMessage = async () => {
+    if (!confirmDelete) return;
     try {
-      await api.adminUpdateComment(id, { moderation_status: status, rejection_reason: status === 'rejected' ? 'Contenido inapropiado' : undefined });
+      await api.adminDeleteForumMessage(confirmDelete.type, confirmDelete.id, confirmDelete.authorId);
+      setConfirmDelete(null);
       loadData();
     } catch (e) {
-      console.error('Error moderando comentario:', e);
-      setError('No se pudo actualizar el comentario.');
-    }
-  };
-  const saveComment = async () => {
-    if (!editingComment) return;
-    try {
-      await api.adminUpdateComment(editingComment.id_respuesta, { mensaje: editingComment.mensaje });
-      setEditingComment(null);
-      loadData();
-    } catch (e) {
-      console.error('Error guardando comentario:', e);
-      setError('No se pudo guardar el comentario.');
+      console.error('Error borrando mensaje:', e);
+      setError('No se pudo borrar el mensaje.');
     }
   };
 
-  const banUser = async (id: number) => { try { await api.adminBanUser(id, { reason: 'Ban administrativo', days: 7 }); loadData(); } catch (e) { console.error('Error baneando usuario:', e); setError('No se pudo banear al usuario.'); } };
-  const unbanUser = async (id: number) => { try { await api.adminUnbanUser(id); loadData(); } catch (e) { console.error('Error desbaneando usuario:', e); setError('No se pudo desbanear al usuario.'); } };
+  const banUserPermanent = async () => {
+    if (!confirmBan) return;
+    try {
+      await api.adminBanUser(confirmBan.id, { reason: 'Ban permanente por administrador', permanent: true });
+      setConfirmBan(null);
+      loadData();
+    } catch (e) {
+      console.error('Error baneando usuario:', e);
+      setError('No se pudo banear al usuario.');
+    }
+  };
+
+  const banUser = async (id: number) => { 
+    try { 
+      await api.adminBanUser(id, { reason: 'Ban temporal por administrador', days: 7 }); 
+      loadData(); 
+    } catch (e) { 
+      console.error('Error baneando usuario:', e); 
+      setError('No se pudo banear al usuario.'); 
+    } 
+  };
+  const unbanUser = async (id: number) => { 
+    try { 
+      await api.adminUnbanUser(id); 
+      loadData(); 
+    } catch (e) { 
+      console.error('Error desbaneando usuario:', e); 
+      setError('No se pudo desbanear al usuario.'); 
+    } 
+  };
   const saveUser = async () => {
     if (!editingUser) return;
     try {
@@ -104,29 +132,6 @@ export default function AdminPage() {
     } catch (e) {
       console.error('Error guardando usuario:', e);
       setError('No se pudo guardar el usuario.');
-    }
-  };
-
-  // Posts
-  const savePost = async () => {
-    if (!editingPost) return;
-    try {
-      const { id_publicacion, titulo, descripcion_publicacion } = editingPost;
-      await api.adminUpdatePost(id_publicacion, { titulo, descripcion_publicacion });
-      setEditingPost(null);
-      loadData();
-    } catch (e) {
-      console.error('Error guardando post:', e);
-      setError('No se pudo guardar el post.');
-    }
-  };
-  const moderatePost = async (id_publicacion: number) => {
-    try {
-      await api.adminUpdatePost(id_publicacion, { moderate: true, reason: 'Contenido moderado por admin' });
-      loadData();
-    } catch (e) {
-      console.error('Error moderando post:', e);
-      setError('No se pudo moderar el post.');
     }
   };
 
@@ -190,14 +195,11 @@ export default function AdminPage() {
         {/* Sidebar */}
         <aside className="w-64 border-r border-gray-200 dark:border-gray-800 min-h-[calc(100vh-64px)]">
           <nav className="p-4 space-y-2">
-            <button onClick={() => setTab('comments')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='comments'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-              <MessageSquare className="w-4 h-4"/> Comentarios
+            <button onClick={() => setTab('forum')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='forum'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+              <MessageSquare className="w-4 h-4"/> Foro
             </button>
             <button onClick={() => setTab('usuarios')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='usuarios'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
               <Users className="w-4 h-4"/> Usuarios
-            </button>
-            <button onClick={() => setTab('posts')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='posts'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-              <FileText className="w-4 h-4"/> Posts
             </button>
             <button onClick={() => setTab('donations')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='donations'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
               <HandCoins className="w-4 h-4"/> Donaciones
@@ -210,17 +212,9 @@ export default function AdminPage() {
 
         {/* Main */}
         <main className="flex-1 p-6 space-y-4">
-          {/* Buscador y Estado (solo comments, users, ongs) */}
+          {/* Buscador y Estado */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 flex-wrap">
-              {tab === 'comments' && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Estado:</span>
-                  {(['pending','approved','rejected'] as const).map(s => (
-                    <button key={s} onClick={() => setCommentStatus(s)} className={`px-3 py-1 rounded-full text-sm ${commentStatus===s?'bg-blue-600 text-white':'bg-gray-100 dark:bg-gray-800'}`}>{s}</button>
-                  ))}
-                </div>
-              )}
               {tab === 'usuarios' && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500 dark:text-gray-400">Tipo:</span>
@@ -229,13 +223,33 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+              {/* Indicador de última actualización */}
+              {tab === 'forum' && lastUpdate && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Última actualización: {lastUpdate.toLocaleTimeString('es-AR')}
+                  <span className="ml-2 text-gray-400">• Auto-refresh cada 30s</span>
+                </div>
+              )}
             </div>
-            {(tab === 'usuarios' || tab === 'posts' || tab === 'donations') && (
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar..." className="pl-9 pr-3 py-2 rounded-md border border-gray-200 dark:border-gray-800 bg-transparent" />
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Botón de recarga */}
+              <button 
+                onClick={() => loadData()} 
+                disabled={loading}
+                className="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Recargar datos"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Recargar</span>
+              </button>
+              
+              {(tab === 'forum' || tab === 'usuarios' || tab === 'donations') && (
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar..." className="pl-9 pr-3 py-2 rounded-md border border-gray-200 dark:border-gray-800 bg-transparent" />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Contenido */}
@@ -251,22 +265,92 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="divide-y divide-gray-200 dark:divide-gray-800">
-                {tab === 'comments' && (
-                  <div className="p-4 space-y-3">
-                    {comments.length === 0 ? (
-                      <div className="text-gray-500 dark:text-gray-400">No hay comentarios.</div>
-                    ) : comments.map(c => (
-                      <div key={c.id_respuesta} className="p-4 rounded-md bg-gray-50 dark:bg-gray-800 flex items-start justify-between gap-4">
-                        <div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">#{c.id_respuesta} · Post {c.id_publicacion} · User {c.id_usuario}</div>
-                          <div>{c.mensaje}</div>
-                          <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">{new Date(c.fecha_respuesta).toLocaleString()} · Estado: {c.moderation_status}</div>
+                {tab === 'forum' && (
+                  <div className="p-4 space-y-4">
+                    {forumMessages.length === 0 ? (
+                      <div className="text-gray-500 dark:text-gray-400">No hay mensajes en el foro.</div>
+                    ) : forumMessages.map(post => (
+                      <div key={post.id_publicacion} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+                        {/* Anuncio/Post principal */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-blue-700 dark:text-blue-300">ANUNCIO</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">#{post.id_publicacion}</span>
+                              </div>
+                              <h3 className="font-bold text-lg mb-1">{post.titulo}</h3>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{post.descripcion_publicacion}</p>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Por: {post.usuario?.nombre || post.usuario?.email || `User #${post.id_usuario}`} · {new Date(post.fecha_publicacion).toLocaleString()}
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => setConfirmDelete({type: 'post', id: post.id_publicacion, authorId: post.id_usuario})} 
+                              className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-1 flex-shrink-0"
+                            >
+                              <X className="w-4 h-4"/>Borrar
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setEditingComment(c)} className="px-3 py-2 rounded-md border flex items-center gap-1"><Edit3 className="w-4 h-4"/>Editar</button>
-                          <button onClick={() => moderate(c.id_respuesta, 'approved')} className="btn-primary px-3 py-2 flex items-center gap-1"><Check className="w-4 h-4"/>Aprobar</button>
-                          <button onClick={() => moderate(c.id_respuesta, 'rejected')} className="px-3 py-2 rounded-md border border-red-300 text-red-600 flex items-center gap-1"><X className="w-4 h-4"/>Rechazar</button>
-                        </div>
+
+                        {/* Respuestas */}
+                        {post.respuestas && post.respuestas.length > 0 && (
+                          <div className="ml-6 space-y-2">
+                            {post.respuestas.map((reply: any) => (
+                              <div key={reply.id_respuesta} className="space-y-2">
+                                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-medium text-green-600 dark:text-green-400">RESPUESTA</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">#{reply.id_respuesta}</span>
+                                      </div>
+                                      <p className="text-sm mb-1">{reply.mensaje}</p>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Por: {reply.usuario?.nombre || reply.usuario?.email || `User #${reply.id_usuario}`} · {new Date(reply.fecha_respuesta).toLocaleString()}
+                                      </div>
+                                    </div>
+                                    <button 
+                                      onClick={() => setConfirmDelete({type: 'reply', id: reply.id_respuesta, authorId: reply.id_usuario})} 
+                                      className="px-2 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-1 text-sm flex-shrink-0"
+                                    >
+                                      <X className="w-3 h-3"/>Borrar
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Subrespuestas (respuestasHijas) */}
+                                {reply.respuestasHijas && reply.respuestasHijas.length > 0 && (
+                                  <div className="ml-6 space-y-2">
+                                    {reply.respuestasHijas.map((subreply: any) => (
+                                      <div key={subreply.id_respuesta} className="bg-gray-100 dark:bg-gray-700 p-3 rounded-md">
+                                        <div className="flex items-start justify-between gap-4">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <span className="font-medium text-purple-600 dark:text-purple-400">SUBRESPUESTA</span>
+                                              <span className="text-xs text-gray-500 dark:text-gray-400">#{subreply.id_respuesta}</span>
+                                            </div>
+                                            <p className="text-sm mb-1">{subreply.mensaje}</p>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                              Por: {subreply.usuario?.nombre || subreply.usuario?.email || `User #${subreply.id_usuario}`} · {new Date(subreply.fecha_respuesta).toLocaleString()}
+                                            </div>
+                                          </div>
+                                          <button 
+                                            onClick={() => setConfirmDelete({type: 'reply', id: subreply.id_respuesta, authorId: subreply.id_usuario})} 
+                                            className="px-2 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-1 text-sm flex-shrink-0"
+                                          >
+                                            <X className="w-3 h-3"/>Borrar
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -287,27 +371,11 @@ export default function AdminPage() {
                           {u.banned ? (
                             <button onClick={() => unbanUser(u.id_usuario)} className="btn-primary px-3 py-2 flex items-center gap-1"><Check className="w-4 h-4"/>Desbanear</button>
                           ) : (
-                            <button onClick={() => banUser(u.id_usuario)} className="px-3 py-2 rounded-md border border-red-300 text-red-600 flex items-center gap-1"><Ban className="w-4 h-4"/>Banear</button>
+                            <>
+                              <button onClick={() => banUser(u.id_usuario)} className="px-3 py-2 rounded-md border border-orange-300 text-orange-600 flex items-center gap-1"><Ban className="w-4 h-4"/>Ban 7d</button>
+                              <button onClick={() => setConfirmBan({id: u.id_usuario, name: `${u.nombre} ${u.apellido}`})} className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-1"><Ban className="w-4 h-4"/>Ban Permanente</button>
+                            </>
                           )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {tab === 'posts' && (
-                  <div className="p-4 space-y-3">
-                    {posts.length === 0 ? (
-                      <div className="text-gray-500 dark:text-gray-400">No hay posts.</div>
-                    ) : posts.map(p => (
-                      <div key={p.id_publicacion} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-md flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{p.titulo} <span className="text-xs text-gray-500 dark:text-gray-400">(#{p.id_publicacion})</span></div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">Autor: {p.usuario?.email || p.id_usuario} · {new Date(p.fecha_publicacion).toLocaleString()}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setEditingPost(p)} className="px-3 py-2 rounded-md border flex items-center gap-1"><Edit3 className="w-4 h-4"/>Editar</button>
-                          <button onClick={() => moderatePost(p.id_publicacion)} className="px-3 py-2 rounded-md border border-red-300 text-red-600 flex items-center gap-1"><X className="w-4 h-4"/>Sensurar</button>
                         </div>
                       </div>
                     ))}
@@ -354,14 +422,50 @@ export default function AdminPage() {
       </div>
 
       {/* Modales */}
-      {editingComment && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-lg p-6 space-y-4">
-            <h3 className="text-lg font-semibold">Editar comentario #{editingComment.id_respuesta}</h3>
-            <textarea className="w-full h-40 p-3 rounded border" value={editingComment.mensaje} onChange={e=>setEditingComment({ ...editingComment, mensaje: e.target.value })} />
+      {/* Modal de confirmación de borrado */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Confirmar borrado</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              ¿Estás seguro de que deseas borrar este {confirmDelete.type === 'post' ? 'anuncio' : 'respuesta'}?
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Se enviará una notificación al autor informándole que su mensaje fue eliminado por los administradores.
+            </p>
             <div className="flex justify-end gap-2">
-              <button onClick={()=>setEditingComment(null)} className="px-3 py-2 rounded-md border">Cancelar</button>
-              <button onClick={saveComment} className="btn-primary px-3 py-2 flex items-center gap-2"><Save className="w-4 h-4"/>Guardar</button>
+              <button onClick={()=>setConfirmDelete(null)} className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">Cancelar</button>
+              <button onClick={deleteMessage} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-2">
+                <X className="w-4 h-4"/>Borrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de baneo permanente */}
+      {confirmBan && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-red-600 dark:text-red-400">⚠️ Baneo Permanente</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              ¿Estás seguro de que deseas banear permanentemente a <strong>{confirmBan.name}</strong>?
+            </p>
+            <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                <strong>Esta acción:</strong>
+              </p>
+              <ul className="text-sm text-red-700 dark:text-red-300 list-disc list-inside mt-2 space-y-1">
+                <li>Cerrará automáticamente su sesión</li>
+                <li>No podrá iniciar sesión nuevamente</li>
+                <li>Es permanente y requiere intervención manual para revertir</li>
+              </ul>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={()=>setConfirmBan(null)} className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">Cancelar</button>
+              <button onClick={banUserPermanent} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-2">
+                <Ban className="w-4 h-4"/>Banear Permanentemente
+              </button>
             </div>
           </div>
         </div>
