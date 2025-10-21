@@ -280,7 +280,7 @@ export default function Donaciones() {
                     if (ongs.length === 0) {
                       setOngsError(true);
                     } else {
-                      window.location.href = '/app/mapa';
+                      window.location.href = `/map?ongId=${selectedOng}`;
                     }
                   }}
                 >
