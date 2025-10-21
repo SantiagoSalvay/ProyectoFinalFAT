@@ -86,7 +86,7 @@ router.post('/mp/create', auth, async (req, res) => {
 
     const prefResult = await preference.create({ body });
 
-    // Registrar pedido de donación (solo Dinero) sin afectar la respuesta si falla
+    // Registrar pedido de donación inmediatamente al crear la preferencia
     try {
       const dineroTipo = await prisma.TipoDonacion.findFirst({
         where: { tipo_donacion: 'Dinero' },
@@ -124,7 +124,7 @@ router.post('/mp/create', auth, async (req, res) => {
           });
         }
 
-        await prisma.PedidoDonacion.create({
+        await prisma.pedidoDonacion.create({
           data: {
             id_publicacion_etiqueta: pubEtiqueta.id_publicacion_etiqueta,
             id_usuario: req.user.id_usuario,
@@ -132,9 +132,11 @@ router.post('/mp/create', auth, async (req, res) => {
             cantidad: Math.round(amt)
           }
         });
+
+        console.log(`✅ PedidoDonacion creado: usuario=${req.user.id_usuario}, cantidad=${Math.round(amt)}, ONG=${ongId}`);
       }
     } catch (logErr) {
-      console.warn('No se pudo registrar PedidoDonacion (no crítico):', logErr?.message || logErr);
+      console.warn('No se pudo registrar PedidoDonacion:', logErr?.message || logErr);
     }
 
     return res.json({ id: prefResult.id, init_point: prefResult.init_point });
