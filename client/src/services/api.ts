@@ -805,7 +805,7 @@ class ApiService {
     }
   }
 
-  async crearComentario(publicacionId: string, mensaje: string) {
+  async crearComentario(publicacionId: string, mensaje: string, parentId?: number) {
     try {
       const response = await this.request<{
         message: string;
@@ -819,7 +819,7 @@ class ApiService {
         };
       }>(`/api/forum/publicaciones/${publicacionId}/comentarios`, {
         method: "POST",
-        body: JSON.stringify({ mensaje }),
+        body: JSON.stringify({ mensaje, id_respuesta_padre: parentId }),
       });
       return response;
     } catch (error) {

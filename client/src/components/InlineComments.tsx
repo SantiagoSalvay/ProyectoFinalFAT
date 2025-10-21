@@ -18,18 +18,21 @@ import {
 
 interface Comentario {
   id_respuesta: number
-  id_foro: number
+  id_foro?: number
   id_usuario: number
   mensaje: string
   fecha_respuesta: string
   moderation_status?: string  // pending, approved, rejected
   rejection_reason?: string
+  id_respuesta_padre?: number | null
   usuario: {
     id_usuario: number
     nombre: string
     apellido: string
-    tipo_usuario: number
+    tipo_usuario?: number
+    id_tipo_usuario?: number
   }
+  respuestasHijas?: Comentario[]
 }
 
 interface InlineCommentsProps {
@@ -52,6 +55,8 @@ export default function InlineComments({
   const [loading, setLoading] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
+  const [replyingTo, setReplyingTo] = useState<number | null>(null)
+  const [replyText, setReplyText] = useState('')
 
   // Cargar comentarios cuando se expande
   useEffect(() => {
@@ -108,8 +113,8 @@ export default function InlineComments({
       setEnviando(true)
       const response = await api.crearComentario(publicacionId, nuevoComentario.trim())
       
-      // Agregar el nuevo comentario a la lista
-      setComentarios(prev => [...prev, response.comentario])
+      // Recargar para reflejar estructura anidada
+      await cargarComentarios()
       setNuevoComentario('')
       
       // Llamar al callback si existe para actualizar el contador
@@ -135,6 +140,41 @@ export default function InlineComments({
         })
       } else {
         toast.error('Error al publicar el comentario')
+      }
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const handleEnviarRespuesta = async (parentId: number) => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para responder')
+      return
+    }
+
+    if (!replyText.trim()) {
+      toast.error('La respuesta no puede estar vacía')
+      return
+    }
+
+    const isValid = validateComment(replyText.trim(), user.id_usuario.toString())
+    if (!isValid) return
+
+    try {
+      setEnviando(true)
+      await api.crearComentario(publicacionId, replyText.trim(), parentId)
+      await cargarComentarios()
+      setReplyText('')
+      setReplyingTo(null)
+      if (onCommentAdded) onCommentAdded()
+      toast.success('Respuesta publicada')
+    } catch (error: any) {
+      console.error('Error al crear respuesta:', error)
+      if (error.response?.status === 400) {
+        const errorData = error.response.data
+        toast.error(errorData.error || 'Contenido inapropiado')
+      } else {
+        toast.error('Error al publicar la respuesta')
       }
     } finally {
       setEnviando(false)
@@ -167,6 +207,102 @@ export default function InlineComments({
     })
   }
 
+  const contarComentarios = (items: Comentario[]): number => {
+    return items.reduce((acc, c) => acc + 1 + (c.respuestasHijas ? contarComentarios(c.respuestasHijas) : 0), 0)
+  }
+
+  const renderComentario = (comentario: Comentario) => {
+    const isOwner = user && user.id_usuario === comentario.id_usuario
+    const isOng = (comentario.usuario.id_tipo_usuario ?? comentario.usuario.tipo_usuario) === 2
+
+    return (
+      <div key={comentario.id_respuesta} className="rounded-lg p-3 bg-gray-50">
+        <div className="flex items-start space-x-3">
+          <div className="w-7 h-7 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center flex-shrink-0">
+            {isOng ? (
+              <Building className="w-3 h-3 text-white" />
+            ) : (
+              <User className="w-3 h-3 text-white" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-1">
+              <span className="text-sm font-medium text-gray-900">
+                {comentario.usuario.nombre} {comentario.usuario.apellido}
+              </span>
+              {isOng && (
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs rounded-full">ONG</span>
+              )}
+              <span className="text-xs text-gray-500">{formatearFecha(comentario.fecha_respuesta)}</span>
+            </div>
+            <p className="text-sm leading-relaxed text-gray-700">{comentario.mensaje}</p>
+
+            <div className="mt-2 flex items-center space-x-3">
+              {user && (
+                <button
+                  onClick={() => {
+                    setReplyingTo(prev => (prev === comentario.id_respuesta ? null : comentario.id_respuesta))
+                    setReplyText('')
+                  }}
+                  className="text-xs text-purple-600 hover:text-purple-800"
+                >
+                  Responder
+                </button>
+              )}
+              {isOwner && (
+                <button
+                  onClick={() => handleEliminarComentario(comentario.id_respuesta)}
+                  className="text-xs text-red-600 hover:text-red-800 flex items-center space-x-1"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Eliminar</span>
+                </button>
+              )}
+            </div>
+
+            {replyingTo === comentario.id_respuesta && user && (
+              <div className="mt-3">
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Escribe tu respuesta..."
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm ${
+                    lastResult && !lastResult.isValid && replyText.length > 0
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                  rows={2}
+                  disabled={enviando}
+                />
+                <div className="mt-2 flex space-x-2">
+                  <button
+                    onClick={() => handleEnviarRespuesta(comentario.id_respuesta)}
+                    disabled={enviando || !replyText.trim() || cooldownSeconds > 0}
+                    className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm"
+                  >
+                    {enviando ? 'Enviando...' : 'Enviar respuesta'}
+                  </button>
+                  <button
+                    onClick={() => { setReplyingTo(null); setReplyText('') }}
+                    className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {comentario.respuestasHijas && comentario.respuestasHijas.length > 0 && (
+              <div className="mt-3 ml-6 space-y-3">
+                {comentario.respuestasHijas.map(hija => renderComentario(hija))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="border-t border-gray-100">
       {/* Header con botón de toggle */}
@@ -177,7 +313,7 @@ export default function InlineComments({
         <div className="flex items-center space-x-2">
           <MessageCircle className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-700">
-            {comentarios.length} comentario{comentarios.length !== 1 ? 's' : ''}
+            {contarComentarios(comentarios)} comentario{contarComentarios(comentarios) !== 1 ? 's' : ''}
           </span>
         </div>
         {isExpanded ? (
@@ -205,58 +341,7 @@ export default function InlineComments({
               </div>
             ) : (
               <div className="space-y-3">
-                {comentarios.map((comentario) => {
-                  const isOwner = user && user.id_usuario === comentario.id_usuario
-
-                  return (
-                    <div 
-                      key={comentario.id_respuesta} 
-                      className="rounded-lg p-3 bg-gray-50"
-                    >
-
-                      <div className="flex items-start space-x-3">
-                        <div className="w-7 h-7 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center flex-shrink-0">
-                          {comentario.usuario.tipo_usuario === 2 ? (
-                            <Building className="w-3 h-3 text-white" />
-                          ) : (
-                            <User className="w-3 h-3 text-white" />
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-sm font-medium text-gray-900">
-                              {comentario.usuario.nombre} {comentario.usuario.apellido}
-                            </span>
-                            {comentario.usuario.tipo_usuario === 2 && (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs rounded-full">
-                                ONG
-                              </span>
-                            )}
-                            <span className="text-xs text-gray-500">
-                              {formatearFecha(comentario.fecha_respuesta)}
-                            </span>
-                          </div>
-                          
-                          <p className="text-sm leading-relaxed text-gray-700">
-                            {comentario.mensaje}
-                          </p>
-                          
-                          {/* Botón de eliminar (solo para el autor) */}
-                          {isOwner && (
-                            <button
-                              onClick={() => handleEliminarComentario(comentario.id_respuesta)}
-                              className="mt-2 text-xs text-red-600 hover:text-red-800 flex items-center space-x-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Eliminar</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                {comentarios.map((c) => renderComentario(c))}
               </div>
             )}
           </div>

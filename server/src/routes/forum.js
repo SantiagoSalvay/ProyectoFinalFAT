@@ -355,7 +355,7 @@ router.post('/publicaciones/:id/comentarios',
   async (req, res) => {
   try {
     const { id } = req.params;
-    const { mensaje } = req.body;
+    const { mensaje, id_respuesta_padre } = req.body;
     const userId = req.user?.id_usuario;
 
     if (!userId) {
@@ -371,13 +371,32 @@ router.post('/publicaciones/:id/comentarios',
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    // Crear comentario directamente (ya pasó la validación del middleware)
+    // Si viene una respuesta padre, verificar que pertenezca a la misma publicación
+    let parentId = null;
+    if (id_respuesta_padre !== undefined && id_respuesta_padre !== null) {
+      const parent = await prisma.RespuestaPublicacion.findUnique({
+        where: { id_respuesta: parseInt(id_respuesta_padre) }
+      });
+
+      if (!parent) {
+        return res.status(404).json({ error: 'Respuesta padre no encontrada' });
+      }
+
+      if (parent.id_publicacion !== parseInt(id)) {
+        return res.status(400).json({ error: 'La respuesta padre no pertenece a esta publicación' });
+      }
+
+      parentId = parent.id_respuesta;
+    }
+
+    // Crear comentario o respuesta (ya pasó la validación del middleware)
     const nuevoComentario = await prisma.RespuestaPublicacion.create({
       data: {
         id_publicacion: parseInt(id),
         id_usuario: userId,
         mensaje: mensaje.trim(),
-        fecha_respuesta: new Date()
+        fecha_respuesta: new Date(),
+        id_respuesta_padre: parentId
       },
       include: {
         usuario: {
@@ -415,8 +434,8 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
       return res.status(404).json({ error: 'Publicación no encontrada' });
     }
 
-    // Obtener TODOS los comentarios (sin filtro de moderación)
-    const comentarios = await prisma.RespuestaPublicacion.findMany({
+    // Obtener TODOS los comentarios con anidamiento (sin filtro de moderación)
+    const allComments = await prisma.RespuestaPublicacion.findMany({
       where: { id_publicacion: parseInt(id) },
       include: {
         usuario: {
@@ -431,7 +450,21 @@ router.get('/publicaciones/:id/comentarios', async (req, res) => {
       orderBy: { fecha_respuesta: 'asc' }
     });
 
-    res.json(comentarios);
+    // Construir árbol de comentarios: raíz = sin id_respuesta_padre
+    const byId = new Map();
+    allComments.forEach(c => byId.set(c.id_respuesta, { ...c, respuestasHijas: [] }));
+
+    const roots = [];
+    byId.forEach(c => {
+      if (c.id_respuesta_padre) {
+        const parent = byId.get(c.id_respuesta_padre);
+        if (parent) parent.respuestasHijas.push(c);
+      } else {
+        roots.push(c);
+      }
+    });
+
+    res.json(roots);
   } catch (error) {
     console.error('Error al obtener comentarios:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
