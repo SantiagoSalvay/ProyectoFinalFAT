@@ -1074,8 +1074,22 @@ export default function ForumPage() {
         {/* Create/Edit Post Modal */}
         {showCreatePost && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+                {/* Close X button top-right */}
+                <button
+                  onClick={() => {
+                    setShowCreatePost(false);
+                    setModalSelectedCategories([]);
+                    setCategoryStates({});
+                    setEditingPostId(null);
+                  }}
+                  aria-label="Cerrar"
+                  className="absolute right-3 top-3 text-gray-500 hover:text-gray-800 rounded-full p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 {editingPostId ? "Editar Publicación" : "Nueva Publicación"}
               </h2>
 
