@@ -269,6 +269,24 @@ class ApiService {
     });
   }
 
+  // Forum moderation
+  async adminListForumMessages() {
+    return this.request<{ posts: any[] }>(`/api/admin/forum`, {
+      method: "GET",
+    });
+  }
+
+  async adminDeleteForumMessage(
+    type: 'post' | 'reply' | 'subreply',
+    id: number,
+    authorId: number
+  ) {
+    return this.request<{ message: string }>(`/api/admin/forum/${type}/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({ authorId }),
+    });
+  }
+
   // Mercado Pago / ONGs - estado de onboarding y gestión de token
   async getOngMPStatus(ongId: number) {
     return this.request<{ enabled: boolean }>(`/api/ongs/${ongId}/mp-status`, {

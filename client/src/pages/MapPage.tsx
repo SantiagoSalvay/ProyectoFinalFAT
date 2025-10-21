@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   GoogleMap,
   useJsApiLoader,
@@ -129,7 +130,15 @@ const options = {
 };
 
 export default function MapPage() {
+  const [searchParams] = useSearchParams();
+  const ongIdFromUrl = searchParams.get('ongId');
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [hasOpenedModal, setHasOpenedModal] = useState(false);
+  
+  // Resetear hasOpenedModal cuando cambia el ongId de la URL
+  useEffect(() => {
+    setHasOpenedModal(false);
+  }, [ongIdFromUrl]);
   // Manejo de error de tiles
   const handleTileError = (e: any) => {
     // e.target.status puede ser 401, 429, 404, etc.
@@ -226,8 +235,13 @@ export default function MapPage() {
     loadCategories();
   }, []);
 
-  // Filtrado de ONGs por necesidad, grupo social y categorías
+  // Filtrado de ONGs por necesidad, grupo social, categorías y ongId de URL
   const filteredOngs = ongs.filter((ong) => {
+    // Si hay un ongId en la URL, solo mostrar esa ONG
+    if (ongIdFromUrl) {
+      return ong.id === Number(ongIdFromUrl);
+    }
+
     const needMatch =
       needFilter === "" ||
       ong.need.toLowerCase().includes(needFilter.toLowerCase());
@@ -244,11 +258,27 @@ export default function MapPage() {
     return needMatch && groupMatch && categoryMatch;
   });
 
+
   useEffect(() => {
     if (isLoaded) {
       loadONGs();
     }
   }, [needFilter, groupFilter, categoryFilter, isLoaded]);
+
+  // Centrar el mapa en la ONG seleccionada cuando se carga desde la URL
+  useEffect(() => {
+    if (ongIdFromUrl && filteredOngs.length > 0 && map && !loading && !geoLoading && !hasOpenedModal) {
+      const selectedOng = filteredOngs[0];
+      if (selectedOng.latitude && selectedOng.longitude) {
+        map.panTo({ lat: selectedOng.latitude, lng: selectedOng.longitude });
+        map.setZoom(15);
+        setHasOpenedModal(true);
+        setTimeout(() => {
+          setSelectedONG(selectedOng);
+        }, 300);
+      }
+    }
+  }, [ongIdFromUrl, filteredOngs, map, loading, geoLoading, hasOpenedModal]);
 
   // Función para geocodificar usando Google Maps API
   const geocodeAddress = async (
@@ -381,6 +411,33 @@ export default function MapPage() {
       setGeoLoading(false);
     }
   };
+
+  // Mostrar pantalla de carga solo cuando hay ongId en URL y se está cargando
+  if (ongIdFromUrl && (loading || geoLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-purple-600 mx-auto mb-6"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <svg className="w-10 h-10 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-purple-900 mb-2">Cargando ubicación...</h2>
+          <p className="text-purple-700 mb-4">
+            Buscando la ONG seleccionada en el mapa...
+          </p>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-purple-600 shadow-sm border-b">
@@ -552,6 +609,22 @@ export default function MapPage() {
                 }}
               />
 
+              {/* Marcador de respaldo para debugging cuando hay filtro */}
+              {ongIdFromUrl && filteredOngs.length > 0 && filteredOngs[0].latitude && filteredOngs[0].longitude && (
+                <Marker
+                  position={{ lat: filteredOngs[0].latitude, lng: filteredOngs[0].longitude }}
+                  icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 20,
+                    fillColor: "#FF0000",
+                    fillOpacity: 1,
+                    strokeColor: "#FFFFFF",
+                    strokeWeight: 3,
+                  }}
+                  onClick={() => setSelectedONG(filteredOngs[0])}
+                />
+              )}
+
               {filteredOngs.map((ong) =>
                 ong.latitude !== undefined && ong.longitude !== undefined ? (
                   <OverlayView
@@ -569,12 +642,14 @@ export default function MapPage() {
                         position: "absolute",
                         transform: "translate(-50%, -50%)",
                         cursor: "pointer",
-                        width: "44px",
-                        height: "44px",
+                        width: "60px",
+                        height: "60px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        zIndex: 1,
+                        zIndex: 100,
+                        backgroundColor: ongIdFromUrl ? "rgba(255, 0, 0, 0.2)" : "transparent",
+                        borderRadius: "50%",
                       }}
                     >
                       {ong.profileImageUrl ? (
@@ -625,7 +700,7 @@ export default function MapPage() {
                       )}
                     </div>
                   </OverlayView>
-                ) : null,
+                ) : null
               )}
             </GoogleMap>
           )}
@@ -725,7 +800,10 @@ export default function MapPage() {
           <div
             className="absolute inset-0 bg-black bg-opacity-60"
             style={{ zIndex: 1000, pointerEvents: "auto" }}
-            onClick={() => setSelectedONG(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedONG(null);
+            }}
           />
           {/* Modal */}
           <div
@@ -741,8 +819,11 @@ export default function MapPage() {
                   <p className="text-gray-600">{selectedONG.location}</p>
                 </div>
                 <button
-                  onClick={() => setSelectedONG(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedONG(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                   style={{ zIndex: 1020 }}
                 >
                   <svg
@@ -759,41 +840,6 @@ export default function MapPage() {
                     />
                   </svg>
                 </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Users className="w-5 h-5 text-blue-500" />
-                    <span className="ml-2 font-semibold">
-                      {selectedONG.volunteers_count || 0}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">Voluntarios</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Heart className="w-5 h-5 text-red-500" />
-                    <span className="ml-2 font-semibold">
-                      {selectedONG.projects_count || 0}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">Proyectos</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Building
-                      className="w-5 h-5"
-                      style={{
-                        color: groupColors[selectedONG.group] || "gray",
-                      }}
-                    />
-                    <span className="ml-2 font-semibold capitalize">
-                      {selectedONG.group}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">Grupo social</p>
-                </div>
               </div>
 
               <div className="mb-6">
@@ -878,16 +924,29 @@ export default function MapPage() {
                 </div>
               </div>
 
-              {/* Botones de acción (solo sitio web si existe) */}
-              <div className="flex space-x-2 mt-4">
+              {/* Botones de acción */}
+              <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                {/* Botón de Google Maps - siempre visible si hay coordenadas */}
+                {selectedONG.latitude && selectedONG.longitude && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedONG.latitude},${selectedONG.longitude}&travelmode=driving`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-center hover:bg-blue-700 transition-colors flex items-center justify-center"
+                  >
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Abrir en Google Maps
+                  </a>
+                )}
+                
                 {selectedONG.website && (
                   <a
                     href={selectedONG.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors"
+                    className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors flex items-center justify-center"
                   >
-                    <ExternalLink className="w-4 h-4 inline mr-1" />
+                    <ExternalLink className="w-4 h-4 inline mr-2" />
                     Sitio web
                   </a>
                 )}
