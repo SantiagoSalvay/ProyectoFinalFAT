@@ -223,11 +223,6 @@ export default function ForumPage() {
   // Considera ONG si tipo_usuario === 2 (igual que en ProfilePage y DashboardPage)
   const isONG = user?.tipo_usuario === 2;
 
-  // Log para debugging
-  console.log("🔍 [FORUM] Usuario:", user);
-  console.log("🔍 [FORUM] tipo_usuario:", user?.tipo_usuario);
-  console.log("🔍 [FORUM] isONG:", isONG);
-
   const handleEliminarPublicacion = async (postId: string) => {
     if (!user) {
       toast.error("Debes iniciar sesión");

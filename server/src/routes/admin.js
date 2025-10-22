@@ -697,12 +697,6 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
     // Usar el ID real del autor de la base de datos, no el del body
     const targetUserId = actualAuthorId || parseInt(authorId, 10);
     
-    console.log(`[ADMIN] Creando notificación de mensaje borrado`);
-    console.log(`[ADMIN] - Mensaje ID: ${messageId}, Tipo: ${messageType}`);
-    console.log(`[ADMIN] - Autor real (DB): ${actualAuthorId}`);
-    console.log(`[ADMIN] - Autor enviado (body): ${authorId}`);
-    console.log(`[ADMIN] - Usuario objetivo: ${targetUserId}`);
-    
     await prisma.notificacion.create({
       data: {
         id_usuario: targetUserId,
@@ -711,8 +705,6 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
         leida: false
       }
     });
-    
-    console.log(`[ADMIN] ✅ Notificación creada exitosamente para usuario ${targetUserId}`);
 
     adminLog({ 
       actor: req.userId, 

@@ -60,7 +60,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       
       setNotifications(formattedNotifications)
     } catch (error) {
-      console.error('Error al cargar notificaciones:', error)
+      // Error silencioso - las notificaciones no son críticas
     }
   }
 

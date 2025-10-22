@@ -19,11 +19,9 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('[AUTH] Token decodificado:', JSON.stringify(decoded, null, 2));
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('[AUTH] Error verificando token:', error.message);
     return res.status(403).json({ error: "Token inválido o expirado" });
   }
 };
@@ -34,10 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
     // El token JWT usa 'userId', no 'id_usuario'
     const userId = req.user.userId || req.user.id_usuario;
     
-    console.log(`[NOTIFICATIONS] Obteniendo notificaciones para usuario ID: ${userId}`);
-    
     if (!userId) {
-      console.error('[NOTIFICATIONS] ERROR: userId es undefined. Token:', req.user);
       return res.status(401).json({ error: 'Usuario no identificado' });
     }
     
@@ -50,8 +45,6 @@ router.get('/', authenticateToken, async (req, res) => {
       },
       take: 50 // Limitar a las últimas 50 notificaciones
     });
-
-    console.log(`[NOTIFICATIONS] Encontradas ${notifications.length} notificaciones para usuario ${userId}`);
 
     res.json({ notifications });
   } catch (error) {
