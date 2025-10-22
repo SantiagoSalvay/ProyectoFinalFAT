@@ -138,9 +138,10 @@ export default function PostDetailPage() {
       await api.eliminarPublicacion(post.id)
       toast.success('Publicación eliminada exitosamente')
       navigate('/forum')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al eliminar publicación:', error)
-      toast.error('Error al eliminar la publicación')
+      const errorMsg = error?.response?.data?.error || 'Error al eliminar la publicación'
+      toast.error(errorMsg)
     }
   }
 

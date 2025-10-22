@@ -569,6 +569,11 @@ router.delete("/publicaciones/:id", authenticateToken, async (req, res) => {
       where: { id_publicacion: parseInt(id) },
       select: {
         id_usuario: true,
+        publicacionEtiquetas: {
+          include: {
+            pedidosDonacion: true
+          }
+        }
       },
     });
 
@@ -581,6 +586,18 @@ router.delete("/publicaciones/:id", authenticateToken, async (req, res) => {
       return res
         .status(403)
         .json({ error: "No tienes permisos para eliminar esta publicación" });
+    }
+
+    // Verificar si la publicación tiene donaciones asociadas
+    const tieneDonaciones = publicacion.publicacionEtiquetas.some(
+      pe => pe.pedidosDonacion && pe.pedidosDonacion.length > 0
+    );
+
+    if (tieneDonaciones) {
+      return res.status(400).json({ 
+        error: "No puedes eliminar esta publicación porque tiene donaciones asociadas. Por favor, contacta a un administrador si necesitas eliminarla.",
+        hasDonations: true
+      });
     }
 
     // Eliminar la publicación (cascade eliminará etiquetas y comentarios automáticamente)

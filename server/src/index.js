@@ -11,6 +11,7 @@ import ongsRoutes from "./routes/ongs.js";
 import categoriesRoutes from "./routes/categories.js";
 import adminRoutes from "./routes/admin.js";
 import paymentsRoutes from "./routes/payments.js";
+import notificationsRoutes from "./routes/notifications.js";
 import passport from "./config/passport.js";
 import { PrismaClient } from "@prisma/client";
 
@@ -75,6 +76,7 @@ app.use("/api/ongs", ongsRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 // Ruta de prueba
 app.get("/", (req, res) => {

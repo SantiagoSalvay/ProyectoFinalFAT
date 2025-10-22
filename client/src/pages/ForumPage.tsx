@@ -244,9 +244,10 @@ export default function ForumPage() {
       await api.eliminarPublicacion(postId);
       setPosts((prev) => prev.filter((post) => post.id !== postId));
       toast.success("Publicación eliminada exitosamente");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al eliminar publicación:", error);
-      toast.error("Error al eliminar la publicación");
+      const errorMsg = error?.response?.data?.error || "Error al eliminar la publicación";
+      toast.error(errorMsg);
     }
   };
 

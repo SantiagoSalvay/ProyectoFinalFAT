@@ -1073,6 +1073,82 @@ class ApiService {
       throw error;
     }
   }
+
+  // ========== NOTIFICATIONS ==========
+  async getNotifications() {
+    try {
+      const response = await this.request<{ notifications: any[] }>(
+        "/api/notifications",
+        {
+          method: "GET",
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error("Error al obtener notificaciones:", error);
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(notificationId: number) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error("Error al marcar notificación como leída:", error);
+      throw error;
+    }
+  }
+
+  async markAllNotificationsAsRead() {
+    try {
+      const response = await this.request<{ message: string }>(
+        "/api/notifications/read-all",
+        {
+          method: "PATCH",
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error("Error al marcar todas las notificaciones como leídas:", error);
+      throw error;
+    }
+  }
+
+  async deleteNotification(notificationId: number) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/notifications/${notificationId}`,
+        {
+          method: "DELETE",
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error("Error al eliminar notificación:", error);
+      throw error;
+    }
+  }
+
+  async getUnreadNotificationsCount() {
+    try {
+      const response = await this.request<{ count: number }>(
+        "/api/notifications/unread-count",
+        {
+          method: "GET",
+        }
+      );
+      return response;
+    } catch (error) {
+      console.error("Error al obtener conteo de notificaciones:", error);
+      throw error;
+    }
+  }
 }
 
 export const api = new ApiService();

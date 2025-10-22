@@ -86,9 +86,11 @@ export default function AdminPage() {
       await api.adminDeleteForumMessage(confirmDelete.type, confirmDelete.id, confirmDelete.authorId);
       setConfirmDelete(null);
       loadData();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error borrando mensaje:', e);
-      setError('No se pudo borrar el mensaje.');
+      const errorMsg = e?.response?.data?.error || 'No se pudo borrar el mensaje.';
+      setError(errorMsg);
+      setConfirmDelete(null);
     }
   };
 

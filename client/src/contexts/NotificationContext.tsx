@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import { api } from '../services/api'
 
 export interface Notification {
   id: string
@@ -22,12 +23,77 @@ interface NotificationContextType {
   removeNotification: (id: string) => void
   unreadCount: number
   clearCategory: (category: Notification['category']) => void
+  refreshNotifications: () => Promise<void>
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Verificar si el usuario está autenticado
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    setIsAuthenticated(!!token)
+  }, [])
+
+  // Cargar notificaciones de la base de datos
+  const refreshNotifications = async () => {
+    if (!isAuthenticated) return
+    
+    try {
+      const { notifications: dbNotifications } = await api.getNotifications()
+      
+      // Convertir notificaciones de la BD al formato del contexto
+      const formattedNotifications: Notification[] = dbNotifications.map((n: any) => ({
+        id: n.id_notificacion.toString(),
+        type: getNotificationType(n.tipo_notificacion),
+        title: getTitleFromType(n.tipo_notificacion),
+        message: n.mensaje,
+        timestamp: new Date(n.fecha_creacion),
+        read: n.leida,
+        priority: 'medium',
+        category: 'system',
+        autoHide: false
+      }))
+      
+      setNotifications(formattedNotifications)
+    } catch (error) {
+      console.error('Error al cargar notificaciones:', error)
+    }
+  }
+
+  // Cargar notificaciones al montar y cada 30 segundos
+  useEffect(() => {
+    if (!isAuthenticated) return
+    
+    refreshNotifications()
+    
+    const interval = setInterval(refreshNotifications, 30000) // 30 segundos
+    
+    return () => clearInterval(interval)
+  }, [isAuthenticated])
+
+  // Función auxiliar para determinar el tipo de notificación
+  const getNotificationType = (tipo: string): Notification['type'] => {
+    if (tipo === 'ban' || tipo === 'mensaje_borrado') return 'warning'
+    if (tipo === 'success') return 'success'
+    if (tipo === 'error') return 'error'
+    return 'info'
+  }
+
+  // Función auxiliar para obtener el título según el tipo
+  const getTitleFromType = (tipo: string): string => {
+    switch (tipo) {
+      case 'ban':
+        return 'Cuenta Suspendida'
+      case 'mensaje_borrado':
+        return 'Mensaje Eliminado'
+      default:
+        return 'Notificación'
+    }
+  }
 
   const addNotification = (notification: Omit<Notification, 'timestamp' | 'read'> & { id?: string }) => {
     const newNotification: Notification = {
@@ -84,7 +150,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAllAsRead,
     removeNotification,
     unreadCount,
-    clearCategory
+    clearCategory,
+    refreshNotifications
   }
 
   return (
