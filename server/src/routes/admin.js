@@ -623,9 +623,15 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
     const { authorId } = req.body;
     const messageId = parseInt(id, 10);
     
+    // Validar que authorId esté presente
+    if (!authorId) {
+      return res.status(400).json({ error: 'authorId es requerido' });
+    }
+    
     let deletedMessage;
     let messageType;
     let messageContent = '';
+    let actualAuthorId = null;
     
     // Obtener el contenido del mensaje ANTES de borrarlo
     if (type === 'post') {
@@ -644,6 +650,9 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
       if (!publicacion) {
         return res.status(404).json({ error: 'Publicación no encontrada' });
       }
+      
+      // Guardar el ID real del autor
+      actualAuthorId = publicacion.id_usuario;
       
       const tieneDonaciones = publicacion.publicacionEtiquetas.some(pe => pe.pedidosDonacion.length > 0);
       
@@ -669,6 +678,9 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
         return res.status(404).json({ error: 'Respuesta no encontrada' });
       }
       
+      // Guardar el ID real del autor
+      actualAuthorId = respuesta.id_usuario;
+      
       messageContent = respuesta.mensaje || '';
       
       deletedMessage = await prisma.respuestaPublicacion.delete({
@@ -682,14 +694,25 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
     // Crear notificación para el autor con el contenido del mensaje eliminado
     const notificationMessage = `Se ha borrado el siguiente mensaje del foro: "${messageContent}" por decisión de los administradores.`;
     
+    // Usar el ID real del autor de la base de datos, no el del body
+    const targetUserId = actualAuthorId || parseInt(authorId, 10);
+    
+    console.log(`[ADMIN] Creando notificación de mensaje borrado`);
+    console.log(`[ADMIN] - Mensaje ID: ${messageId}, Tipo: ${messageType}`);
+    console.log(`[ADMIN] - Autor real (DB): ${actualAuthorId}`);
+    console.log(`[ADMIN] - Autor enviado (body): ${authorId}`);
+    console.log(`[ADMIN] - Usuario objetivo: ${targetUserId}`);
+    
     await prisma.notificacion.create({
       data: {
-        id_usuario: parseInt(authorId, 10),
+        id_usuario: targetUserId,
         tipo_notificacion: 'mensaje_borrado',
         mensaje: notificationMessage,
         leida: false
       }
     });
+    
+    console.log(`[ADMIN] ✅ Notificación creada exitosamente para usuario ${targetUserId}`);
 
     adminLog({ 
       actor: req.userId, 

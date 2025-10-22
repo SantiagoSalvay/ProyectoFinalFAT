@@ -1382,35 +1382,6 @@ export default function ForumPage() {
                       </p>
 
                       {/* Botones de editar/eliminar para el autor */}
-                      {user && user.id_usuario === post.id_usuario && (
-                        <div
-                          className="flex items-center gap-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditPost(post);
-                            }}
-                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 transition-colors"
-                            title="Editar publicación"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                            <span className="text-xs">Editar</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEliminarPublicacion(post.id);
-                            }}
-                            className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
-                            title="Eliminar publicación"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span className="text-xs">Eliminar</span>
-                          </button>
-                        </div>
-                      )}
                     </div>
 
                     <div

@@ -64,13 +64,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Cargar notificaciones al montar y cada 30 segundos
+  // Cargar notificaciones al montar y cada 60 segundos (reducido para evitar recargas)
   useEffect(() => {
     if (!isAuthenticated) return
     
     refreshNotifications()
     
-    const interval = setInterval(refreshNotifications, 30000) // 30 segundos
+    const interval = setInterval(refreshNotifications, 60000) // 60 segundos
     
     return () => clearInterval(interval)
   }, [isAuthenticated])

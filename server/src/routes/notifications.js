@@ -19,9 +19,11 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('[AUTH] Token decodificado:', JSON.stringify(decoded, null, 2));
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('[AUTH] Error verificando token:', error.message);
     return res.status(403).json({ error: "Token inválido o expirado" });
   }
 };
@@ -29,7 +31,15 @@ const authenticateToken = (req, res, next) => {
 // Obtener notificaciones del usuario autenticado
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id_usuario;
+    // El token JWT usa 'userId', no 'id_usuario'
+    const userId = req.user.userId || req.user.id_usuario;
+    
+    console.log(`[NOTIFICATIONS] Obteniendo notificaciones para usuario ID: ${userId}`);
+    
+    if (!userId) {
+      console.error('[NOTIFICATIONS] ERROR: userId es undefined. Token:', req.user);
+      return res.status(401).json({ error: 'Usuario no identificado' });
+    }
     
     const notifications = await prisma.notificacion.findMany({
       where: {
@@ -41,6 +51,8 @@ router.get('/', authenticateToken, async (req, res) => {
       take: 50 // Limitar a las últimas 50 notificaciones
     });
 
+    console.log(`[NOTIFICATIONS] Encontradas ${notifications.length} notificaciones para usuario ${userId}`);
+
     res.json({ notifications });
   } catch (error) {
     console.error('Error al obtener notificaciones:', error);
@@ -51,7 +63,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // Marcar notificación como leída
 router.patch('/:id/read', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id_usuario;
+    const userId = req.user.userId || req.user.id_usuario;
     const notificationId = parseInt(req.params.id);
 
     // Verificar que la notificación pertenece al usuario
@@ -82,7 +94,7 @@ router.patch('/:id/read', authenticateToken, async (req, res) => {
 // Marcar todas las notificaciones como leídas
 router.patch('/read-all', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id_usuario;
+    const userId = req.user.userId || req.user.id_usuario;
 
     await prisma.notificacion.updateMany({
       where: {
@@ -102,7 +114,7 @@ router.patch('/read-all', authenticateToken, async (req, res) => {
 // Eliminar una notificación
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id_usuario;
+    const userId = req.user.userId || req.user.id_usuario;
     const notificationId = parseInt(req.params.id);
 
     // Verificar que la notificación pertenece al usuario
@@ -131,7 +143,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 // Obtener conteo de notificaciones no leídas
 router.get('/unread-count', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id_usuario;
+    const userId = req.user.userId || req.user.id_usuario;
     
     const count = await prisma.notificacion.count({
       where: {
