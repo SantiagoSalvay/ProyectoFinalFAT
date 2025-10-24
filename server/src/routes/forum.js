@@ -6,45 +6,12 @@ import {
   titleModerationMiddleware,
   antiFloodMiddleware,
 } from "../../lib/content-moderation.js";
-// Sistema de moderación simplificado - sin baneo ni advertencias
+import { authenticateToken, optionalAuth } from "../middleware/auth.js";
+import { postLimiter, searchLimiter } from "../middleware/rateLimiter.js";
+import { validateRequired, validateIdParam } from "../middleware/validation.js";
 
 const router = express.Router();
 const prisma = new PrismaClient();
-
-// Middleware de autenticación (TEMPORAL sin verificación de baneo)
-const authenticateToken = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: "No autorizado" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "tu-secreto-jwt",
-    );
-
-    // Buscar el usuario en la base de datos
-    const usuario = await prisma.Usuario.findUnique({
-      where: { id_usuario: decoded.userId },
-      select: {
-        id_usuario: true,
-        id_tipo_usuario: true,
-      },
-    });
-
-    if (!usuario) {
-      return res.status(401).json({ error: "Usuario no encontrado" });
-    }
-
-    req.user = usuario;
-    next();
-  } catch (error) {
-    console.error("Error de autenticación:", error);
-    res.status(401).json({ error: "Token inválido" });
-  }
-};
 
 // Obtener todas las categorías
 router.get("/categorias", async (req, res) => {
@@ -62,23 +29,9 @@ router.get("/categorias", async (req, res) => {
 });
 
 // Obtener todas las publicaciones del foro
-router.get("/publicaciones", async (req, res) => {
+router.get("/publicaciones", optionalAuth, async (req, res) => {
   try {
-    // Intentar obtener el usuario actual (opcional)
-    const authHeader = req.headers.authorization;
-    let userId = null;
-    if (authHeader) {
-      try {
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET || "tu-secreto-jwt",
-        );
-        userId = decoded.userId;
-      } catch (error) {
-        // Token inválido, continuar sin userId
-      }
-    }
+    const userId = req.userId || null;
 
     const publicaciones = await prisma.Publicacion.findMany({
       include: {
@@ -172,8 +125,10 @@ router.get("/publicaciones", async (req, res) => {
 router.post(
   "/publicaciones",
   authenticateToken,
+  postLimiter,
   titleModerationMiddleware("titulo"),
   moderationMiddleware({ fieldName: "descripcion", strict: true }),
+  validateRequired(['titulo', 'descripcion']),
   async (req, res) => {
     try {
       const {
@@ -282,28 +237,16 @@ router.post(
 );
 
 // Obtener una publicación específica
-router.get("/publicaciones/:id", async (req, res) => {
+router.get("/publicaciones/:id", 
+  validateIdParam('id'),
+  optionalAuth,
+  async (req, res) => {
   try {
     const { id } = req.params;
-
-    // Intentar obtener el usuario actual (opcional)
-    const authHeader = req.headers.authorization;
-    let userId = null;
-    if (authHeader) {
-      try {
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET || "tu-secreto-jwt",
-        );
-        userId = decoded.userId;
-      } catch (error) {
-        // Token inválido, continuar sin userId
-      }
-    }
+    const userId = req.userId || null;
 
     const publicacion = await prisma.Publicacion.findUnique({
-      where: { id_publicacion: parseInt(id) },
+      where: { id_publicacion: id },
       include: {
         usuario: {
           select: {
