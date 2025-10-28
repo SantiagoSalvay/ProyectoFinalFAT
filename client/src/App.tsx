@@ -13,6 +13,8 @@ import DashboardPage from './pages/DashboardPage'
 import ForumPage from './pages/ForumPage'
 import PostDetailPage from './pages/PostDetailPage'
 import MissionPage from './pages/MissionPage'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
 import ProfilePage from './pages/ProfilePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
@@ -76,6 +78,8 @@ function AppContent() {
                     <MissionPage />
                   </UnauthenticatedOnlyRoute>
                 } />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
 
                 {/* Rutas solo para usuarios registrados */}
                 <Route path="/donaciones" element={
