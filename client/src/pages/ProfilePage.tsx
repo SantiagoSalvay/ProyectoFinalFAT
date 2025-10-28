@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import SocialMediaManager from "../components/SocialMediaManager";
+import CookieSettings from "../components/CookieSettings";
 import { useAuth } from "../contexts/AuthContext";
 import { useONGNotifications } from "../hooks/useONGNotifications";
 import { toast } from "react-hot-toast";
@@ -995,6 +996,11 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Configuración de Cookies */}
+          <div className="mt-6">
+            <CookieSettings />
           </div>
         </div>
       </div>

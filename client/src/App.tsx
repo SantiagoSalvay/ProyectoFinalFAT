@@ -15,6 +15,7 @@ import PostDetailPage from './pages/PostDetailPage'
 import MissionPage from './pages/MissionPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
+import CookiesPage from './pages/CookiesPage'
 import ProfilePage from './pages/ProfilePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
@@ -80,6 +81,7 @@ function AppContent() {
                 } />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/cookies" element={<CookiesPage />} />
 
                 {/* Rutas solo para usuarios registrados */}
                 <Route path="/donaciones" element={
