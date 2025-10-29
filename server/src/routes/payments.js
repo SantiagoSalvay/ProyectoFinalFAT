@@ -146,4 +146,93 @@ router.post('/mp/create', auth, async (req, res) => {
   }
 });
 
+// Endpoint para procesar callback de MercadoPago
+router.post('/mp/callback', async (req, res) => {
+  try {
+    const { type, data } = req.body;
+    
+    if (type === 'payment') {
+      const paymentId = data.id;
+      
+      // Aquí deberías verificar el pago con MercadoPago
+      // Por ahora, simulamos que el pago fue exitoso
+      console.log(`Processing payment callback: ${paymentId}`);
+      
+      // Buscar el pedido de donación más reciente para este pago
+      const pedidoReciente = await prisma.PedidoDonacion.findFirst({
+        where: {
+          fecha_donacion: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Últimas 24 horas
+          }
+        },
+        include: {
+          tipoDonacion: true,
+          usuario: true,
+          publicacionEtiqueta: {
+            include: {
+              publicacion: {
+                include: {
+                  usuario: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { fecha_donacion: 'desc' }
+      });
+
+      if (pedidoReciente && pedidoReciente.estado_evaluacion === 'pendiente') {
+        // Marcar como aprobada automáticamente para donaciones monetarias
+        await prisma.PedidoDonacion.update({
+          where: { id_pedido: pedidoReciente.id_pedido },
+          data: {
+            estado_evaluacion: 'aprobada',
+            fecha_evaluacion: new Date(),
+            puntos_otorgados: pedidoReciente.cantidad * pedidoReciente.tipoDonacion.puntos
+          }
+        });
+
+        // Actualizar puntos del donador y la ONG
+        const puntosGanados = pedidoReciente.cantidad * pedidoReciente.tipoDonacion.puntos;
+        
+        // Donador
+        await prisma.DetalleUsuario.upsert({
+          where: { id_usuario: pedidoReciente.id_usuario },
+          update: {
+            puntosActuales: { increment: puntosGanados },
+            ultima_fecha_actualizacion: new Date()
+          },
+          create: {
+            id_usuario: pedidoReciente.id_usuario,
+            puntosActuales: puntosGanados,
+            ultima_fecha_actualizacion: new Date()
+          }
+        });
+
+        // ONG receptora
+        const ongReceptora = pedidoReciente.publicacionEtiqueta.publicacion.usuario;
+        await prisma.DetalleUsuario.upsert({
+          where: { id_usuario: ongReceptora.id_usuario },
+          update: {
+            puntosActuales: { increment: puntosGanados },
+            ultima_fecha_actualizacion: new Date()
+          },
+          create: {
+            id_usuario: ongReceptora.id_usuario,
+            puntosActuales: puntosGanados,
+            ultima_fecha_actualizacion: new Date()
+          }
+        });
+
+        console.log(`✅ Puntos otorgados automáticamente: Donador=${pedidoReciente.id_usuario} (+${puntosGanados}), ONG=${ongReceptora.id_usuario} (+${puntosGanados})`);
+      }
+    }
+    
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Error procesando callback de MP:', error);
+    res.status(500).json({ error: 'Error procesando callback' });
+  }
+});
+
 export default router;
