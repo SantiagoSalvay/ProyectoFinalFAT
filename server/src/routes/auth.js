@@ -7,7 +7,14 @@ import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
 import { emailService } from '../../lib/email-service.js';
 import { passwordResetService } from '../../lib/password-reset-service.js';
+import { searchONGByCUIT } from '../../lib/sisa-csv-service.js';
 import { authenticateToken } from '../middleware/auth.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SISA_CSV_PATH = path.join(__dirname, '../../data/listado_sisa.csv');
 import { 
   authLimiter, 
   registerLimiter, 
@@ -244,7 +251,7 @@ router.post('/register',
   try {
     console.log('Datos recibidos para registro:', req.body);
 
-  const { nombre, apellido, correo, contrasena, usuario, ubicacion, coordenadas, tipo_usuario } = req.body;
+  const { nombre, apellido, correo, contrasena, usuario, ubicacion, coordenadas, tipo_usuario, cuit, matricula, tipoOrganizacion } = req.body;
   
   console.log('Campos extraídos:', {
     nombre: nombre ? 'presente' : 'faltante',
@@ -253,7 +260,9 @@ router.post('/register',
     contrasena: contrasena ? 'presente' : 'faltante',
     usuario: usuario ? 'presente' : 'faltante',
     ubicacion: ubicacion ? 'presente' : 'faltante',
-    tipo_usuario: tipo_usuario ? 'presente' : 'faltante'
+    tipo_usuario: tipo_usuario ? 'presente' : 'faltante',
+    cuit: cuit ? 'presente' : 'faltante',
+    tipoOrganizacion: tipoOrganizacion ? 'presente' : 'faltante'
   });
   
   console.log('Valores específicos:', {
@@ -261,7 +270,8 @@ router.post('/register',
     apellido: apellido,
     usuario: usuario,
     tipo_usuario: tipo_usuario,
-    isONG: parseInt(tipo_usuario) === 2
+    isONG: parseInt(tipo_usuario) === 2,
+    cuit: cuit
   });
 
     // Validar que todos los campos requeridos estén presentes
@@ -271,6 +281,86 @@ router.post('/register',
       return res.status(400).json({ 
         error: 'Todos los campos son requeridos' 
       });
+    }
+
+    // VERIFICACIÓN DE ONGs (Solo SISA)
+    if (isONG) {
+      console.log('🏢 [REGISTRO-ONG] Iniciando verificación de ONG en SISA');
+      
+      // Validar que tenga CUIT
+      if (!cuit) {
+        return res.status(400).json({
+          error: 'Las ONGs deben proporcionar CUIT para verificación'
+        });
+      }
+
+      let verificacionExitosa = false;
+      let datosVerificacion = null;
+
+      // ========================================
+      // VERIFICAR EN SISA (CSV)
+      // ========================================
+      try {
+        console.log('🔍 [REGISTRO-SISA] Buscando en registro SISA (CSV)...');
+        
+        const sisaResult = await searchONGByCUIT(cuit, SISA_CSV_PATH);
+
+        if (sisaResult) {
+          console.log('✅ [REGISTRO-SISA] ONG encontrada en SISA:', sisaResult.nombre);
+          console.log('📋 [REGISTRO-SISA] Datos:', sisaResult);
+          
+          verificacionExitosa = true;
+          datosVerificacion = sisaResult;
+        } else {
+          console.log('❌ [REGISTRO-SISA] ONG no encontrada en SISA');
+        }
+      } catch (sisaError) {
+        console.error('❌ [REGISTRO-SISA] Error al buscar en SISA:', sisaError);
+      }
+
+      // ========================================
+      // RESULTADO FINAL
+      // ========================================
+      if (verificacionExitosa) {
+        console.log('✅ [REGISTRO-ONG] ONG verificada exitosamente en SISA');
+        console.log('📊 [REGISTRO-ONG] Datos de verificación:', datosVerificacion);
+      } else {
+        console.log('❌ [REGISTRO-ONG] ONG no encontrada en SISA');
+        
+        // Crear solicitud de revisión manual
+        try {
+          const solicitud = await prisma.solicitudRevisionIPJ.create({
+            data: {
+              email: correo,
+              nombre: nombre,
+              nombre_legal: apellido || nombre,
+              cuit: cuit,
+              matricula: null,
+              tipo_organizacion: 'no_especificado',
+              ubicacion: ubicacion || '',
+              razon: 'ONG no encontrada en el registro SISA de Córdoba',
+              estado: 'pendiente'
+            }
+          });
+
+          console.log('📝 [REGISTRO-ONG] Solicitud de revisión manual creada:', solicitud.id);
+          
+          return res.status(404).json({
+            error: 'ONG_NOT_FOUND',
+            message: 'La organización no fue encontrada en el registro SISA de Córdoba. Se ha enviado una solicitud de revisión manual a nuestro equipo de soporte.',
+            requiresManualReview: true,
+            solicitudId: solicitud.id
+          });
+        } catch (solicitudError) {
+          console.error('❌ [REGISTRO-ONG] Error al crear solicitud de revisión:', solicitudError);
+          
+          return res.status(404).json({
+            error: 'ONG_NOT_FOUND',
+            message: 'La organización no fue encontrada en el registro SISA. Por favor, contacta a soporte para verificación manual.',
+            requiresManualReview: true
+          });
+        }
+      }
     }
     
     // Asignar un valor por defecto a usuario si no viene (para compatibilidad con RegistroPendiente)

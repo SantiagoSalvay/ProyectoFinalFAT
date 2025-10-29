@@ -27,6 +27,10 @@ interface RegisterData {
   coordinates?: [number, number]
   bio?: string
   tipo_usuario?: number
+  // Campos para verificación IPJ (solo ONGs)
+  cuit?: string
+  matricula?: string
+  tipoOrganizacion?: 'asociacion_civil' | 'fundacion'
 }
 
 interface UpdateProfileData {
@@ -145,8 +149,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       return response
-    } catch (error) {
-      toast.error('Error en el registro')
+    } catch (error: any) {
+      console.error('Error en registro:', error)
+      
+      // Manejar errores específicos de verificación de ONGs
+      const errorCode = error.response?.data?.error;
+      const errorMessage = error.response?.data?.message;
+      
+      if (errorCode === 'ONG_NOT_FOUND') {
+        toast.error(errorMessage || 'ONG no encontrada en SISA ni IPJ. Solicitud de revisión enviada a soporte.', { duration: 6000 })
+      } else if (errorCode === 'IPJ_NOT_FOUND') {
+        toast.error(errorMessage || 'ONG no encontrada en IPJ. Solicitud de revisión enviada a soporte.', { duration: 6000 })
+      } else if (errorCode === 'IPJ_NOT_UP_TO_DATE') {
+        toast.error(errorMessage || 'La organización no está al día con sus obligaciones en IPJ.', { duration: 6000 })
+      } else if (errorCode === 'SISA_VERIFICATION_FAILED') {
+        toast.error(errorMessage || 'No se pudo verificar la organización en SISA.', { duration: 6000 })
+      } else if (errorCode === 'SISA_DATA_MISMATCH') {
+        toast.error(errorMessage || 'Los datos no coinciden con el registro de SISA.', { duration: 6000 })
+      } else {
+        toast.error(error.response?.data?.error || 'Error en el registro')
+      }
+      
       throw error
     }
   }

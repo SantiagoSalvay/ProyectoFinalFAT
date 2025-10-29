@@ -111,3 +111,7 @@ server/node_modules/
 
 # Uploaded files (images, etc.)
 server/public/uploads/
+
+# CSV data files with sensitive ONG information
+server/data/
+*.csv

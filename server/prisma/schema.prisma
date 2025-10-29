@@ -265,3 +265,23 @@ model Notificacion {
   @@index([id_usuario])
   @@index([leida])
 }
+
+model SolicitudRevisionIPJ {
+  id                 Int       @id @default(autoincrement())
+  email              String
+  nombre             String
+  nombre_legal       String?
+  cuit               String
+  matricula          String?
+  tipo_organizacion  String    // 'asociacion_civil' o 'fundacion'
+  ubicacion          String?
+  razon              String    @db.Text
+  estado             String    @default("pendiente") // 'pendiente', 'aprobada', 'rechazada'
+  notas_admin        String?   @db.Text
+  fecha_solicitud    DateTime  @default(now())
+  fecha_revision     DateTime?
+
+  @@index([email])
+  @@index([estado])
+  @@index([cuit])
+}

@@ -20,6 +20,8 @@ interface RegisterFormData {
   role: UserRole;
   organization?: string;
   location: string;
+  // Campos para ONG (solo nombre y CUIT, el resto se autocompleta)
+  cuit?: string;
 }
 
 export default function RegisterPage() {
@@ -29,6 +31,8 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [ongData, setOngData] = useState<any>(null);
+  const [loadingOngData, setLoadingOngData] = useState(false);
   // ...sin integración Google Maps...
   const { register: registerUser } = useAuth();
   const { isLoading, message, withRegisterLoading } = useRegisterLoading();
@@ -43,6 +47,48 @@ export default function RegisterPage() {
   } = useForm<RegisterFormData>();
 
   const password = watch("password");
+  const cuit = watch("cuit");
+
+  // Función para verificar ONG por CUIT en SISA
+  const handleVerificarCuit = async () => {
+    const cuitValue = cuit;
+    
+    if (!cuitValue || cuitValue.length < 11) {
+      toast.error("Por favor, ingresa un CUIT válido");
+      return;
+    }
+
+    setLoadingOngData(true);
+    try {
+      const API_BASE_URL = "http://localhost:3001";
+      const response = await fetch(`${API_BASE_URL}/api/ong/search-by-cuit?cuit=${cuitValue}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setOngData(data);
+        
+        // Autocompletar campos
+        if (data.domicilioCompleto) {
+          setValue("location", data.domicilioCompleto);
+          setLocationInput(data.domicilioCompleto);
+        }
+        if (data.email) {
+          setValue("email", data.email);
+        }
+        
+        toast.success(`✅ ONG encontrada en SISA: ${data.nombre}`);
+      } else {
+        setOngData(null);
+        toast.error("ONG no encontrada en el registro SISA. Será enviada a revisión manual.");
+      }
+    } catch (error) {
+      console.error("Error buscando ONG:", error);
+      setOngData(null);
+      toast.error("Error al verificar la ONG. Por favor, intenta nuevamente.");
+    } finally {
+      setLoadingOngData(false);
+    }
+  };
 
   const onSubmit = withRegisterLoading(async (data: RegisterFormData) => {
     if (data.password !== data.confirmPassword) {
@@ -73,6 +119,8 @@ export default function RegisterPage() {
       organization,
       location: data.location,
       tipo_usuario,
+      // Datos para verificación SISA (solo ONGs)
+      cuit: selectedRole === "ong" ? data.cuit : undefined,
     });
 
     // Si requiere verificación, mostrar mensaje
@@ -344,22 +392,124 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Organization (only for ONG) */}
+            {/* Campos adicionales para ONG */}
             {selectedRole === "ong" && (
-              <div>
-                <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: "var(--color-fg)" }}
-                >
-                  Nombre legal de la organización
-                </label>
-                <input
-                  type="text"
-                  {...register("organization")}
-                  className="input-field"
-                  placeholder="Nombre legal completo"
-                />
-              </div>
+              <>
+                {/* CUIT */}
+                <div>
+                  <label
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: "var(--color-fg)" }}
+                  >
+                    CUIT <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register("cuit", {
+                      required: "El CUIT es requerido para verificación en SISA",
+                      pattern: {
+                        value: /^\d{2}-?\d{8}-?\d{1}$/,
+                        message: "Formato de CUIT inválido (ej: 30-71710094-4)",
+                      },
+                    })}
+                    className="input-field"
+                    placeholder="30-12345678-9"
+                    maxLength={13}
+                  />
+                  {errors.cuit && (
+                    <p className="mt-1 text-sm" style={{ color: "#ef4444" }}>
+                      {errors.cuit.message}
+                    </p>
+                  )}
+                  
+                  {/* Botón Verificar */}
+                  <button
+                    type="button"
+                    onClick={handleVerificarCuit}
+                    disabled={loadingOngData || !cuit || cuit.length < 11}
+                    className="mt-2 w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: loadingOngData || !cuit || cuit.length < 11 
+                        ? "var(--color-muted)" 
+                        : "var(--accent)",
+                      color: loadingOngData || !cuit || cuit.length < 11 
+                        ? "var(--color-fg-muted)" 
+                        : "white",
+                      cursor: loadingOngData || !cuit || cuit.length < 11 
+                        ? "not-allowed" 
+                        : "pointer",
+                      opacity: loadingOngData || !cuit || cuit.length < 11 ? 0.5 : 1
+                    }}
+                  >
+                    {loadingOngData ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Verificando...
+                      </>
+                    ) : (
+                      <>
+                        <svg 
+                          className="w-5 h-5" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                          />
+                        </svg>
+                        Verificar CUIT en SISA
+                      </>
+                    )}
+                  </button>
+
+                  {/* Mensaje de verificación exitosa */}
+                  {ongData && (
+                    <div className="mt-3 p-4 rounded-lg border" style={{ 
+                      backgroundColor: "color-mix(in oklab, #10b981 10%, transparent)",
+                      borderColor: "color-mix(in oklab, #10b981 30%, transparent)"
+                    }}>
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          <svg 
+                            className="w-6 h-6" 
+                            style={{ color: "#10b981" }}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold" style={{ color: "#10b981" }}>
+                            ✅ ONG verificada en SISA
+                          </p>
+                          <p className="text-sm mt-1 font-medium" style={{ color: "var(--color-fg)" }}>
+                            {ongData.nombre}
+                          </p>
+                          <div className="mt-2 text-xs" style={{ color: "var(--color-muted)" }}>
+                            <p>📍 {ongData.provinciaDomicilio}</p>
+                            {ongData.telefono && <p>📞 {ongData.telefono}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="mt-2 text-xs" style={{ color: "var(--color-muted)" }}>
+                    Ingresa el CUIT de tu organización y haz clic en "Verificar" para validar los datos en el registro SISA.
+                  </p>
+                </div>
+              </>
             )}
 
             {/* Email */}
