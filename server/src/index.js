@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import session from "express-session";
 import path from "path";
 import { fileURLToPath } from "url";
-import helmet from "helmet";
 import authRoutes from "./routes/auth.js";
 import oauthRoutes from "./routes/oauth.js";
 import forumRoutes from "./routes/forum.js";
@@ -12,11 +11,9 @@ import ongsRoutes from "./routes/ongs.js";
 import categoriesRoutes from "./routes/categories.js";
 import adminRoutes from "./routes/admin.js";
 import paymentsRoutes from "./routes/payments.js";
-import notificationsRoutes from "./routes/notifications.js";
+import rankingRoutes from "./routes/ranking.js";
 import passport from "./config/passport.js";
 import { PrismaClient } from "@prisma/client";
-import { generalLimiter } from "./middleware/rateLimiter.js";
-import { securityMiddleware } from "./middleware/validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,27 +24,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const prisma = new PrismaClient();
-
-// ============================================
-// SEGURIDAD: Helmet para headers HTTP seguros
-// ============================================
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
 
 // Configurar CORS para permitir frontend en 3000 y 3002
 const allowedOrigins = [
@@ -64,7 +40,6 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      console.warn(`⚠️ CORS bloqueado para origen: ${origin}`);
       return callback(new Error("CORS not allowed"));
     },
     credentials: true,
@@ -77,16 +52,6 @@ app.use(
 // Middleware para parsear JSON con límite aumentado para imágenes
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
-
-// ============================================
-// SEGURIDAD: Rate limiting global
-// ============================================
-app.use(generalLimiter);
-
-// ============================================
-// SEGURIDAD: Sanitización y validación
-// ============================================
-app.use(securityMiddleware);
 
 // Servir archivos estáticos (imágenes subidas)
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
@@ -111,7 +76,7 @@ app.use("/api/ongs", ongsRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentsRoutes);
-app.use("/api/notifications", notificationsRoutes);
+app.use("/api/ranking", rankingRoutes);
 
 // Ruta de prueba
 app.get("/", (req, res) => {
