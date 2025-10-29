@@ -11,12 +11,9 @@ import ongsRoutes from "./routes/ongs.js";
 import categoriesRoutes from "./routes/categories.js";
 import adminRoutes from "./routes/admin.js";
 import paymentsRoutes from "./routes/payments.js";
-<<<<<<< HEAD
+import rankingRoutes from "./routes/ranking.js";
 import notificationsRoutes from "./routes/notifications.js";
 import ongRoutes from "./routes/ong.js";
-=======
-import rankingRoutes from "./routes/ranking.js";
->>>>>>> 2a63542ed598651be12216e8cbf9c001330338ec
 import passport from "./config/passport.js";
 import { PrismaClient } from "@prisma/client";
 
