@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import NotificationManager from './components/NotificationManager'
 import Layout from './components/Layout'
+import { useSecurity } from './hooks/useSecureNavigation'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -12,6 +13,9 @@ import DashboardPage from './pages/DashboardPage'
 import ForumPage from './pages/ForumPage'
 import PostDetailPage from './pages/PostDetailPage'
 import MissionPage from './pages/MissionPage'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
+import CookiesPage from './pages/CookiesPage'
 import ProfilePage from './pages/ProfilePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
@@ -42,12 +46,15 @@ import DonationSuccessPage from './pages/DonationSuccessPage'
 import DonationFailurePage from './pages/DonationFailurePage'
 import DonationPendingPage from './pages/DonationPendingPage'
 
-function App() {
+function AppContent() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  // Aplicar protecciones de seguridad (debe estar dentro de AuthProvider)
+  useSecurity();
 
   return (
-    <AuthProvider>
+    <>
       <NotificationProvider>
         <NotificationManager />
         <div className="min-h-screen">
@@ -72,6 +79,9 @@ function App() {
                     <MissionPage />
                   </UnauthenticatedOnlyRoute>
                 } />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/cookies" element={<CookiesPage />} />
 
                 {/* Rutas solo para usuarios registrados */}
                 <Route path="/donaciones" element={
@@ -137,7 +147,7 @@ function App() {
           <Toaster
             position="top-right"
             toastOptions={{
-              duration: 4000,
+              duration: 3000,
               style: {
                 background: 'var(--color-card)',
                 color: 'var(--color-fg)',
@@ -145,15 +155,27 @@ function App() {
                 boxShadow: '0 10px 30px -12px rgba(0,0,0,0.20)'
               },
               success: {
-                duration: 3000,
+                duration: 2000,
               },
               error: {
-                duration: 5000,
+                duration: 3000,
               },
+            }}
+            containerStyle={{
+              top: 20,
+              right: 20,
             }}
           />
         </div>
       </NotificationProvider>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
     </AuthProvider>
   );
 }

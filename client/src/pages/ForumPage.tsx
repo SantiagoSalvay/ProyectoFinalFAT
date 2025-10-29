@@ -223,11 +223,6 @@ export default function ForumPage() {
   // Considera ONG si tipo_usuario === 2 (igual que en ProfilePage y DashboardPage)
   const isONG = user?.tipo_usuario === 2;
 
-  // Log para debugging
-  console.log("🔍 [FORUM] Usuario:", user);
-  console.log("🔍 [FORUM] tipo_usuario:", user?.tipo_usuario);
-  console.log("🔍 [FORUM] isONG:", isONG);
-
   const handleEliminarPublicacion = async (postId: string) => {
     if (!user) {
       toast.error("Debes iniciar sesión");
@@ -244,9 +239,10 @@ export default function ForumPage() {
       await api.eliminarPublicacion(postId);
       setPosts((prev) => prev.filter((post) => post.id !== postId));
       toast.success("Publicación eliminada exitosamente");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al eliminar publicación:", error);
-      toast.error("Error al eliminar la publicación");
+      const errorMsg = error?.response?.data?.error || "Error al eliminar la publicación";
+      toast.error(errorMsg);
     }
   };
 
@@ -1381,35 +1377,6 @@ export default function ForumPage() {
                       </p>
 
                       {/* Botones de editar/eliminar para el autor */}
-                      {user && user.id_usuario === post.id_usuario && (
-                        <div
-                          className="flex items-center gap-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditPost(post);
-                            }}
-                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 transition-colors"
-                            title="Editar publicación"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                            <span className="text-xs">Editar</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEliminarPublicacion(post.id);
-                            }}
-                            className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
-                            title="Eliminar publicación"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span className="text-xs">Eliminar</span>
-                          </button>
-                        </div>
-                      )}
                     </div>
 
                     <div

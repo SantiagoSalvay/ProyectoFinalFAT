@@ -7,20 +7,27 @@ import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
 import { emailService } from '../../lib/email-service.js';
 import { passwordResetService } from '../../lib/password-reset-service.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { 
+  authLimiter, 
+  registerLimiter, 
+  passwordResetLimiter,
+  strictLimiter 
+} from '../middleware/rateLimiter.js';
+import { 
+  validateRequired, 
+  validateEmail, 
+  validateLength,
+  validateIdParam 
+} from '../middleware/validation.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Resumen del dashboard para el usuario autenticado
-router.get('/dashboard/summary', async (req, res) => {
+router.get('/dashboard/summary', authenticateToken, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No autorizado' });
-    }
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
-    const userId = decoded.userId;
+    const userId = req.userId;
 
     // Donaciones del usuario (PedidoDonacion.id_usuario)
     const donaciones = await prisma.PedidoDonacion.findMany({
@@ -87,15 +94,9 @@ router.get('/dashboard/summary', async (req, res) => {
 });
 
 // Historial de donaciones realizadas por el usuario autenticado
-router.get('/donaciones/realizadas', async (req, res) => {
+router.get('/donaciones/realizadas', authenticateToken, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No autorizado' });
-    }
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
-    const userId = decoded.userId;
+    const userId = req.userId;
 
     // Busca las donaciones realizadas por el usuario
     const donaciones = await prisma.PedidoDonacion.findMany({
@@ -136,17 +137,11 @@ router.get('/donaciones/realizadas', async (req, res) => {
 });
 
 // Obtener datos de tipoONG, grupo_social y necesidades
-router.get('/profile/tipoong', async (req, res) => {
+router.get('/profile/tipoong', authenticateToken, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No autorizado' });
-    }
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     // Buscar el registro TipoONG vinculado al usuario
   const tipoOng = await prisma.TipoONG.findFirst({
-      where: { id_usuario: decoded.userId },
+      where: { id_usuario: req.userId },
       select: {
         grupo_social: true,
         necesidad: true
@@ -163,15 +158,15 @@ router.get('/profile/tipoong', async (req, res) => {
 });
 
 // Obtener datos de tipoONG por ID de usuario específico
-router.get('/profile/tipoong/:id', async (req, res) => {
+router.get('/profile/tipoong/:id', 
+  authenticateToken,
+  validateIdParam('id'),
+  async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ error: 'ID de usuario requerido' });
-    }
 
     const tipoOng = await prisma.TipoONG.findFirst({
-      where: { id_usuario: parseInt(id) }
+      where: { id_usuario: id }
     });
 
     res.json({ tipoONG: tipoOng });
@@ -182,17 +177,11 @@ router.get('/profile/tipoong/:id', async (req, res) => {
 });
 
 // Guardar datos de tipoONG, grupo_social y necesidades
-router.post('/profile/tipoong', async (req, res) => {
+router.post('/profile/tipoong', authenticateToken, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No autorizado' });
-    }
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
     const { grupo_social, necesidad } = req.body;
     // Buscar si ya existe registro TipoONG para el usuario
-  const existing = await prisma.TipoONG.findFirst({ where: { id_usuario: decoded.userId } });
+  const existing = await prisma.TipoONG.findFirst({ where: { id_usuario: req.userId } });
     let tipoOng;
     if (existing) {
   tipoOng = await prisma.TipoONG.update({
@@ -201,7 +190,7 @@ router.post('/profile/tipoong', async (req, res) => {
       });
     } else {
   tipoOng = await prisma.TipoONG.create({
-        data: { grupo_social, necesidad, id_usuario: decoded.userId }
+        data: { grupo_social, necesidad, id_usuario: req.userId }
       });
     }
     res.json({ message: 'Datos guardados exitosamente', grupo_social: tipoOng.grupo_social, necesidad: tipoOng.necesidad });
@@ -246,7 +235,12 @@ router.get('/ongs', async (req, res) => {
 });
 
 // Registro de usuario (ahora con verificación de email)
-router.post('/register', async (req, res) => {
+router.post('/register', 
+  registerLimiter,
+  validateRequired(['nombre', 'correo', 'contrasena', 'tipo_usuario']),
+  validateEmail('correo'),
+  validateLength('contrasena', 8, 100),
+  async (req, res) => {
   try {
     console.log('Datos recibidos para registro:', req.body);
 
@@ -452,7 +446,11 @@ router.post('/register', async (req, res) => {
 });
 
 // Login de usuario
-router.post('/login', async (req, res) => {
+router.post('/login', 
+  authLimiter,
+  validateRequired(['correo', 'contrasena']),
+  validateEmail('correo'),
+  async (req, res) => {
   try {
     const { correo, contrasena } = req.body;
 
@@ -572,20 +570,10 @@ router.post('/login', async (req, res) => {
 });
 
 // Obtener perfil del usuario
-router.get('/profile', async (req, res) => {
+router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Token no proporcionado' });
-    }
-
-    console.log('Token recibido:', token);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
-    console.log('Token decodificado:', decoded);
-    
     const user = await prisma.Usuario.findUnique({
-      where: { id_usuario: decoded.userId },
+      where: { id_usuario: req.userId },
       select: {
         id_usuario: true,
         nombre: true,
@@ -628,7 +616,11 @@ router.get('/profile', async (req, res) => {
 });
 
 // Solicitar reset de contraseña
-router.post('/request-password-reset', async (req, res) => {
+router.post('/request-password-reset', 
+  passwordResetLimiter,
+  validateRequired(['correo']),
+  validateEmail('correo'),
+  async (req, res) => {
   try {
     const { correo } = req.body;
 
@@ -688,7 +680,11 @@ router.post('/request-password-reset', async (req, res) => {
 });
 
 // Resetear contraseña con token
-router.post('/reset-password/:token', async (req, res) => {
+router.post('/reset-password/:token', 
+  strictLimiter,
+  validateRequired(['nuevaContrasena']),
+  validateLength('nuevaContrasena', 8, 100),
+  async (req, res) => {
   try {
     const { token } = req.params;
     const { nuevaContrasena } = req.body;
@@ -1061,16 +1057,8 @@ router.post('/resend-verification', async (req, res) => {
 });
 
 // Actualizar perfil del usuario
-router.put('/profile', async (req, res) => {
+router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Token no proporcionado' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-jwt');
-    
     const { nombre, apellido, ubicacion, bio, redes_sociales, telefono } = req.body;
 
     // Filtrar campos undefined para evitar errores
@@ -1092,7 +1080,7 @@ router.put('/profile', async (req, res) => {
     console.log('Datos a actualizar:', updateData);
 
     const user = await prisma.Usuario.update({
-      where: { id_usuario: decoded.userId },
+      where: { id_usuario: req.userId },
       data: updateData,
       select: {
         id_usuario: true,
@@ -1126,24 +1114,10 @@ router.put('/profile', async (req, res) => {
 });
 
 // Ruta para obtener información del usuario autenticado (GET /me)
-router.get('/me', async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    console.log('🔍 [AUTH/ME] Headers recibidos:', req.headers);
-    
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      console.log('❌ [AUTH/ME] No se proporcionó token de autorización');
-      return res.status(401).json({ error: 'Token no proporcionado' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    console.log('🔑 [AUTH/ME] Token recibido:', token ? 'Presente' : 'Ausente');
-    
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('✅ [AUTH/ME] Token decodificado:', { userId: decoded.userId, email: decoded.email });
-    
     const user = await prisma.usuario.findUnique({
-      where: { id_usuario: decoded.userId },
+      where: { id_usuario: req.userId },
       select: {
         id_usuario: true,
         nombre: true,
@@ -1166,7 +1140,7 @@ router.get('/me', async (req, res) => {
     });
 
     if (!user) {
-      console.log('❌ [AUTH/ME] Usuario no encontrado con ID:', decoded.userId);
+      console.log('❌ [AUTH/ME] Usuario no encontrado con ID:', req.userId);
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 

@@ -466,35 +466,150 @@ router.post('/donations/:id/flag', requireAdmin, async (req, res) => {
 
 // ========= FORUM MODERATION =========
 // Listar todos los mensajes del foro (posts con respuestas y subrespuestas)
+// Excluye publicaciones de donación monetaria (que tienen publicacionEtiquetas con pedidosDonacion)
 router.get('/forum', requireAdmin, async (req, res) => {
   try {
+    const limit = parseInt(req.query.limit) || 50; // Reducido de 100 a 50 por defecto
+    const offset = parseInt(req.query.offset) || 0;
+
+    // Obtener IDs de publicaciones que tienen donaciones (para excluirlas)
+    const publicacionesConDonaciones = await prisma.publicacionEtiqueta.findMany({
+      where: {
+        pedidosDonacion: {
+          some: {}
+        }
+      },
+      select: {
+        id_publicacion: true
+      },
+      distinct: ['id_publicacion']
+    });
+
+    const idsConDonaciones = publicacionesConDonaciones.map(pe => pe.id_publicacion);
+
+    // Obtener publicaciones del foro (sin donaciones) con paginación
     const posts = await prisma.publicacion.findMany({
+      where: {
+        id_publicacion: {
+          notIn: idsConDonaciones
+        }
+      },
       orderBy: { fecha_publicacion: 'desc' },
-      take: 100,
-      include: {
+      take: limit,
+      skip: offset,
+      select: {
+        id_publicacion: true,
+        titulo: true,
+        descripcion_publicacion: true,
+        fecha_publicacion: true,
+        id_usuario: true,
         usuario: {
-          select: { id_usuario: true, nombre: true, apellido: true, email: true }
+          select: { 
+            id_usuario: true, 
+            nombre: true, 
+            apellido: true, 
+            email: true,
+            id_tipo_usuario: true
+          }
         },
-        respuestas: {
-          where: { id_respuesta_padre: null }, // Solo respuestas de primer nivel
-          orderBy: { fecha_respuesta: 'asc' },
-          include: {
-            usuario: {
-              select: { id_usuario: true, nombre: true, apellido: true, email: true }
-            },
-            respuestasHijas: {
-              orderBy: { fecha_respuesta: 'asc' },
-              include: {
-                usuario: {
-                  select: { id_usuario: true, nombre: true, apellido: true, email: true }
-                }
-              }
-            }
+        // Solo contar respuestas en lugar de cargarlas todas
+        _count: {
+          select: {
+            respuestas: true
           }
         }
       }
     });
-    res.json({ posts });
+
+    // Obtener respuestas solo de las publicaciones cargadas (carga separada más eficiente)
+    const postIds = posts.map(p => p.id_publicacion);
+    
+    const respuestas = await prisma.respuestaPublicacion.findMany({
+      where: {
+        id_publicacion: { in: postIds },
+        id_respuesta_padre: null
+      },
+      orderBy: { fecha_respuesta: 'asc' },
+      select: {
+        id_respuesta: true,
+        mensaje: true,
+        fecha_respuesta: true,
+        id_usuario: true,
+        id_publicacion: true,
+        usuario: {
+          select: { 
+            id_usuario: true, 
+            nombre: true, 
+            apellido: true, 
+            email: true,
+            id_tipo_usuario: true
+          }
+        },
+        _count: {
+          select: {
+            respuestasHijas: true
+          }
+        }
+      }
+    });
+
+    // Obtener subrespuestas
+    const respuestaIds = respuestas.map(r => r.id_respuesta);
+    
+    const subrespuestas = await prisma.respuestaPublicacion.findMany({
+      where: {
+        id_respuesta_padre: { in: respuestaIds }
+      },
+      orderBy: { fecha_respuesta: 'asc' },
+      select: {
+        id_respuesta: true,
+        mensaje: true,
+        fecha_respuesta: true,
+        id_usuario: true,
+        id_respuesta_padre: true,
+        usuario: {
+          select: { 
+            id_usuario: true, 
+            nombre: true, 
+            apellido: true, 
+            email: true,
+            id_tipo_usuario: true
+          }
+        }
+      }
+    });
+
+    // Agrupar subrespuestas por respuesta padre
+    const subrespuestasPorPadre = {};
+    subrespuestas.forEach(sub => {
+      if (!subrespuestasPorPadre[sub.id_respuesta_padre]) {
+        subrespuestasPorPadre[sub.id_respuesta_padre] = [];
+      }
+      subrespuestasPorPadre[sub.id_respuesta_padre].push(sub);
+    });
+
+    // Agrupar respuestas por publicación y agregar subrespuestas
+    const respuestasPorPost = {};
+    respuestas.forEach(resp => {
+      if (!respuestasPorPost[resp.id_publicacion]) {
+        respuestasPorPost[resp.id_publicacion] = [];
+      }
+      respuestasPorPost[resp.id_publicacion].push({
+        ...resp,
+        respuestasHijas: subrespuestasPorPadre[resp.id_respuesta] || []
+      });
+    });
+
+    // Combinar todo
+    const postsConRespuestas = posts.map(post => ({
+      ...post,
+      respuestas: respuestasPorPost[post.id_publicacion] || []
+    }));
+
+    res.json({ 
+      posts: postsConRespuestas,
+      hasMore: posts.length === limit
+    });
   } catch (e) {
     console.error('Error al listar mensajes del foro:', e);
     res.status(500).json({ error: 'Error al listar mensajes del foro' });
@@ -508,16 +623,66 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
     const { authorId } = req.body;
     const messageId = parseInt(id, 10);
     
+    // Validar que authorId esté presente
+    if (!authorId) {
+      return res.status(400).json({ error: 'authorId es requerido' });
+    }
+    
     let deletedMessage;
     let messageType;
+    let messageContent = '';
+    let actualAuthorId = null;
     
-    // Borrar según el tipo
+    // Obtener el contenido del mensaje ANTES de borrarlo
     if (type === 'post') {
+      // Verificar si hay donaciones asociadas a esta publicación
+      const publicacion = await prisma.publicacion.findUnique({
+        where: { id_publicacion: messageId },
+        include: {
+          publicacionEtiquetas: {
+            include: {
+              pedidosDonacion: true
+            }
+          }
+        }
+      });
+      
+      if (!publicacion) {
+        return res.status(404).json({ error: 'Publicación no encontrada' });
+      }
+      
+      // Guardar el ID real del autor
+      actualAuthorId = publicacion.id_usuario;
+      
+      const tieneDonaciones = publicacion.publicacionEtiquetas.some(pe => pe.pedidosDonacion.length > 0);
+      
+      if (tieneDonaciones) {
+        return res.status(400).json({ 
+          error: 'No se puede borrar este anuncio porque tiene donaciones asociadas. Las donaciones deben ser gestionadas primero.',
+          hasDonations: true
+        });
+      }
+      
+      messageContent = publicacion.descripcion_publicacion || '';
+      
       deletedMessage = await prisma.publicacion.delete({
         where: { id_publicacion: messageId }
       });
       messageType = 'anuncio';
     } else if (type === 'reply') {
+      const respuesta = await prisma.respuestaPublicacion.findUnique({
+        where: { id_respuesta: messageId }
+      });
+      
+      if (!respuesta) {
+        return res.status(404).json({ error: 'Respuesta no encontrada' });
+      }
+      
+      // Guardar el ID real del autor
+      actualAuthorId = respuesta.id_usuario;
+      
+      messageContent = respuesta.mensaje || '';
+      
       deletedMessage = await prisma.respuestaPublicacion.delete({
         where: { id_respuesta: messageId }
       });
@@ -526,12 +691,17 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Tipo de mensaje inválido' });
     }
 
-    // Crear notificación para el autor
+    // Crear notificación para el autor con el contenido del mensaje eliminado
+    const notificationMessage = `Se ha borrado el siguiente mensaje del foro: "${messageContent}" por decisión de los administradores.`;
+    
+    // Usar el ID real del autor de la base de datos, no el del body
+    const targetUserId = actualAuthorId || parseInt(authorId, 10);
+    
     await prisma.notificacion.create({
       data: {
-        id_usuario: parseInt(authorId, 10),
+        id_usuario: targetUserId,
         tipo_notificacion: 'mensaje_borrado',
-        mensaje: `Tu ${messageType} fue eliminado por los administradores de la página por no cumplir con las normas de la comunidad.`,
+        mensaje: notificationMessage,
         leida: false
       }
     });
@@ -540,7 +710,8 @@ router.delete('/forum/:type/:id', requireAdmin, async (req, res) => {
       actor: req.userId, 
       action: 'delete_forum_message', 
       target: { type, id: messageId, authorId },
-      messageType
+      messageType,
+      messageContent
     });
 
     res.json({ message: `${messageType} eliminado y autor notificado` });

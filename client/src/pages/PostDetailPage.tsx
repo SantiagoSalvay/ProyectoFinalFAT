@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
 import { toast } from 'react-hot-toast'
+import { useRealtimeUpdates } from '../hooks/useRealtimeUpdates'
 import { 
   ArrowLeft, 
   Heart, 
@@ -47,16 +48,12 @@ export default function PostDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedComments, setExpandedComments] = useState(false)
 
-  useEffect(() => {
-    if (id) {
-      loadPost()
-    }
-  }, [id])
-
-  const loadPost = async () => {
+  const loadPost = useCallback(async () => {
+    if (!id) return
+    
     try {
       setLoading(true)
-      const postData = await api.getPublicacion(id!)
+      const postData = await api.getPublicacion(id)
       
       // Transformar la fecha de string a Date
       const postFormateado = {
@@ -72,7 +69,11 @@ export default function PostDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadPost()
+  }, [loadPost])
 
   const handleLike = async () => {
     if (!user) {
@@ -80,10 +81,22 @@ export default function PostDetailPage() {
       return
     }
 
+    if (!post) return
+
+    // Actualización optimista
+    const wasLiked = post.isLiked
+    const previousLikes = post.likes
+
     try {
+      // Actualizar UI inmediatamente
+      setPost(prev => prev ? {
+        ...prev,
+        isLiked: !wasLiked,
+        likes: wasLiked ? prev.likes - 1 : prev.likes + 1
+      } : null)
+
+      // Enviar al servidor
       const response = await api.toggleLike(id!)
-      // Recargar el post para obtener el estado actualizado
-      await loadPost()
       
       // Mostrar mensaje de éxito
       toast.success(response.liked ? '¡Te gusta esta publicación!' : 'Ya no te gusta esta publicación', {
@@ -92,6 +105,14 @@ export default function PostDetailPage() {
       })
     } catch (error) {
       console.error('Error al dar like:', error)
+      
+      // Revertir cambio optimista si falla
+      setPost(prev => prev ? {
+        ...prev,
+        isLiked: wasLiked,
+        likes: previousLikes
+      } : null)
+      
       toast.error('Error al dar like')
     }
   }
@@ -138,9 +159,10 @@ export default function PostDetailPage() {
       await api.eliminarPublicacion(post.id)
       toast.success('Publicación eliminada exitosamente')
       navigate('/forum')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al eliminar publicación:', error)
-      toast.error('Error al eliminar la publicación')
+      const errorMsg = error?.response?.data?.error || 'Error al eliminar la publicación'
+      toast.error(errorMsg)
     }
   }
 

@@ -487,13 +487,6 @@ class ApiService {
       ...options.headers,
     };
 
-    console.log("Haciendo petición a:", url);
-    console.log("Headers:", headers);
-    console.log("Opciones:", {
-      ...options,
-      headers,
-      body: options.body ? JSON.parse(options.body as string) : undefined,
-    });
 
     const config: RequestInit = {
       ...options,
@@ -501,28 +494,14 @@ class ApiService {
     };
 
     try {
-      console.log("🌐 [API] Haciendo petición:", {
-        url,
-        method: options.method || "GET",
-        headers: Object.keys(headers),
-      });
-
       const response = await fetch(url, config);
-      console.log("📡 [API] Respuesta recibida:", {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        url: response.url,
-      });
 
       let data;
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
-        console.log("📦 [API] Datos JSON recibidos:", data);
       } else {
         data = await response.text();
-        console.log("📄 [API] Texto recibido:", data);
       }
 
       if (!response.ok) {
@@ -530,20 +509,11 @@ class ApiService {
           typeof data === "object" && data.error
             ? data.error
             : `HTTP error! status: ${response.status} - ${response.statusText}`;
-        console.error("❌ [API] Error HTTP:", errorMessage);
         throw new Error(errorMessage);
       }
 
-      console.log("✅ [API] Petición exitosa");
       return data;
     } catch (error) {
-      console.error("💥 [API] Error en la petición:", {
-        error: error instanceof Error ? error.message : error,
-        url,
-        method: options.method,
-        headers: Object.keys(headers),
-        body: options.body ? JSON.parse(options.body as string) : undefined,
-      });
       throw error;
     }
   }
@@ -1070,6 +1040,77 @@ class ApiService {
       return response;
     } catch (error) {
       console.error("Error al eliminar imagen de perfil:", error);
+      throw error;
+    }
+  }
+
+  // ========== NOTIFICATIONS ==========
+  async getNotifications() {
+    try {
+      const response = await this.request<{ notifications: any[] }>(
+        "/api/notifications",
+        {
+          method: "GET",
+        }
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(notificationId: number) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+        }
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async markAllNotificationsAsRead() {
+    try {
+      const response = await this.request<{ message: string }>(
+        "/api/notifications/read-all",
+        {
+          method: "PATCH",
+        }
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deleteNotification(notificationId: number) {
+    try {
+      const response = await this.request<{ message: string }>(
+        `/api/notifications/${notificationId}`,
+        {
+          method: "DELETE",
+        }
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getUnreadNotificationsCount() {
+    try {
+      const response = await this.request<{ count: number }>(
+        "/api/notifications/unread-count",
+        {
+          method: "GET",
+        }
+      );
+      return response;
+    } catch (error) {
       throw error;
     }
   }

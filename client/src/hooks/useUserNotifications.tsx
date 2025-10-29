@@ -37,10 +37,18 @@ interface NotificationAnalysis {
  */
 export function useUserNotifications() {
   const { user, isAuthenticated } = useAuth()
-  const { addNotification } = useNotifications()
+  const { addNotification, removeNotification, notifications } = useNotifications()
   const [analysis, setAnalysis] = useState<NotificationAnalysis | null>(null)
   const [lastCheck, setLastCheck] = useState<number>(0)
   const navigate = useNavigate()
+
+  // Limpiar notificaciones de perfil incompleto al montar
+  useEffect(() => {
+    const profileIncompleteNotif = notifications.find(n => n.id === 'profile-incomplete')
+    if (profileIncompleteNotif) {
+      removeNotification('profile-incomplete')
+    }
+  }, [])
 
   // Función para analizar el perfil del usuario
   const analyzeUserProfile = useCallback(async (): Promise<UserProfileData | null> => {
@@ -213,18 +221,18 @@ export function useUserNotifications() {
     setLastCheck(currentTime)
     setAnalysis(analysisResult)
 
-    // Notificaciones de perfil incompleto
-    if (analysisResult.profileCompleteness < 70) {
-      const notificationId = 'profile-incomplete'
+    // DESACTIVADO: Notificaciones de perfil incompleto (muy intrusivas y no precisas)
+    // if (analysisResult.profileCompleteness < 70) {
+    //   const notificationId = 'profile-incomplete'
 
-      addNotification({
-        id: notificationId,
-        type: 'warning',
-        title: 'Perfil incompleto',
-        message: `Tu perfil está ${analysisResult.profileCompleteness}% completo. Completa los datos faltantes para tener una mejor experiencia.`,
-        link: '/profile'
-      })
-    }
+    //   addNotification({
+    //     id: notificationId,
+    //     type: 'warning',
+    //     title: 'Perfil incompleto',
+    //     message: `Tu perfil está ${analysisResult.profileCompleteness}% completo. Completa los datos faltantes para tener una mejor experiencia.`,
+    //     link: '/profile'
+    //   })
+    // }
 
     // Notificaciones de preguntas sin responder
     if (analysisResult.activityIssues.some(issue => issue.includes('preguntas sin responder'))) {

@@ -109,13 +109,38 @@ export default function InlineComments({
       return
     }
 
+    // Crear comentario optimista (temporal)
+    const tempId = Date.now()
+    const optimisticComment: Comentario = {
+      id_respuesta: tempId,
+      id_usuario: user.id_usuario,
+      mensaje: nuevoComentario.trim(),
+      fecha_respuesta: new Date().toISOString(),
+      usuario: {
+        id_usuario: user.id_usuario,
+        nombre: user.nombre || '',
+        apellido: user.apellido || '',
+        id_tipo_usuario: user.id_tipo_usuario
+      },
+      respuestasHijas: []
+    }
+
     try {
       setEnviando(true)
-      const response = await api.crearComentario(publicacionId, nuevoComentario.trim())
       
-      // Recargar para reflejar estructura anidada
-      await cargarComentarios()
+      // Agregar comentario optimista a la UI inmediatamente
+      setComentarios(prev => [optimisticComment, ...prev])
       setNuevoComentario('')
+      
+      // Enviar al servidor
+      const response = await api.crearComentario(publicacionId, optimisticComment.mensaje)
+      
+      // Actualizar el comentario temporal con el ID real del servidor
+      if (response.comentario) {
+        setComentarios(prev => prev.map(c => 
+          c.id_respuesta === tempId ? { ...optimisticComment, ...response.comentario } : c
+        ))
+      }
       
       // Llamar al callback si existe para actualizar el contador
       if (onCommentAdded) {
@@ -126,6 +151,10 @@ export default function InlineComments({
       toast.success('Comentario publicado exitosamente')
     } catch (error: any) {
       console.error('Error al crear comentario:', error)
+      
+      // Remover comentario optimista si falla
+      setComentarios(prev => prev.filter(c => c.id_respuesta !== tempId))
+      setNuevoComentario(optimisticComment.mensaje) // Restaurar el texto
       
       // Manejar errores específicos de moderación del servidor
        if (error.response?.status === 429) {
@@ -160,16 +189,74 @@ export default function InlineComments({
     const isValid = validateComment(replyText.trim(), user.id_usuario.toString())
     if (!isValid) return
 
+    const tempId = Date.now()
+    const optimisticReply: Comentario = {
+      id_respuesta: tempId,
+      id_usuario: user.id_usuario,
+      mensaje: replyText.trim(),
+      fecha_respuesta: new Date().toISOString(),
+      id_respuesta_padre: parentId,
+      usuario: {
+        id_usuario: user.id_usuario,
+        nombre: user.nombre || '',
+        apellido: user.apellido || '',
+        id_tipo_usuario: user.id_tipo_usuario
+      },
+      respuestasHijas: []
+    }
+
     try {
       setEnviando(true)
-      await api.crearComentario(publicacionId, replyText.trim(), parentId)
-      await cargarComentarios()
+      
+      // Agregar respuesta optimista a la UI
+      setComentarios(prev => prev.map(c => {
+        if (c.id_respuesta === parentId) {
+          return {
+            ...c,
+            respuestasHijas: [...(c.respuestasHijas || []), optimisticReply]
+          }
+        }
+        return c
+      }))
       setReplyText('')
       setReplyingTo(null)
+      
+      // Enviar al servidor
+      const response = await api.crearComentario(publicacionId, optimisticReply.mensaje, parentId)
+      
+      // Actualizar la respuesta temporal con datos reales del servidor
+      if (response.comentario) {
+        setComentarios(prev => prev.map(c => {
+          if (c.id_respuesta === parentId) {
+            return {
+              ...c,
+              respuestasHijas: (c.respuestasHijas || []).map(r => 
+                r.id_respuesta === tempId ? { ...optimisticReply, ...response.comentario } : r
+              )
+            }
+          }
+          return c
+        }))
+      }
+      
       if (onCommentAdded) onCommentAdded()
       toast.success('Respuesta publicada')
     } catch (error: any) {
       console.error('Error al crear respuesta:', error)
+      
+      // Remover respuesta optimista si falla
+      setComentarios(prev => prev.map(c => {
+        if (c.id_respuesta === parentId) {
+          return {
+            ...c,
+            respuestasHijas: (c.respuestasHijas || []).filter(r => r.id_respuesta !== tempId)
+          }
+        }
+        return c
+      }))
+      setReplyText(optimisticReply.mensaje)
+      setReplyingTo(parentId)
+      
       if (error.response?.status === 400) {
         const errorData = error.response.data
         toast.error(errorData.error || 'Contenido inapropiado')
@@ -187,12 +274,28 @@ export default function InlineComments({
       return
     }
 
+    // Guardar comentario para restaurar si falla
+    const comentarioEliminado = comentarios.find(c => c.id_respuesta === comentarioId)
+
     try {
-      await api.eliminarComentario(comentarioId.toString())
+      // Eliminar optimistamente de la UI
       setComentarios(prev => prev.filter(c => c.id_respuesta !== comentarioId))
+      
+      // Enviar al servidor
+      await api.eliminarComentario(comentarioId.toString())
+      
+      // Actualizar contador
+      if (onCommentAdded) onCommentAdded()
+      
       toast.success('Comentario eliminado exitosamente')
     } catch (error) {
       console.error('Error al eliminar comentario:', error)
+      
+      // Restaurar comentario si falla
+      if (comentarioEliminado) {
+        setComentarios(prev => [comentarioEliminado, ...prev])
+      }
+      
       toast.error('Error al eliminar el comentario')
     }
   }

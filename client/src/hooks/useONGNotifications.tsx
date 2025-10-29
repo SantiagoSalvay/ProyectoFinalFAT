@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { api } from '../services/api';
@@ -17,6 +17,7 @@ interface User {
 export function useONGNotifications() {
   const { user } = useAuth();
   const { addNotification, notifications, removeNotification } = useNotifications();
+  const hasCheckedRef = useRef(false);
 
   // Verificar si el usuario es una ONG (tipo_usuario === 2)
   const isONG = user?.tipo_usuario === 2;
@@ -30,10 +31,11 @@ export function useONGNotifications() {
       const tipoONGData: TipoONGData | null = await api.getTipoONG();
       
       // Verificar qué datos faltan
-      const missingData = [];
+      const missingData: string[] = [];
       
       // Verificar biografía
-      if (!user.bio || user.bio.trim() === '') {
+      const userBio = (user as any).bio;
+      if (!userBio || userBio.trim() === '') {
         missingData.push('biografía');
       }
       
@@ -47,12 +49,11 @@ export function useONGNotifications() {
         missingData.push('necesidad');
       }
 
-      // Si hay datos faltantes, crear notificación
+      const notificationId = 'ong-missing-data';
+      const existingNotification = notifications.find(n => n.id === notificationId);
+
+      // Si hay datos faltantes, crear notificación SOLO si no existe
       if (missingData.length > 0) {
-        const notificationId = 'ong-missing-data';
-        
-        // Verificar si ya existe una notificación similar
-        const existingNotification = notifications.find(n => n.id === notificationId);
         
         if (!existingNotification) {
           const missingDataText = missingData.length === 1 
@@ -107,12 +108,13 @@ export function useONGNotifications() {
     }
   }, [notifications, removeNotification]);
 
-  // Verificar datos faltantes cuando cambie el usuario o las notificaciones
+  // Verificar datos faltantes SOLO una vez al montar o cuando cambie el usuario
   useEffect(() => {
-    if (isONG && user) {
+    if (isONG && user && !hasCheckedRef.current) {
       checkMissingData();
+      hasCheckedRef.current = true;
     }
-  }, [isONG, user, checkMissingData]);
+  }, [isONG, user?.id_usuario]); // Solo depende del ID del usuario, no de checkMissingData
 
   return {
     checkMissingData,
