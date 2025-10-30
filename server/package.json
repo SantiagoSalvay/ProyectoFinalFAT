@@ -17,7 +17,7 @@
     "test:verbose": "cross-env NODE_ENV=test NODE_OPTIONS=\"--experimental-vm-modules\" jest --verbose"
   },
   "dependencies": {
-    "@prisma/client": "^5.10.2",
+    "@prisma/client": "^6.18.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
