@@ -26,4 +26,19 @@ export default defineConfig({
       },
     }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separar React y ReactDOM en su propio chunk
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // Separar librerías de mapas
+          'map-vendor': ['leaflet', 'react-leaflet'],
+          // Separar librerías de UI
+          'ui-vendor': ['react-hot-toast', 'lucide-react'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Aumentar el límite a 1000 kB
+  },
 }) 
