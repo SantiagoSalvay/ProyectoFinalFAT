@@ -209,7 +209,7 @@ model RegistroPendiente {
   correo             String
   contrasena         String
   ubicacion          String?
-  verification_token String
+  verification_token String   @unique
   token_expiry       DateTime
   createdAt          DateTime @default(now())
   tipo_usuario       Int
