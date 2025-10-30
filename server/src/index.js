@@ -35,7 +35,8 @@ const allowedOrigins = [
   "http://localhost:3002",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3002",
-];
+  process.env.FRONTEND_URL, // URL del frontend en producción
+].filter(Boolean); // Filtrar valores undefined
 
 app.use(
   cors({
@@ -63,10 +64,14 @@ app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 // Configurar sesiones para Passport
 app.use(
   session({
-    secret: process.env.JWT_SECRET || "fallback-secret",
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // Cambiar a true en producción con HTTPS
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production', // true en producción con HTTPS
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    },
   }),
 );
 

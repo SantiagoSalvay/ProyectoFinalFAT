@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile --prefer-offline"]
+
+[phases.build]
+cmds = [
+  "cd server && npx prisma generate && cd ..",
+  "pnpm run build"
+]
+
+[start]
+cmd = "node server/src/index.js"
+
