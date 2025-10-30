@@ -2,7 +2,7 @@
  * Servicio para gestionar solicitudes de registro de ONGs
  */
 
-const API_BASE_URL = "http://localhost:3001";
+import { API_BASE_URL } from '../config/api';
 
 export interface OngRequest {
   id_solicitud: number;

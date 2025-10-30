@@ -63,7 +63,7 @@ export default function RegisterPage() {
 
     setLoadingOngData(true);
     try {
-      const API_BASE_URL = "http://localhost:3001";
+      const { API_BASE_URL } = await import('../config/api');
       const response = await fetch(`${API_BASE_URL}/api/ong/search-by-cuit?cuit=${cuitValue}`);
       
       if (response.ok) {
@@ -106,7 +106,7 @@ export default function RegisterPage() {
     // Si es una ONG no encontrada en SISA, enviar solicitud de verificación manual
     if (selectedRole === "ong" && ongNotFoundInSisa) {
       try {
-        const API_BASE_URL = "http://localhost:3001";
+        const { API_BASE_URL } = await import('../config/api');
         const response = await fetch(`${API_BASE_URL}/api/ong-requests/create`, {
           method: "POST",
           headers: {

@@ -168,10 +168,11 @@ export default function ProfilePage() {
       if (isONG && user.id_usuario) {
         api
           .getONGProfileImage(user.id_usuario)
-          .then((response) => {
+          .then(async (response) => {
             if (response.imageUrl) {
               // Construir URL completa del servidor
-              setCurrentImageUrl(`http://localhost:3001${response.imageUrl}`);
+              const { API_BASE_URL } = await import('../config/api');
+              setCurrentImageUrl(`${API_BASE_URL}${response.imageUrl}`);
             }
           })
           .catch((error) => {
@@ -376,7 +377,8 @@ export default function ProfilePage() {
       const response = await api.uploadONGProfileImage(selectedImage);
 
       // Actualizar el estado local con la nueva URL del servidor
-      setCurrentImageUrl(`http://localhost:3001${response.imageUrl}`);
+      const { API_BASE_URL } = await import('../config/api');
+      setCurrentImageUrl(`${API_BASE_URL}${response.imageUrl}`);
 
       toast.success("Imagen guardada exitosamente en el servidor");
       setSelectedImage(null);

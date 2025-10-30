@@ -370,9 +370,10 @@ export default function MapPage() {
         // Obtener imagen de perfil de la ONG
         let profileImageUrl: string | undefined = undefined;
         try {
+          const { API_BASE_URL } = await import('../config/api');
           const imageResponse = await api.getONGProfileImage(ong.id);
           if (imageResponse.imageUrl) {
-            profileImageUrl = `http://localhost:3001${imageResponse.imageUrl}`;
+            profileImageUrl = `${API_BASE_URL}${imageResponse.imageUrl}`;
           }
         } catch (err) {
           console.error(
