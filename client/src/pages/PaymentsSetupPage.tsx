@@ -26,9 +26,11 @@ export default function PaymentsSetupPage() {
         setError('El Access Token es requerido.')
         return
       }
-      // Validación básica para Mercado Pago: debe ser token de producción (APP_USR-)
-      if (accessToken.trim().startsWith('TEST-') || !accessToken.trim().startsWith('APP_USR-')) {
-        setError('Debes ingresar el Access Token de producción de Mercado Pago (formato APP_USR-...). No se aceptan tokens de prueba (TEST-).')
+      // Validación de Mercado Pago: solo se aceptan tokens de producción (APP_USR-)
+      const token = accessToken.trim()
+      const isValidProdToken = token.startsWith('APP_USR-')
+      if (!isValidProdToken) {
+        setError('Ingresa el Access Token de producción de Mercado Pago (APP_USR-...). No se aceptan tokens de prueba.')
         return
       }
       const res = await api.setOngMPToken(accessToken.trim(), true)
@@ -52,17 +54,15 @@ export default function PaymentsSetupPage() {
           </p>
 
           <div className="mb-6 p-4 rounded-lg border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}>
-            <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-fg)' }}>Pasos para obtener tu Access Token de producción (Mercado Pago)</h2>
+            <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-fg)' }}>Credenciales de Mercado Pago</h2>
             <ol className="list-decimal pl-6 space-y-2" style={{ color: 'var(--color-muted)' }}>
               <li>Regístrate o inicia sesión en tu cuenta de <strong>Mercado Pago</strong> de la organización.</li>
               <li>Accede a <strong>Mercado Pago Developers</strong> y crea una <strong>Aplicación</strong> para tu ONG.</li>
-              <li>En la aplicación, ve a <strong>Credenciales</strong> y selecciona el entorno <strong>Producción</strong>.</li>
-              <li>Solicita la activación de producción (completa el proceso de validación/KYC si corresponde).</li>
-              <li>Copia el <strong>Access Token de producción</strong> (debe comenzar con <code>APP_USR-</code>, no <code>TEST-</code>).</li>
-              <li>Pega el Access Token de producción en el formulario inferior y haz clic en “Guardar y habilitar pagos”.</li>
+              <li>En <strong>Credenciales</strong> selecciona el entorno <strong>Producción</strong> y copia el Access Token que empieza con <code>APP_USR-</code>.</li>
+              <li>No se aceptan tokens de prueba (TEST-). Completa la validación/KYC si es necesario.</li>
             </ol>
             <p className="mt-4 text-sm" style={{ color: 'var(--color-muted)' }}>
-              Importante: el token se almacenará cifrado y solo se usará para crear preferencias de pago para tus donaciones. Solo se aceptan tokens de <strong>Producción</strong> de Mercado Pago.
+              Importante: el token se almacenará cifrado y solo se usará para crear preferencias de pago para tus donaciones. Solo se aceptan tokens de <strong>Producción</strong> (APP_USR-).
             </p>
           </div>
 
@@ -83,7 +83,7 @@ export default function PaymentsSetupPage() {
           <form onSubmit={onSave} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
-                Access Token de Mercado Pago (Producción)
+                Access Token de Mercado Pago (solo APP_USR- de producción)
               </label>
               <input
                 type="password"

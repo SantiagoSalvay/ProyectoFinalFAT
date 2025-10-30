@@ -263,17 +263,11 @@ router.post("/mp-token", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "accessToken es requerido" });
     }
 
-    // Validación básica de MP: producción APP_USR-
-    if (
-      accessToken.startsWith("TEST-") ||
-      !accessToken.startsWith("APP_USR-")
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Se requiere Access Token de producción de Mercado Pago (APP_USR-...)",
-        });
+    // Validación de MP: solo se aceptan tokens de producción APP_USR-
+    if (typeof accessToken !== "string" || !accessToken.startsWith("APP_USR-")) {
+      return res.status(400).json({
+        error: "Se requiere Access Token de producción de Mercado Pago (APP_USR-...)",
+      });
     }
 
     // Validar ENCRYPTION_KEY configurada

@@ -30,6 +30,8 @@ model Usuario {
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
   DetalleUsuario           DetalleUsuario?
   infracciones             Infracciones[]
+  notificaciones           Notificacion[]
+  categorias               ONGCategoria[]
   passwordResetTokens      PasswordResetToken[]
   pedidosEvaluados         PedidoDonacion[]       @relation("ONGEvaluadora")
   pedidosRealizados        PedidoDonacion[]       @relation("UsuarioDonador")
@@ -38,8 +40,6 @@ model Usuario {
   rankings                 Ranking[]
   respuestas               RespuestaPublicacion[]
   tiposONG                 TipoONG[]
-  categorias               ONGCategoria[]
-  notificaciones           Notificacion[]
   tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
@@ -74,8 +74,8 @@ model Publicacion {
   imagenes                   String?
   usuario                    Usuario                @relation(fields: [id_usuario], references: [id_usuario])
   publicacionEtiquetas       PublicacionEtiqueta[]
-  respuestas                 RespuestaPublicacion[]
   likes                      PublicacionLike[]
+  respuestas                 RespuestaPublicacion[]
 }
 
 model PublicacionLike {
@@ -231,12 +231,12 @@ model PasswordResetToken {
 }
 
 model Categoria {
-  id_categoria Int             @id @default(autoincrement())
-  nombre       String          @unique
-  descripcion  String?
-  color        String?
-  icono        String?
-  createdAt    DateTime        @default(now())
+  id_categoria  Int            @id @default(autoincrement())
+  nombre        String         @unique
+  descripcion   String?
+  color         String?
+  icono         String?
+  createdAt     DateTime       @default(now())
   ongCategorias ONGCategoria[]
 }
 
@@ -245,8 +245,8 @@ model ONGCategoria {
   id_usuario       Int
   id_categoria     Int
   createdAt        DateTime  @default(now())
-  usuario          Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
   categoria        Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Cascade)
+  usuario          Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 
   @@unique([id_usuario, id_categoria])
   @@index([id_usuario])
@@ -257,11 +257,31 @@ model Notificacion {
   id_notificacion   Int      @id @default(autoincrement())
   id_usuario        Int
   tipo_notificacion String
-  mensaje           String   @db.Text
+  mensaje           String
   leida             Boolean  @default(false)
   fecha_creacion    DateTime @default(now())
   usuario           Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 
   @@index([id_usuario])
   @@index([leida])
+}
+
+model SolicitudRevisionIPJ {
+  id                Int       @id @default(autoincrement())
+  email             String
+  nombre            String
+  nombre_legal      String?
+  cuit              String
+  matricula         String?
+  tipo_organizacion String
+  ubicacion         String?
+  razon             String
+  estado            String    @default("pendiente")
+  notas_admin       String?
+  fecha_solicitud   DateTime  @default(now())
+  fecha_revision    DateTime?
+
+  @@index([cuit])
+  @@index([email])
+  @@index([estado])
 }
