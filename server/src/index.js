@@ -64,6 +64,9 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 // Servir archivos estáticos (imágenes subidas)
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
+// Servir archivos estáticos del frontend (build de Vite)
+app.use(express.static(path.join(__dirname, "../../dist")));
+
 // Configurar sesiones para Passport con PostgreSQL
 app.use(
   session({
@@ -98,8 +101,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/ranking", rankingRoutes);
 
-// Ruta de prueba
-app.get("/", (req, res) => {
+// Ruta API de prueba
+app.get("/api", (req, res) => {
   res.json({ message: "API de Demos+ funcionando correctamente" });
 });
 
@@ -136,6 +139,11 @@ app.get("/health/db", async (req, res) => {
       message: map[code] || err?.message || "Error de conexión",
     });
   }
+});
+
+// Catch-all: Servir index.html para rutas del frontend (React Router)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../../dist/index.html"));
 });
 
 // Manejo de errores global
