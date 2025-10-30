@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
+import { emailService } from '../../lib/email-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -81,9 +82,13 @@ router.post('/create', async (req, res) => {
       }
     });
 
-    // TODO: Enviar email de confirmación al solicitante
-    // El servicio de email necesita una función genérica sendEmail
-    console.log('📧 Email de confirmación (TODO): solicitud recibida para', email);
+    // Enviar email de confirmación al solicitante
+    try {
+      await emailService.sendOngRequestReceivedEmail(email, nombre_organizacion, cuit);
+    } catch (emailError) {
+      console.error('Error enviando email de confirmación:', emailError);
+      // No fallar la solicitud si el email falla
+    }
 
     res.json({
       success: true,
@@ -252,8 +257,13 @@ router.post('/:id/approve', async (req, res) => {
       }
     });
 
-    // TODO: Enviar email de aprobación
-    console.log('📧 Email de aprobación (TODO): cuenta aprobada para', solicitud.email);
+    // Enviar email de aprobación
+    try {
+      await emailService.sendOngRequestApprovedEmail(solicitud.email, solicitud.nombre_organizacion);
+    } catch (emailError) {
+      console.error('Error enviando email de aprobación:', emailError);
+      // No fallar la aprobación si el email falla
+    }
 
     res.json({
       success: true,
@@ -319,8 +329,13 @@ router.post('/:id/reject', async (req, res) => {
       }
     });
 
-    // TODO: Enviar email de rechazo
-    console.log('📧 Email de rechazo (TODO): solicitud rechazada para', solicitud.email, 'Motivo:', motivo_rechazo);
+    // Enviar email de rechazo
+    try {
+      await emailService.sendOngRequestRejectedEmail(solicitud.email, solicitud.nombre_organizacion, motivo_rechazo);
+    } catch (emailError) {
+      console.error('Error enviando email de rechazo:', emailError);
+      // No fallar el rechazo si el email falla
+    }
 
     res.json({
       success: true,
