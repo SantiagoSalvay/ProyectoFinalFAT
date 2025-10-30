@@ -457,57 +457,11 @@ export default function MapPage() {
         </div>
 
         <div className="space-y-3">
-          {/* Filtros principales */}
-          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
-            {/* Filtro por necesidad */}
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-              <span className="text-xs sm:text-sm font-medium text-white">
-                Necesidad:
-              </span>
-              <select
-                value={needFilter}
-                onChange={(e) => setNeedFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-              >
-                <option value="">Todas</option>
-                <option value="dinero">Dinero</option>
-                <option value="ropa">Ropa</option>
-                <option value="juguetes">Juguetes</option>
-                <option value="comida">Comida</option>
-                <option value="muebles">Muebles</option>
-                <option value="otros">Otros</option>
-              </select>
-            </div>
-            {/* Filtro por grupo social */}
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-              <span className="text-xs sm:text-sm font-medium text-white">
-                Grupo:
-              </span>
-              <select
-                value={groupFilter}
-                onChange={(e) => setGroupFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-              >
-                <option value="">Todos</option>
-                <option value="Niños">Niños</option>
-                <option value="Gente mayor">Gente mayor</option>
-                <option value="Mujeres">Mujeres</option>
-                <option value="Animales">Animales</option>
-                <option value="Personas con discapacidad">
-                  Personas con discapacidad
-                </option>
-                <option value="Familias">Familias</option>
-                <option value="Otros">Otros</option>
-              </select>
-            </div>
-          </div>
-
+          
           {/* Filtro por categorías */}
           <div>
             <div className="flex items-center space-x-2 mb-2">
-              <span className="text-sm font-medium text-white">
-                Categorías:
-              </span>
+              <span className="text-sm font-medium text-white">Categorías:</span>
               <button
                 onClick={() => setCategoryFilter([])}
                 className="text-xs text-purple-200 hover:text-white underline"
@@ -516,60 +470,96 @@ export default function MapPage() {
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {availableCategories.map((category) => {
-                const isSelected = categoryFilter.includes(
-                  category.id_categoria,
-                );
-                const count = ongs.filter((ong) =>
-                  ong.categories?.some(
-                    (cat) => cat.id_categoria === category.id_categoria,
-                  ),
-                ).length;
-
-                return (
-                  <button
-                    key={category.id_categoria}
-                    onClick={() => {
-                      setCategoryFilter((prev) =>
+              {[...availableCategories]
+                .sort((a, b) => a.id_categoria - b.id_categoria) // 🔹 Ordenar por ID numérico
+                .map((category) => {
+                  const isSelected = categoryFilter.includes(category.id_categoria);
+                  const count = ongs.filter((ong) =>
+                    ong.categories?.some(
+                      (cat) => cat.id_categoria === category.id_categoria
+                    )
+                  ).length;
+                
+                  return (
+                    <button
+                      key={category.id_categoria}
+                      onClick={() => {
+                        setCategoryFilter((prev) =>
+                          isSelected
+                            ? prev.filter((id) => id !== category.id_categoria)
+                            : [...prev, category.id_categoria]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center ${
                         isSelected
-                          ? prev.filter((id) => id !== category.id_categoria)
-                          : [...prev, category.id_categoria],
-                      );
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center ${
-                      isSelected
-                        ? "bg-white text-purple-700 shadow-md"
-                        : "bg-purple-700 text-white hover:bg-purple-800"
-                    }`}
-                    style={
-                      isSelected
-                        ? {}
-                        : { backgroundColor: category.color, opacity: 0.9 }
-                    }
-                  >
-                    {category.icono && (
-                      <span className="mr-1">{category.icono}</span>
-                    )}
-                    {category.nombre}
-                    <span className="ml-1.5 opacity-75">({count})</span>
-                  </button>
-                );
-              })}
+                          ? "bg-white text-purple-700 shadow-md"
+                          : "bg-purple-700 text-white hover:bg-purple-800"
+                      }`}
+                      style={
+                        isSelected
+                          ? {}
+                          : { backgroundColor: category.color, opacity: 0.9 }
+                      }
+                    >
+                      {category.icono && <span className="mr-1">{category.icono}</span>}
+                      {category.nombre}
+                      <span className="ml-1.5 opacity-75">({count})</span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
-
-          {/* Leyenda por grupo social */}
-          <div className="flex flex-wrap items-center gap-2 text-sm pt-2 border-t border-purple-500">
-            <span className="text-sm font-medium text-white mr-2">Grupos:</span>
-            {Object.entries(groupColors).map(([group, color]) => (
-              <div key={group} className="flex items-center space-x-1 mr-2">
-                <div
-                  className={`w-3 h-3 rounded-full`}
-                  style={{ backgroundColor: color }}
-                ></div>
-                <span className="text-white capitalize text-xs">{group}</span>
-              </div>
-            ))}
+              
+          {/* Filtro por necesidades */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-sm font-medium text-white">Nesesidades:</span>
+              <button
+                onClick={() => setCategoryFilter([])}
+                className="text-xs text-purple-200 hover:text-white underline"
+              >
+                Limpiar
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[...availableCategories]
+                .sort((a, b) => a.id_categoria - b.id_categoria) // 🔹 Ordenar por ID numérico
+                .map((category) => {
+                  const isSelected = categoryFilter.includes(category.id_categoria);
+                  const count = ongs.filter((ong) =>
+                    ong.categories?.some(
+                      (cat) => cat.id_categoria === category.id_categoria
+                    )
+                  ).length;
+                
+                  return (
+                    <button
+                      key={category.id_categoria}
+                      onClick={() => {
+                        setCategoryFilter((prev) =>
+                          isSelected
+                            ? prev.filter((id) => id !== category.id_categoria)
+                            : [...prev, category.id_categoria]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center ${
+                        isSelected
+                          ? "bg-white text-purple-700 shadow-md"
+                          : "bg-purple-700 text-white hover:bg-purple-800"
+                      }`}
+                      style={
+                        isSelected
+                          ? {}
+                          : { backgroundColor: category.color, opacity: 0.9 }
+                      }
+                    >
+                      {category.icono && <span className="mr-1">{category.icono}</span>}
+                      {category.nombre}
+                      <span className="ml-1.5 opacity-75">({count})</span>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         </div>
       </div>
