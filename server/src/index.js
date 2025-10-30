@@ -14,8 +14,10 @@ import paymentsRoutes from "./routes/payments.js";
 import rankingRoutes from "./routes/ranking.js";
 import notificationsRoutes from "./routes/notifications.js";
 import ongRoutes from "./routes/ong.js";
+import ongRequestsRoutes from "./routes/ong-requests.js";
 import passport from "./config/passport.js";
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +78,7 @@ app.use("/api/auth", oauthRoutes);
 app.use("/api/forum", forumRoutes);
 app.use("/api/ongs", ongsRoutes);
 app.use("/api/ong", ongRoutes); // Ruta para búsqueda de ONGs por CUIT (SISA)
+app.use("/api/ong-requests", ongRequestsRoutes); // Solicitudes de registro de ONGs
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentsRoutes);

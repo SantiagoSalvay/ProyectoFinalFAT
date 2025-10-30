@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
-import { Shield, Users, MessageSquare, Ban, Check, X, Loader2, Edit3, LogOut, Search, Save, FileText, HandCoins, List, RefreshCw } from 'lucide-react';
+import { Shield, Users, MessageSquare, Ban, Check, X, Loader2, Edit3, LogOut, Search, Save, FileText, HandCoins, List, RefreshCw, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AdminOngRequestsPage from './AdminOngRequestsPage';
 
-type Tab = 'forum' | 'usuarios' | 'donations' | 'logs';
+type Tab = 'forum' | 'usuarios' | 'donations' | 'logs' | 'solicitudes';
 
 export default function AdminPage() {
   const { user, logout, isLoading, isAuthenticated } = useAuth();
@@ -206,6 +207,9 @@ export default function AdminPage() {
             <button onClick={() => setTab('donations')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='donations'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
               <HandCoins className="w-4 h-4"/> Donaciones
             </button>
+            <button onClick={() => setTab('solicitudes')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='solicitudes'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+              <ClipboardList className="w-4 h-4"/> Solicitudes ONGs
+            </button>
             <button onClick={() => setTab('logs')} className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 ${tab==='logs'?'bg-purple-600 text-white':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
               <List className="w-4 h-4"/> Logs
             </button>
@@ -401,6 +405,10 @@ export default function AdminPage() {
                       </div>
                     ))}
                   </div>
+                )}
+
+                {tab === 'solicitudes' && (
+                  <AdminOngRequestsPage />
                 )}
 
                 {tab === 'logs' && (

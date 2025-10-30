@@ -18,7 +18,7 @@ model Usuario {
   nombre                   String
   apellido                 String
   biografia                String?
-  email                    String                 @unique
+  email                    String
   contrasena               String?
   id_tipo_usuario          Int
   ubicacion                String?
@@ -28,7 +28,7 @@ model Usuario {
   telefono                 String?
   calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
-  DetalleUsuario           DetalleUsuario?
+  DetalleUsuario           DetalleUsuario[]
   infracciones             Infracciones[]
   notificaciones           Notificacion[]
   categorias               ONGCategoria[]
@@ -39,19 +39,20 @@ model Usuario {
   publicacionLikes         PublicacionLike[]
   rankings                 Ranking[]
   respuestas               RespuestaPublicacion[]
+  SolicitudRevisionIPJ     SolicitudRevisionIPJ[]
   tiposONG                 TipoONG[]
   tipo                     TipoUsuario            @relation(fields: [id_tipo_usuario], references: [id_tipo_usuario])
 }
 
 model DetalleUsuario {
   id_detalle_usuario         Int       @id @default(autoincrement())
-  id_usuario                 Int       @unique
+  id_usuario                 Int
   email_verified             Boolean   @default(false)
   auth_provider              String    @default("email")
-  facebook_id                String?   @unique
-  google_id                  String?   @unique
+  facebook_id                String?
+  google_id                  String?
   profile_picture            String?
-  twitter_id                 String?   @unique
+  twitter_id                 String?
   puntosActuales             Int       @default(0)
   ultima_fecha_actualizacion DateTime  @default(now())
   mp_token_cipher            String?
@@ -113,22 +114,22 @@ model TipoDonacion {
 }
 
 model PedidoDonacion {
-  id_pedido                Int                 @id @default(autoincrement())
-  id_publicacion_etiqueta  Int
+  id_pedido                Int                  @id @default(autoincrement())
+  id_publicacion_etiqueta  Int?
   id_usuario               Int
   id_tipo_donacion         Int
   cantidad                 Int
-  fecha_donacion           DateTime            @default(now())
+  fecha_donacion           DateTime             @default(now())
   id_ong_evaluadora        Int?
   descripcion_voluntariado String?
   horas_donadas            Int?
-  estado_evaluacion        String              @default("pendiente")
+  estado_evaluacion        String               @default("pendiente")
   puntos_otorgados         Int?
   fecha_evaluacion         DateTime?
-  ongEvaluadora            Usuario?            @relation("ONGEvaluadora", fields: [id_ong_evaluadora], references: [id_usuario])
-  publicacionEtiqueta      PublicacionEtiqueta @relation(fields: [id_publicacion_etiqueta], references: [id_publicacion_etiqueta])
-  tipoDonacion             TipoDonacion        @relation(fields: [id_tipo_donacion], references: [id_tipo_donacion])
-  usuario                  Usuario             @relation("UsuarioDonador", fields: [id_usuario], references: [id_usuario])
+  ongEvaluadora            Usuario?             @relation("ONGEvaluadora", fields: [id_ong_evaluadora], references: [id_usuario])
+  publicacionEtiqueta      PublicacionEtiqueta? @relation(fields: [id_publicacion_etiqueta], references: [id_publicacion_etiqueta], onDelete: Restrict)
+  tipoDonacion             TipoDonacion         @relation(fields: [id_tipo_donacion], references: [id_tipo_donacion])
+  usuario                  Usuario              @relation("UsuarioDonador", fields: [id_usuario], references: [id_usuario])
 }
 
 model CalificacionONG {
@@ -140,8 +141,6 @@ model CalificacionONG {
   fecha_calificacion DateTime @default(now())
   ong                Usuario  @relation("ONGCalificada", fields: [id_ong], references: [id_usuario], onDelete: Cascade)
   usuario            Usuario  @relation("UsuarioCalificador", fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
-
-  @@unique([id_ong, id_usuario])
 }
 
 model Infracciones {
@@ -207,10 +206,10 @@ model RegistroPendiente {
   nombre             String
   apellido           String
   usuario            String
-  correo             String   @unique
+  correo             String
   contrasena         String
   ubicacion          String?
-  verification_token String   @unique
+  verification_token String
   token_expiry       DateTime
   createdAt          DateTime @default(now())
   tipo_usuario       Int
@@ -226,13 +225,12 @@ model PasswordResetToken {
   used       Boolean  @default(false)
   usuario    Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 
-  @@index([token])
   @@index([id_usuario])
 }
 
 model Categoria {
   id_categoria  Int            @id @default(autoincrement())
-  nombre        String         @unique
+  nombre        String
   descripcion   String?
   color         String?
   icono         String?
@@ -241,7 +239,7 @@ model Categoria {
 }
 
 model ONGCategoria {
-  id_ong_categoria Int       @id @default(autoincrement())
+  id_ong_categoria Int       @id @unique @default(autoincrement())
   id_usuario       Int
   id_categoria     Int
   createdAt        DateTime  @default(now())
@@ -249,8 +247,6 @@ model ONGCategoria {
   usuario          Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 
   @@unique([id_usuario, id_categoria])
-  @@index([id_usuario])
-  @@index([id_categoria])
 }
 
 model Notificacion {
@@ -261,27 +257,49 @@ model Notificacion {
   leida             Boolean  @default(false)
   fecha_creacion    DateTime @default(now())
   usuario           Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
-
-  @@index([id_usuario])
-  @@index([leida])
 }
 
 model SolicitudRevisionIPJ {
-  id                 Int       @id @default(autoincrement())
-  email              String
-  nombre             String
-  nombre_legal       String?
-  cuit               String
-  matricula          String?
-  tipo_organizacion  String    // 'asociacion_civil' o 'fundacion'
-  ubicacion          String?
-  razon              String    @db.Text
-  estado             String    @default("pendiente") // 'pendiente', 'aprobada', 'rechazada'
-  notas_admin        String?   @db.Text
-  fecha_solicitud    DateTime  @default(now())
-  fecha_revision     DateTime?
+  id_solicitud      Int       @id @default(autoincrement())
+  id_usuario        Int
+  email             String    @unique
+  nombre            String
+  nombre_legal      String?
+  cuit              String
+  matricula         String?
+  tipo_organizacion String
+  ubicacion         String?
+  razon             String
+  estado            String    @default("pendiente")
+  notas_admin       String?
+  fecha_solicitud   DateTime  @default(now())
+  fecha_revision    DateTime?
+  Usuario           Usuario   @relation(fields: [id_usuario], references: [id_usuario])
 
-  @@index([email])
   @@index([estado])
+}
+
+model SolicitudRegistroONG {
+  id_solicitud        Int       @id @default(autoincrement())
+  email               String    @unique
+  contrasena          String
+  nombre_organizacion String
+  cuit                String
+  ubicacion           String?
+  descripcion         String?
+  telefono            String?
+  sitio_web           String?
+  documentacion       String?
+  estado              String    @default("pendiente")
+  motivo_rechazo      String?
+  notas_admin         String?
+  fecha_solicitud     DateTime  @default(now())
+  fecha_revision      DateTime?
+  revisado_por        Int?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @default(now())
+
+  @@index([estado])
+  @@index([email])
   @@index([cuit])
 }

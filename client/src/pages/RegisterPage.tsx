@@ -33,8 +33,11 @@ export default function RegisterPage() {
   const [userEmail, setUserEmail] = useState("");
   const [ongData, setOngData] = useState<any>(null);
   const [loadingOngData, setLoadingOngData] = useState(false);
+  const [showOngNotFoundModal, setShowOngNotFoundModal] = useState(false);
+  const [ongRequestSuccess, setOngRequestSuccess] = useState(false);
+  const [ongNotFoundInSisa, setOngNotFoundInSisa] = useState(false);
   // ...sin integración Google Maps...
-  const { register: registerUser } = useAuth();
+  const { register: registerUser} = useAuth();
   const { isLoading, message, withRegisterLoading } = useRegisterLoading();
   const navigate = useNavigate();
 
@@ -66,6 +69,7 @@ export default function RegisterPage() {
       if (response.ok) {
         const data = await response.json();
         setOngData(data);
+        setOngNotFoundInSisa(false);
         
         // Autocompletar campos
         if (data.domicilioCompleto) {
@@ -79,11 +83,14 @@ export default function RegisterPage() {
         toast.success(`✅ ONG encontrada en SISA: ${data.nombre}`);
       } else {
         setOngData(null);
-        toast.error("ONG no encontrada en el registro SISA. Será enviada a revisión manual.");
+        setOngNotFoundInSisa(true);
+        // Mostrar modal explicando el proceso de verificación manual
+        setShowOngNotFoundModal(true);
       }
     } catch (error) {
       console.error("Error buscando ONG:", error);
       setOngData(null);
+      setOngNotFoundInSisa(false);
       toast.error("Error al verificar la ONG. Por favor, intenta nuevamente.");
     } finally {
       setLoadingOngData(false);
@@ -96,6 +103,45 @@ export default function RegisterPage() {
       throw new Error("Las contraseñas no coinciden");
     }
 
+    // Si es una ONG no encontrada en SISA, enviar solicitud de verificación manual
+    if (selectedRole === "ong" && ongNotFoundInSisa) {
+      try {
+        const API_BASE_URL = "http://localhost:3001";
+        const response = await fetch(`${API_BASE_URL}/api/ong-requests/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+            nombre_organizacion: data.firstName,
+            cuit: data.cuit,
+            ubicacion: data.location,
+            descripcion: data.organization || "",
+            telefono: "",
+            sitio_web: "",
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          setOngRequestSuccess(true);
+          toast.success("¡Solicitud enviada exitosamente!");
+        } else {
+          toast.error(result.error || "Error al enviar la solicitud");
+          throw new Error(result.error || "Error al enviar la solicitud");
+        }
+        return;
+      } catch (error) {
+        console.error("Error enviando solicitud:", error);
+        toast.error("Error al enviar la solicitud. Por favor, intenta nuevamente.");
+        throw error;
+      }
+    }
+
+    // Flujo normal de registro
     // Determinar tipo_usuario y datos según el tipo seleccionado
     let tipo_usuario = 1;
     let firstName = data.firstName;
@@ -134,6 +180,99 @@ export default function RegisterPage() {
     toast.success("¡Registro exitoso! Bienvenido a Demos+");
     navigate("/dashboard");
   });
+
+  // Si se envió la solicitud de ONG exitosamente
+  if (ongRequestSuccess) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+        style={{ backgroundColor: "var(--color-bg)" }}
+      >
+        <div className="max-w-md w-full">
+          <div
+            className="rounded-2xl p-8 shadow-2xl border text-center"
+            style={{
+              backgroundColor: "var(--color-card)",
+              borderColor: "var(--color-border)",
+            }}
+          >
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h2
+                className="text-3xl font-bold mb-2"
+                style={{ color: "var(--color-fg)" }}
+              >
+                ¡Solicitud enviada con éxito!
+              </h2>
+              <p className="text-lg mb-4" style={{ color: "var(--color-muted)" }}>
+                Tu solicitud de registro está siendo revisada
+              </p>
+            </div>
+
+            <div
+              className="p-6 rounded-lg mb-6"
+              style={{ backgroundColor: "var(--color-bg)" }}
+            >
+              <p className="text-left mb-4" style={{ color: "var(--color-fg)" }}>
+                <strong>¿Qué sigue?</strong>
+              </p>
+              <ul className="text-left space-y-2" style={{ color: "var(--color-muted)" }}>
+                <li className="flex items-start">
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Nuestro equipo verificará que tu organización es legítima</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Te enviaremos un email cuando tu cuenta sea aprobada</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Este proceso suele tardar 24-48 horas</span>
+                </li>
+              </ul>
+            </div>
+
+            <div
+              className="p-4 rounded-lg mb-6"
+              style={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}
+            >
+              <p className="text-sm" style={{ color: "var(--color-fg)" }}>
+                <strong>💡 ¿Por qué hacemos esto?</strong>
+              </p>
+              <p className="text-sm mt-2" style={{ color: "var(--color-muted)" }}>
+                Verificamos todas las organizaciones para garantizar que solo ONGs reales formen parte de nuestra plataforma, protegiendo así a toda la comunidad.
+              </p>
+            </div>
+
+            <Link
+              to="/"
+              className="inline-block px-6 py-3 rounded-lg font-semibold transition-colors"
+              style={{
+                backgroundColor: "var(--accent)",
+                color: "white",
+              }}
+            >
+              Volver al inicio
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Si se mostró el mensaje de verificación, renderizar esa pantalla
   if (showVerificationMessage) {
@@ -221,6 +360,91 @@ export default function RegisterPage() {
       className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
       style={{ backgroundColor: "var(--color-bg)" }}
     >
+      {/* Modal para ONG no encontrada en SISA */}
+      {showOngNotFoundModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div
+            className="relative max-w-lg w-full rounded-2xl p-8 shadow-2xl border"
+            style={{
+              backgroundColor: "var(--color-card)",
+              borderColor: "var(--color-border)",
+            }}
+          >
+            <button
+              onClick={() => setShowOngNotFoundModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-2" style={{ color: "var(--color-fg)" }}>
+                ONG no encontrada en SISA
+              </h3>
+              <p className="text-sm" style={{ color: "var(--color-muted)" }}>
+                Tu organización no fue encontrada en el registro oficial SISA
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg mb-6" style={{ backgroundColor: "var(--color-bg)" }}>
+              <p className="font-semibold mb-3" style={{ color: "var(--color-fg)" }}>
+                ¿Qué significa esto?
+              </p>
+              <p className="text-sm mb-4" style={{ color: "var(--color-muted)" }}>
+                Para garantizar que solo organizaciones legítimas se registren en nuestra plataforma, 
+                necesitamos verificar manualmente tu organización.
+              </p>
+              <p className="font-semibold mb-2" style={{ color: "var(--color-fg)" }}>
+                Completa el formulario de registro y envía tu solicitud. Te notificaremos por email cuando sea aprobada.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg mb-6" style={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}>
+              <p className="text-sm font-semibold mb-2" style={{ color: "var(--color-fg)" }}>
+                💡 ¿Por qué hacemos esto?
+              </p>
+              <p className="text-xs" style={{ color: "var(--color-muted)" }}>
+                Verificamos todas las organizaciones para proteger a donantes y voluntarios, 
+                asegurando que solo ONGs reales formen parte de Demos+.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowOngNotFoundModal(false)}
+                className="w-full py-3 rounded-lg font-semibold transition-colors"
+                style={{
+                  backgroundColor: "var(--accent)",
+                  color: "white",
+                }}
+              >
+                Continuar completando formulario
+              </button>
+              <button
+                onClick={() => {
+                  setShowOngNotFoundModal(false);
+                  setOngNotFoundInSisa(false);
+                }}
+                className="w-full py-3 rounded-lg font-semibold transition-colors border-2"
+                style={{
+                  borderColor: "var(--color-border)",
+                  color: "var(--color-fg)",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link
@@ -658,7 +882,7 @@ export default function RegisterPage() {
               className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg"
             >
               <ButtonLoading isLoading={isLoading} variant="dots">
-                {isLoading ? message : "Crear cuenta"}
+                {isLoading ? message : (ongNotFoundInSisa ? "Enviar solicitud" : "Crear cuenta")}
               </ButtonLoading>
             </button>
           </form>
