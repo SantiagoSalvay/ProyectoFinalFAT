@@ -1,14 +1,11 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd server && npx prisma generate && cd .. && pnpm run build"
+buildCommand = "cd server && npx prisma generate && npx prisma migrate deploy && cd .. && pnpm run build"
 
 [deploy]
 startCommand = "node server/src/index.js"
-healthcheckPath = "/health/db"
-healthcheckTimeout = 100
+healthcheckPath = "/"
+healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
-
-[[services]]
-name = "web"
 

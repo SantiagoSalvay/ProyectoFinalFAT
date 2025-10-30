@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.js";
@@ -18,6 +19,8 @@ import ongRequestsRoutes from "./routes/ong-requests.js";
 import passport from "./config/passport.js";
 import pkg from "@prisma/client";
 const { PrismaClient } = pkg;
+
+const PgSession = connectPgSimple(session);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,16 +64,22 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 // Servir archivos estáticos (imágenes subidas)
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
-// Configurar sesiones para Passport
+// Configurar sesiones para Passport con PostgreSQL
 app.use(
   session({
+    store: new PgSession({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true, // Crea la tabla 'session' automáticamente
+      tableName: 'session', // Nombre de la tabla
+    }),
     secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
     cookie: { 
       secure: process.env.NODE_ENV === 'production', // true en producción con HTTPS
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
     },
   }),
 );
