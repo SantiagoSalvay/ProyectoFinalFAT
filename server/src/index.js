@@ -32,22 +32,33 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const prisma = new PrismaClient();
 
-// Configurar CORS para permitir frontend en 3000 y 3002
+// Configurar CORS para permitir frontend en desarrollo y producción
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3002",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3002",
-  process.env.FRONTEND_URL, // URL del frontend en producción
-].filter(Boolean); // Filtrar valores undefined
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permitir requests de herramientas (sin origin) y de orígenes permitidos
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Permitir requests sin origin (mismo dominio, herramientas, etc.)
+      // o de orígenes permitidos
+      if (!origin) {
         return callback(null, true);
       }
+      
+      // En producción, permitir el dominio actual
+      if (process.env.NODE_ENV === 'production' && origin.includes('railway.app')) {
+        return callback(null, true);
+      }
+      
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
       return callback(new Error("CORS not allowed"));
     },
     credentials: true,
