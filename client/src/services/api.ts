@@ -529,6 +529,10 @@ class ApiService {
     role: UserRole;
     organization?: string;
     tipo_usuario?: number;
+    // Campos para verificación IPJ (solo ONGs)
+    cuit?: string;
+    matricula?: string;
+    tipoOrganizacion?: 'asociacion_civil' | 'fundacion';
   }) {
     console.log("Iniciando registro con datos:", {
       firstName: userData.firstName,
@@ -538,6 +542,8 @@ class ApiService {
       role: userData.role,
       organization: userData.organization,
       tipo_usuario: userData.tipo_usuario,
+      cuit: userData.cuit || 'N/A',
+      tipoOrganizacion: userData.tipoOrganizacion || 'N/A',
       password: "[PROTECTED]",
     });
 
@@ -561,6 +567,10 @@ class ApiService {
           ubicacion: userData.location || "",
           coordenadas: userData.coordinates,
           tipo_usuario: userData.tipo_usuario || 1,
+          // Campos IPJ para ONGs
+          cuit: userData.cuit,
+          matricula: userData.matricula,
+          tipoOrganizacion: userData.tipoOrganizacion,
         }),
       });
 

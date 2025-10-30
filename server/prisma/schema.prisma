@@ -267,21 +267,21 @@ model Notificacion {
 }
 
 model SolicitudRevisionIPJ {
-  id                Int       @id @default(autoincrement())
-  email             String
-  nombre            String
-  nombre_legal      String?
-  cuit              String
-  matricula         String?
-  tipo_organizacion String
-  ubicacion         String?
-  razon             String
-  estado            String    @default("pendiente")
-  notas_admin       String?
-  fecha_solicitud   DateTime  @default(now())
-  fecha_revision    DateTime?
+  id                 Int       @id @default(autoincrement())
+  email              String
+  nombre             String
+  nombre_legal       String?
+  cuit               String
+  matricula          String?
+  tipo_organizacion  String    // 'asociacion_civil' o 'fundacion'
+  ubicacion          String?
+  razon              String    @db.Text
+  estado             String    @default("pendiente") // 'pendiente', 'aprobada', 'rechazada'
+  notas_admin        String?   @db.Text
+  fecha_solicitud    DateTime  @default(now())
+  fecha_revision     DateTime?
 
-  @@index([cuit])
   @@index([email])
   @@index([estado])
+  @@index([cuit])
 }
