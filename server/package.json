@@ -33,7 +33,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-twitter": "^0.1.5",
     "passport-twitter-oauth2": "^2.1.1",
-    "prisma": "^5.10.2",
+    "prisma": "^6.18.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.6",
     "uuid": "^9.0.1"

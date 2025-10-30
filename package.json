@@ -14,7 +14,7 @@
     "dev:full": "concurrently \"npm run dev\" \"npm run server\""
   },
   "dependencies": {
-    "@prisma/client": "^5.10.2",
+    "@prisma/client": "^6.18.0",
     "@react-google-maps/api": "^2.20.7",
     "@types/bcryptjs": "^2.4.6",
     "@types/google.maps": "^3.58.1",
@@ -37,7 +37,7 @@
     "nodemon": "^3.1.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "prisma": "^5.10.2",
+    "prisma": "^6.18.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.50.1",
