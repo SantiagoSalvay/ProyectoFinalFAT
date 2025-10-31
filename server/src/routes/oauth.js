@@ -20,7 +20,10 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 
 // Callback de Google OAuth
 router.get('/google/callback', 
-  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+  passport.authenticate('google', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed` 
+  }),
   async (req, res) => {
     try {
       console.log('🎉 Google OAuth exitoso para usuario:', req.user.email);
