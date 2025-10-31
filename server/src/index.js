@@ -75,9 +75,6 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 // Servir archivos estáticos (imágenes subidas)
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
-// Servir archivos estáticos del frontend (build de Vite)
-app.use(express.static(path.join(__dirname, "../../dist")));
-
 // Configurar sesiones para Passport con PostgreSQL
 app.use(
   session({
@@ -111,6 +108,9 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/ranking", rankingRoutes);
+
+// Servir archivos estáticos del frontend (build de Vite) - DESPUÉS de las rutas API
+app.use(express.static(path.join(__dirname, "../../dist")));
 
 // Ruta API de prueba
 app.get("/api", (req, res) => {

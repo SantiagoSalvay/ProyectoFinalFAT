@@ -101,15 +101,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
       return done(null, newUser);
 
-    } catch (error) {
-      console.error('❌ Error en Google OAuth:', error);
-      return done(error, null);
-    }
-  }));
-  console.log('✅ Google OAuth configurado correctamente');
-} else {
-  console.warn('⚠️ Google OAuth deshabilitado: faltan GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
-}
+  } catch (error) {
+    console.error('❌ Error en Google OAuth:', error);
+    return done(error, null);
+  }
+}));
 
 // Configurar estrategia de Twitter (solo si las credenciales están disponibles)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
@@ -119,7 +115,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   passport.use(new TwitterStrategy({
     consumerKey: process.env.TWITTER_CONSUMER_KEY,
     consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
-    callbackURL: process.env.TWITTER_CALLBACK_URL || 'http://localhost:3001/api/auth/twitter/callback'
+    callbackURL: `${process.env.API_URL || 'http://localhost:3001'}/api/auth/twitter/callback`
   },
   async (token, tokenSecret, profile, done) => {
     try {
