@@ -20,7 +20,10 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 
 // Callback de Google OAuth
 router.get('/google/callback', 
-  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+  passport.authenticate('google', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed` 
+  }),
   async (req, res) => {
     try {
       console.log('🎉 Google OAuth exitoso para usuario:', req.user.email);
@@ -74,12 +77,14 @@ router.get('/google/callback',
       );
 
       // Redirigir al frontend con el token
-      const redirectUrl = `http://localhost:3000/auth/callback?token=${token}&provider=google`;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const redirectUrl = `${frontendUrl}/auth/callback?token=${token}&provider=google`;
       res.redirect(redirectUrl);
 
     } catch (error) {
       console.error('❌ Error en callback de Google:', error);
-      res.redirect('http://localhost:3000/login?error=token_generation_failed');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/login?error=token_generation_failed`);
     }
   }
 );
@@ -87,12 +92,16 @@ router.get('/google/callback',
 // Callback de Twitter OAuth (solo si está configurado)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   router.get('/twitter/callback',
-    passport.authenticate('twitter', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+    passport.authenticate('twitter', { 
+      session: false, 
+      failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed` 
+    }),
     async (req, res) => {
       try {
         const user = req.user;
         if (!user) {
-          return res.redirect('http://localhost:3000/login?error=user_not_found');
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+          return res.redirect(`${frontendUrl}/login?error=user_not_found`);
         }
 
         // Obtener el detalle del usuario para acceder a auth_provider
@@ -140,10 +149,12 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         );
 
         // Redirigir al frontend con el token
-        res.redirect(`http://localhost:3000/auth/callback?token=${token}&provider=${authProvider}`);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(`${frontendUrl}/auth/callback?token=${token}&provider=${authProvider}`);
       } catch (error) {
         console.error('❌ Error al generar token JWT después de Twitter OAuth:', error);
-        res.redirect('http://localhost:3000/login?error=token_generation_failed');
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(`${frontendUrl}/login?error=token_generation_failed`);
       }
     }
   );

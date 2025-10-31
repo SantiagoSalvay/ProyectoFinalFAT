@@ -18,7 +18,7 @@ model Usuario {
   nombre                   String
   apellido                 String
   biografia                String?
-  email                    String
+  email                    String                 @unique
   contrasena               String?
   id_tipo_usuario          Int
   ubicacion                String?
@@ -49,10 +49,10 @@ model DetalleUsuario {
   id_usuario                 Int
   email_verified             Boolean   @default(false)
   auth_provider              String    @default("email")
-  facebook_id                String?
-  google_id                  String?
+  facebook_id                String?   @unique
+  google_id                  String?   @unique
   profile_picture            String?
-  twitter_id                 String?
+  twitter_id                 String?   @unique
   puntosActuales             Int       @default(0)
   ultima_fecha_actualizacion DateTime  @default(now())
   mp_token_cipher            String?
