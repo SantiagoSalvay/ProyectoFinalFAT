@@ -92,12 +92,16 @@ router.get('/google/callback',
 // Callback de Twitter OAuth (solo si está configurado)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   router.get('/twitter/callback',
-    passport.authenticate('twitter', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+    passport.authenticate('twitter', { 
+      session: false, 
+      failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed` 
+    }),
     async (req, res) => {
       try {
         const user = req.user;
         if (!user) {
-          return res.redirect('http://localhost:3000/login?error=user_not_found');
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+          return res.redirect(`${frontendUrl}/login?error=user_not_found`);
         }
 
         // Obtener el detalle del usuario para acceder a auth_provider
