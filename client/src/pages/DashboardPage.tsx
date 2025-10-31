@@ -12,8 +12,8 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  // Considera ONG si tipo_usuario === 2 (igual que ProfilePage)
-  const isONG = user?.id_usuario && user?.tipo_usuario === 2
+  // Considera ONG si tipo_usuario === 2 o id_tipo_usuario === 2 (algunos perfiles usan id_tipo_usuario)
+  const isONG = !!(user?.id_usuario && ((user as any)?.tipo_usuario === 2 || (user as any)?.id_tipo_usuario === 2))
 
   const [tipoONG, setTipoONG] = useState<{ grupo_social?: string | null; necesidad?: string | null } | null>(null);
   const [loadingTipoONG, setLoadingTipoONG] = useState(true);
@@ -37,6 +37,10 @@ export default function DashboardPage() {
   const [expandPoints, setExpandPoints] = useState(false);
   const [mpStatus, setMpStatus] = useState<{ enabled: boolean } | null>(null);
   const [loadingMP, setLoadingMP] = useState(false);
+  const [mpAccessToken, setMpAccessToken] = useState('');
+  const [mpSaving, setMpSaving] = useState(false);
+  const [mpMessage, setMpMessage] = useState('');
+  const [mpError, setMpError] = useState('');
 
   useEffect(() => {
     const fetchTipoONG = async () => {
@@ -139,14 +143,55 @@ export default function DashboardPage() {
                 <p className="text-sm" style={{ color: '#92400e' }}>
                   Aún no configuraste la recepción de donaciones por pagos. Sigue los pasos para habilitarlas y poder recibir aportes.
                 </p>
-              </div>
-              <div>
-                <button
-                  className="btn-primary text-sm"
-                  onClick={() => navigate('/pagos/configurar')}
-                >
-                  Configurar ahora
-                </button>
+                <div className="mt-3 p-3 rounded-md border" style={{ borderColor: '#f59e0b22', backgroundColor: '#fff7ed' }}>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#92400e' }}>
+                    Access Token de Mercado Pago (APP_USR-...)
+                  </label>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="password"
+                      className="input-field flex-1"
+                      placeholder="APP_USR-..."
+                      value={mpAccessToken}
+                      onChange={e => setMpAccessToken(e.target.value)}
+                      disabled={mpSaving}
+                    />
+                    <button
+                      className="btn-primary text-sm"
+                      disabled={mpSaving || !mpAccessToken.trim().startsWith('APP_USR-')}
+                      onClick={async () => {
+                        setMpSaving(true)
+                        setMpMessage('')
+                        setMpError('')
+                        try {
+                          await api.setOngMPToken(mpAccessToken.trim(), true)
+                          setMpMessage('Token guardado. Pagos habilitados.')
+                          setMpAccessToken('')
+                          setMpStatus({ enabled: true })
+                        } catch (err: any) {
+                          setMpError(err?.message || 'Error al guardar el token')
+                        } finally {
+                          setMpSaving(false)
+                        }
+                      }}
+                    >
+                      {mpSaving ? 'Guardando...' : 'Habilitar pagos'}
+                    </button>
+                    <button
+                      className="btn-secondary text-sm"
+                      disabled={mpSaving}
+                      onClick={() => navigate('/pagos/configurar')}
+                    >
+                      Más opciones
+                    </button>
+                  </div>
+                  {mpMessage && (
+                    <div className="mt-3 text-sm" style={{ color: '#166534' }}>✅ {mpMessage}</div>
+                  )}
+                  {mpError && (
+                    <div className="mt-3 text-sm" style={{ color: '#991b1b' }}>❌ {mpError}</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

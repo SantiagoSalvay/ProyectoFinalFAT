@@ -41,7 +41,7 @@ router.post('/mp/create', auth, async (req, res) => {
       return res.status(404).json({ error: 'ONG no válida' });
     }
 
-    const detalle = await prisma.DetalleUsuario.findUnique({
+    const detalle = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: parseInt(ongId) },
       select: { mp_enabled: true, mp_token_cipher: true, mp_token_iv: true, mp_token_tag: true }
     });

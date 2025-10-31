@@ -231,7 +231,7 @@ router.get("/:id/mp-status", async (req, res) => {
     const id = parseInt(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: "ID inválido" });
 
-    const detalle = await prisma.DetalleUsuario.findUnique({
+    const detalle = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: id },
       select: { mp_enabled: true },
     });
@@ -482,7 +482,7 @@ router.post(
       const imageUrl = `/uploads/profiles/${req.file.filename}`;
 
       // Obtener la imagen anterior si existe para eliminarla
-      const detalleUsuario = await prisma.DetalleUsuario.findUnique({
+      const detalleUsuario = await prisma.DetalleUsuario.findFirst({
         where: { id_usuario: userId },
         select: { profile_picture: true },
       });
@@ -587,7 +587,7 @@ router.delete("/profile-image", authenticateToken, async (req, res) => {
     }
 
     // Obtener la imagen actual
-    const detalleUsuario = await prisma.DetalleUsuario.findUnique({
+    const detalleUsuario = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: userId },
       select: { profile_picture: true },
     });
