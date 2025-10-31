@@ -112,12 +112,6 @@ html[data-theme="dark"] .text-orange-600 { color: #fdba74 !important; }
 html[data-theme="dark"] .bg-emerald-50 { background-color: color-mix(in oklab, #10b981 16%, #121212) !important; }
 html[data-theme="dark"] .text-emerald-600 { color: #6ee7b7 !important; }
 
-/* Gradients claros a fondos neutros en oscuro */
-html[data-theme="dark"] .bg-gradient-to-r {
-  background-image: none !important;
-  background-color: #121212 !important;
-}
-
 /* Animaciones suaves */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }

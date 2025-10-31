@@ -44,7 +44,7 @@ export default function Header() {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2" style={{ textDecoration: 'none' }}>
             <div>
-              <img src="../../../public/images/logo.png" alt="Logo" className="w-8 h-8" />
+              <img src="/images/logo.png" alt="Logo" className="w-8 h-8" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent" style={{ textDecoration: 'none' }}>
               Demos+
@@ -198,7 +198,8 @@ export default function Header() {
                 />
               </>
             ) : (
-              <div className="flex items-center space-x-4">
+              /* Desktop Login/Register - Solo visible en desktop */
+              <div className="hidden md:flex items-center space-x-4">
                 <Link
                   to="/login"
                   className="text-sm font-medium transition-colors"

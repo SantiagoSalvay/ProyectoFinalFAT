@@ -63,14 +63,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight text-white px-4 animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
-              <span className="bg-gradient-to-r from-purple-300 to-purple-400 bg-clip-text text-transparent inline-block animate-gradient">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight px-4 animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
+              <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 bg-clip-text text-transparent inline-block animate-gradient">
                 Demos+
               </span>
               <br />
               <span className="text-white/90">Plataforma de</span>
               <br />
-              <span className="bg-gradient-to-r from-emerald-300 to-emerald-400 bg-clip-text text-transparent inline-block animate-gradient">
+              <span className="bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 bg-clip-text text-transparent inline-block animate-gradient">
                 Solidaridad
               </span>
             </h1>
@@ -113,10 +113,10 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-12 sm:py-16 md:py-20" style={{ backgroundColor: 'var(--color-card)' }} ref={featuresRef}>
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900" ref={featuresRef}>
         <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${featuresVisible ? 'animate-fade-in' : 'opacity-0'}`}>
           <div className="text-center mb-12 sm:mb-16" >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4" style={{ color: 'var(--color-fg)' }}>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-purple-600 to-purple-800 dark:from-purple-400 dark:to-purple-600 bg-clip-text text-transparent">
               ¿Por qué elegir Demos+?
             </h2>
             <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-4" style={{ color: 'var(--color-muted)' }}>
@@ -127,14 +127,14 @@ export default function HomePage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Feature 1 */}
-            <div className="card p-6 sm:p-8 text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
+            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-gray-200 dark:border-purple-500/30">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-500 dark:to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
                 <Heart className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4" style={{ color: 'var(--color-fg)' }}>
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-purple-300">
                 Donaciones Transparentes
               </h3>
-              <p className="text-sm sm:text-base" style={{ color: 'var(--color-muted)' }}>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Conecta directamente con organizaciones verificadas y sigue el impacto 
                 de tus donaciones en tiempo real.
               </p>
@@ -142,14 +142,14 @@ export default function HomePage() {
 
             {/* Feature 2 */}
             <div 
-              className="card p-6 sm:p-8 text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
+              className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-gray-200 dark:border-emerald-500/30">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
                 <Users className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4" style={{ color: 'var(--color-fg)' }}>
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-emerald-300">
                 Voluntariado Activo
               </h3>
-              <p className="text-sm sm:text-base" style={{ color: 'var(--color-muted)' }}>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Encuentra oportunidades de voluntariado que se adapten a tus habilidades 
                 y horarios disponibles.
               </p>
@@ -157,14 +157,14 @@ export default function HomePage() {
 
             {/* Feature 3 */}
             <div 
-              className="card p-6 sm:p-8 text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 sm:col-span-2 lg:col-span-1">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
+              className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 sm:col-span-2 lg:col-span-1 border border-gray-200 dark:border-orange-500/30">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
                 <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4" style={{ color: 'var(--color-fg)' }}>
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-orange-300">
                 Comunidad Solidaria
               </h3>
-              <p className="text-sm sm:text-base" style={{ color: 'var(--color-muted)' }}>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Únete a una comunidad de personas comprometidas con el cambio social 
                 y comparte experiencias.
               </p>
@@ -212,29 +212,27 @@ export default function HomePage() {
 
       {/* CTA Section - Solo para usuarios no autenticados */}
       {!isAuthenticated && (
-        <section className="py-12 sm:py-16 md:py-20" style={{ backgroundColor: 'var(--color-bg)' }} ref={ctaRef}>
+        <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-purple-50 to-emerald-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-emerald-900/20" ref={ctaRef}>
           <div className={`max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 ${ctaVisible ? 'animate-fade-in' : 'opacity-0'}`}>
             <h2 
-              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6" 
-              style={{ color: 'var(--color-fg)' }}>
+              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 via-purple-700 to-emerald-600 dark:from-purple-300 dark:via-purple-400 dark:to-emerald-400 bg-clip-text text-transparent">
               ¿Listo para hacer la diferencia?
             </h2>
             <p 
-              className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 px-4" 
-              style={{ color: 'var(--color-muted)' }}>
+              className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 px-4 text-gray-700 dark:text-gray-300">
               Únete a miles de personas que ya están creando un impacto positivo 
               en sus comunidades y en el mundo.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <Link
                 to="/register"
-                className="w-full sm:w-auto btn-primary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+                className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 dark:from-purple-500 dark:to-purple-600 dark:hover:from-purple-600 dark:hover:to-purple-700 text-white text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-medium"
               >
                 Registrarse Ahora
               </Link>
               <Link
                 to="/login"
-                className="w-full sm:w-auto btn-secondary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg hover:scale-105 transition-all duration-300"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-medium"
               >
                 Ya Tengo Cuenta
               </Link>
