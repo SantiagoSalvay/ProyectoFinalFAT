@@ -74,12 +74,14 @@ router.get('/google/callback',
       );
 
       // Redirigir al frontend con el token
-      const redirectUrl = `http://localhost:3000/auth/callback?token=${token}&provider=google`;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const redirectUrl = `${frontendUrl}/auth/callback?token=${token}&provider=google`;
       res.redirect(redirectUrl);
 
     } catch (error) {
       console.error('❌ Error en callback de Google:', error);
-      res.redirect('http://localhost:3000/login?error=token_generation_failed');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/login?error=token_generation_failed`);
     }
   }
 );
@@ -140,10 +142,12 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
         );
 
         // Redirigir al frontend con el token
-        res.redirect(`http://localhost:3000/auth/callback?token=${token}&provider=${authProvider}`);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(`${frontendUrl}/auth/callback?token=${token}&provider=${authProvider}`);
       } catch (error) {
         console.error('❌ Error al generar token JWT después de Twitter OAuth:', error);
-        res.redirect('http://localhost:3000/login?error=token_generation_failed');
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(`${frontendUrl}/login?error=token_generation_failed`);
       }
     }
   );
