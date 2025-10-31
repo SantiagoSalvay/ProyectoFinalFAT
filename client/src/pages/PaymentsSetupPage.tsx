@@ -119,6 +119,13 @@ export default function PaymentsSetupPage() {
               >
                 Deshabilitar pagos
               </button>
+              <button
+              className='btn-secondary'
+              type='button'
+              onClick={() => window.history.back()}
+              >
+                Volver
+              </button>
             </div>
           </form>
 

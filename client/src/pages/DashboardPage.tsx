@@ -143,54 +143,14 @@ export default function DashboardPage() {
                 <p className="text-sm" style={{ color: '#92400e' }}>
                   Aún no configuraste la recepción de donaciones por pagos. Sigue los pasos para habilitarlas y poder recibir aportes.
                 </p>
-                <div className="mt-3 p-3 rounded-md border" style={{ borderColor: '#f59e0b22', backgroundColor: '#fff7ed' }}>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#92400e' }}>
-                    Access Token de Mercado Pago (APP_USR-...)
-                  </label>
-                  <div className="flex gap-3 items-center">
-                    <input
-                      type="password"
-                      className="input-field flex-1"
-                      placeholder="APP_USR-..."
-                      value={mpAccessToken}
-                      onChange={e => setMpAccessToken(e.target.value)}
-                      disabled={mpSaving}
-                    />
-                    <button
-                      className="btn-primary text-sm"
-                      disabled={mpSaving || !mpAccessToken.trim().startsWith('APP_USR-')}
-                      onClick={async () => {
-                        setMpSaving(true)
-                        setMpMessage('')
-                        setMpError('')
-                        try {
-                          await api.setOngMPToken(mpAccessToken.trim(), true)
-                          setMpMessage('Token guardado. Pagos habilitados.')
-                          setMpAccessToken('')
-                          setMpStatus({ enabled: true })
-                        } catch (err: any) {
-                          setMpError(err?.message || 'Error al guardar el token')
-                        } finally {
-                          setMpSaving(false)
-                        }
-                      }}
-                    >
-                      {mpSaving ? 'Guardando...' : 'Habilitar pagos'}
-                    </button>
-                    <button
+
+                <div className="mt-4">
+                <button
                       className="btn-secondary text-sm"
                       disabled={mpSaving}
-                      onClick={() => navigate('/pagos/configurar')}
-                    >
-                      Más opciones
+                      onClick={() => navigate('/pagos/configurar')}>
+                      Habilitar
                     </button>
-                  </div>
-                  {mpMessage && (
-                    <div className="mt-3 text-sm" style={{ color: '#166534' }}>✅ {mpMessage}</div>
-                  )}
-                  {mpError && (
-                    <div className="mt-3 text-sm" style={{ color: '#991b1b' }}>❌ {mpError}</div>
-                  )}
                 </div>
               </div>
             </div>

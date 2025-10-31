@@ -7,104 +7,106 @@ import { emailService } from '../../lib/email-service.js';
 const prisma = new PrismaClient();
 
 // Configurar estrategia de Google
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.API_URL || 'http://localhost:3001'}/api/auth/google/callback`
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    console.log('🔍 Google OAuth Profile:', profile);
-    
-    // Buscar Usuario existente por google_id en detalleUsuario
-    let detalleUsuario = await prisma.detalleUsuario.findUnique({
-      where: { google_id: profile.id },
-      include: { Usuario: true }
-    });
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: `${process.env.API_URL || 'http://localhost:3001'}/api/auth/google/callback`
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      console.log('🔍 Google OAuth Profile:', profile);
+      
+      // Buscar Usuario existente por google_id en detalleUsuario
+      let detalleUsuario = await prisma.detalleUsuario.findUnique({
+        where: { google_id: profile.id },
+        include: { Usuario: true }
+      });
 
-    if (detalleUsuario) {
-      console.log('✅ Usuario existente encontrado:', detalleUsuario.Usuario.email);
-      return done(null, detalleUsuario.Usuario);
-    }
-
-    // Buscar Usuario existente por email
-    let user = await prisma.Usuario.findUnique({
-      where: { email: profile.emails[0].value },
-      include: { DetalleUsuario: true }
-    });
-
-    if (user) {
-      // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
-      if (!user.DetalleUsuario) {
-        await prisma.detalleUsuario.create({
-          data: {
-            id_usuario: user.id_usuario,
-            google_id: profile.id,
-            auth_provider: 'google',
-            profile_picture: profile.photos[0]?.value,
-            email_verified: true
-          }
-        });
-      } else {
-        // Si ya tiene detalleUsuario, actualizar con google_id
-        await prisma.detalleUsuario.update({
-          where: { id_usuario: user.id_usuario },
-          data: {
-            google_id: profile.id,
-            auth_provider: 'google',
-            profile_picture: profile.photos[0]?.value,
-            email_verified: true
-          }
-        });
+      if (detalleUsuario) {
+        console.log('✅ Usuario existente encontrado:', detalleUsuario.Usuario.email);
+        return done(null, detalleUsuario.Usuario);
       }
-      console.log('🔄 Usuario existente actualizado con Google ID');
-      return done(null, user);
-    }
 
-    // Crear nuevo Usuario con su detalle
-    const newUser = await prisma.Usuario.create({
-      data: {
-        nombre: profile.name.givenName,
-        apellido: profile.name.familyName || '',
-        email: profile.emails[0].value,
-        id_tipo_usuario: 1, // Usuario regular por defecto
-        DetalleUsuario: {
-          create: {
-            google_id: profile.id,
-            auth_provider: 'google',
-            profile_picture: profile.photos[0]?.value,
-            email_verified: true
+      // Buscar Usuario existente por email
+      let user = await prisma.Usuario.findUnique({
+        where: { email: profile.emails[0].value },
+        include: { DetalleUsuario: true }
+      });
+
+      if (user) {
+        // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
+        if (!user.DetalleUsuario) {
+          await prisma.detalleUsuario.create({
+            data: {
+              id_usuario: user.id_usuario,
+              google_id: profile.id,
+              auth_provider: 'google',
+              profile_picture: profile.photos[0]?.value,
+              email_verified: true
+            }
+          });
+        } else {
+          // Si ya tiene detalleUsuario, actualizar con google_id
+          await prisma.detalleUsuario.update({
+            where: { id_usuario: user.id_usuario },
+            data: {
+              google_id: profile.id,
+              auth_provider: 'google',
+              profile_picture: profile.photos[0]?.value,
+              email_verified: true
+            }
+          });
+        }
+        console.log('🔄 Usuario existente actualizado con Google ID');
+        return done(null, user);
+      }
+
+      // Crear nuevo Usuario con su detalle
+      const newUser = await prisma.Usuario.create({
+        data: {
+          nombre: profile.name.givenName,
+          apellido: profile.name.familyName || '',
+          email: profile.emails[0].value,
+          id_tipo_usuario: 1, // Usuario regular por defecto
+          DetalleUsuario: {
+            create: {
+              google_id: profile.id,
+              auth_provider: 'google',
+              profile_picture: profile.photos[0]?.value,
+              email_verified: true
+            }
           }
         }
+      });
+
+      console.log('🆕 Nuevo Usuario creado:', newUser.email);
+
+      // Enviar emails de notificación para nuevo Usuario OAuth
+      try {
+        console.log('📧 [GOOGLE OAUTH] Enviando emails de notificación...');
+        
+        const userName = `${newUser.nombre} ${newUser.apellido}`.trim();
+        
+        // 1. Email de cuenta creada exitosamente
+        await emailService.sendOAuthAccountCreatedEmail(newUser.email, userName, 'Google');
+        console.log('✅ [GOOGLE OAUTH] Email de cuenta creada enviado');
+        
+        // 2. Email de bienvenida
+        await emailService.sendWelcomeEmail(newUser.email, userName);
+        console.log('✅ [GOOGLE OAUTH] Email de bienvenida enviado');
+        
+      } catch (emailError) {
+        console.error('⚠️ [GOOGLE OAUTH] Error al enviar emails (no crítico):', emailError);
       }
-    });
 
-    console.log('🆕 Nuevo Usuario creado:', newUser.email);
+      return done(null, newUser);
 
-    // Enviar emails de notificación para nuevo Usuario OAuth
-    try {
-      console.log('📧 [GOOGLE OAUTH] Enviando emails de notificación...');
-      
-      const userName = `${newUser.nombre} ${newUser.apellido}`.trim();
-      
-      // 1. Email de cuenta creada exitosamente
-      await emailService.sendOAuthAccountCreatedEmail(newUser.email, userName, 'Google');
-      console.log('✅ [GOOGLE OAUTH] Email de cuenta creada enviado');
-      
-      // 2. Email de bienvenida
-      await emailService.sendWelcomeEmail(newUser.email, userName);
-      console.log('✅ [GOOGLE OAUTH] Email de bienvenida enviado');
-      
-    } catch (emailError) {
-      console.error('⚠️ [GOOGLE OAUTH] Error al enviar emails (no crítico):', emailError);
+    } catch (error) {
+      console.error('❌ Error en Google OAuth:', error);
+      return done(error, null);
     }
-
-    return done(null, newUser);
-
-  } catch (error) {
-    console.error('❌ Error en Google OAuth:', error);
-    return done(error, null);
-  }
   }));
+  console.log('✅ Google OAuth configurado correctamente');
 } else {
   console.warn('⚠️ Google OAuth deshabilitado: faltan GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
 }
