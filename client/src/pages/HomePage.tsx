@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-screen flex items-center">
+      <section className="relative overflow-hidden min-h-screen flex items-center justify-center">
         {/* Background Image */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -54,10 +54,10 @@ export default function HomePage() {
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black/40 dark:bg-black/60"></div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 z-10 animate-fade-in">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-24 z-10 animate-fade-in -mt-32 sm:mt-0">
           <div className="text-center">
-            <div className="mb-6 sm:mb-8 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
-              <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition-all duration-300">
+            <div className="mb-4 sm:mb-8 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
+              <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-6 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition-all duration-300">
                 <Heart className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-pulse" />
                 Conectando corazones, transformando vidas
               </div>
