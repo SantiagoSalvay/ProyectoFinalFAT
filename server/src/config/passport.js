@@ -104,10 +104,7 @@ passport.use(new GoogleStrategy({
     console.error('❌ Error en Google OAuth:', error);
     return done(error, null);
   }
-  }));
-} else {
-  console.warn('⚠️ Google OAuth deshabilitado: faltan GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
-}
+}));
 
 // Configurar estrategia de Twitter (solo si las credenciales están disponibles)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
