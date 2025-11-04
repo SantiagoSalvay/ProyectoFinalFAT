@@ -15,15 +15,3 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
-backend:
-  phases:
-    preBuild:
-      commands:
-        - cd server
-        - npm install -g pnpm
-        - pnpm install
-        - npx prisma generate
-        - npx prisma db push --accept-data-loss --skip-generate
-    build:
-      commands:
-        - cd ..
