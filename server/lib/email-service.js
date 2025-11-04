@@ -1,16 +1,26 @@
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
 
-// Cargar variables de entorno
-dotenv.config({ path: '../../../.env' });
+// Nota: Las variables de entorno ya están cargadas en server/src/index.js
+// No necesitamos cargar dotenv aquí, ya que en producción las variables
+// se configuran directamente en el servidor y en local se cargan desde index.js
 
 // Función para crear transporter
 const createTransporter = () => {
+  // Validar que las variables de entorno estén configuradas
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    const errorMsg = '❌ [EMAIL SERVICE] Variables de entorno SMTP no configuradas. ' +
+      'Se requieren SMTP_USER y SMTP_PASS. ' +
+      `SMTP_USER: ${process.env.SMTP_USER ? 'Configurado' : 'FALTANTE'}, ` +
+      `SMTP_PASS: ${process.env.SMTP_PASS ? 'Configurado' : 'FALTANTE'}`;
+    console.error(errorMsg);
+    throw new Error('Configuración SMTP incompleta. Verifica las variables de entorno SMTP_USER y SMTP_PASS.');
+  }
+
   console.log('🔧 [EMAIL SERVICE] Creando transporter con configuración:', {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT || '465'),
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS ? 'Configurada' : 'No configurada'
+    pass: 'Configurada' // No mostrar la contraseña en logs
   });
   
   return nodemailer.createTransport({
@@ -515,6 +525,7 @@ export const emailService = {
   sendPasswordResetEmailAlt: async (to, resetToken) => {
     try {
       const template = emailTemplates.resetPassword(resetToken);
+      const transporter = createTransporter();
       
       // Usar EXACTAMENTE el mismo código que sendVerificationEmail
       await transporter.sendMail({
