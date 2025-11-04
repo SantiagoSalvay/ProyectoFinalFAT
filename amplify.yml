@@ -1,0 +1,30 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm install -g pnpm
+        - pnpm install
+    build:
+      commands:
+        - pnpm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+backend:
+  phases:
+    preBuild:
+      commands:
+        - cd server
+        - npm install -g pnpm
+        - pnpm install
+        - npx prisma generate
+        - npx prisma db push --accept-data-loss --skip-generate
+    build:
+      commands:
+        - cd ..
+
