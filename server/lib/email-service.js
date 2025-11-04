@@ -52,7 +52,7 @@ const emailTemplates = {
           </p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="http://localhost:3000/verificar/${verificationToken}" 
+            <a href="${process.env.APP_URL || 'http://localhost:3000'}/verificar/${verificationToken}" 
                style="background-color: #2b555f; color: white; padding: 15px 30px; text-decoration: none; 
                       border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
               ✉️ Verificar mi correo electrónico
@@ -63,7 +63,7 @@ const emailTemplates = {
             Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
           </p>
           <p style="word-break: break-all; background-color: #e9ecef; padding: 10px; border-radius: 4px; font-size: 12px;">
-            http://localhost:3000/verificar/${verificationToken}
+            ${process.env.APP_URL || 'http://localhost:3000'}/verificar/${verificationToken}
           </p>
           
           <p style="font-size: 14px; color: #666; margin-top: 30px;">
@@ -492,7 +492,7 @@ export const emailService = {
       const template = emailTemplates.verifyEmail(verificationToken);
       const transporter = createTransporter();
       
-      console.log('🔗 [EMAIL SERVICE] Enlace generado:', `http://localhost:3000/verificar/${verificationToken}`);
+      console.log('🔗 [EMAIL SERVICE] Enlace generado:', `${process.env.APP_URL || 'http://localhost:3000'}/verificar/${verificationToken}`);
       
       await transporter.sendMail({
         from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`,
