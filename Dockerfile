@@ -7,19 +7,17 @@ RUN npm install -g pnpm
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json y pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml ./
-COPY server/package.json server/pnpm-lock.yaml ./server/
-
-# Instalar dependencias del frontend y backend
-RUN pnpm install --frozen-lockfile
-RUN cd server && pnpm install --frozen-lockfile
-
-# Copiar el resto del código
+# Copiar el código completo primero
 COPY . .
+
+# Instalar dependencias del backend (sin ejecutar postinstall del root)
+RUN cd server && pnpm install --frozen-lockfile
 
 # Generar Prisma Client
 RUN cd server && npx prisma generate
+
+# Instalar dependencias del frontend (con --ignore-scripts para evitar postinstall)
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Build del frontend
 RUN pnpm run build
