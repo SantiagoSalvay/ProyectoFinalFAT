@@ -510,58 +510,6 @@ export default function MapPage() {
                 })}
             </div>
           </div>
-              
-          {/* Filtro por necesidades */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="text-sm font-medium text-white">Nesesidades:</span>
-              <button
-                onClick={() => setCategoryFilter([])}
-                className="text-xs text-purple-200 hover:text-white underline"
-              >
-                Limpiar
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {[...availableCategories]
-                .sort((a, b) => a.id_categoria - b.id_categoria) // 🔹 Ordenar por ID numérico
-                .map((category) => {
-                  const isSelected = categoryFilter.includes(category.id_categoria);
-                  const count = ongs.filter((ong) =>
-                    ong.categories?.some(
-                      (cat) => cat.id_categoria === category.id_categoria
-                    )
-                  ).length;
-                
-                  return (
-                    <button
-                      key={category.id_categoria}
-                      onClick={() => {
-                        setCategoryFilter((prev) =>
-                          isSelected
-                            ? prev.filter((id) => id !== category.id_categoria)
-                            : [...prev, category.id_categoria]
-                        );
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center ${
-                        isSelected
-                          ? "bg-white text-purple-700 shadow-md"
-                          : "bg-purple-700 text-white hover:bg-purple-800"
-                      }`}
-                      style={
-                        isSelected
-                          ? {}
-                          : { backgroundColor: category.color, opacity: 0.9 }
-                      }
-                    >
-                      {category.icono && <span className="mr-1">{category.icono}</span>}
-                      {category.nombre}
-                      <span className="ml-1.5 opacity-75">({count})</span>
-                    </button>
-                  );
-                })}
-            </div>
-          </div>
         </div>
       </div>
 
