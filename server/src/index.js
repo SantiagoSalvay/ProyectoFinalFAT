@@ -51,7 +51,7 @@ app.use(
       }
       
       // En producción, permitir el dominio actual
-      if (process.env.NODE_ENV === 'production' && origin.includes('railway.app')) {
+      if (process.env.NODE_ENV === 'production' && (origin.includes('railway.app') || origin.includes('amplifyapp.com'))) {
         return callback(null, true);
       }
       
