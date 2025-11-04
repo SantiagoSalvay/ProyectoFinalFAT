@@ -27,4 +27,3 @@ backend:
     build:
       commands:
         - cd ..
-
