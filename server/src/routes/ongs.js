@@ -279,24 +279,33 @@ router.post("/mp-token", authenticateToken, async (req, res) => {
 
     const enc = encryptSecret(accessToken);
 
-    const detalle = await prisma.DetalleUsuario.upsert({
+    const existingDetalle = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: userId },
-      update: {
-        mp_token_cipher: enc.cipher,
-        mp_token_iv: enc.iv,
-        mp_token_tag: enc.tag,
-        mp_enabled: enable === false ? false : true,
-        mp_onboarded_at: new Date(),
-      },
-      create: {
-        id_usuario: userId,
-        mp_token_cipher: enc.cipher,
-        mp_token_iv: enc.iv,
-        mp_token_tag: enc.tag,
-        mp_enabled: enable === false ? false : true,
-        mp_onboarded_at: new Date(),
-      },
+      select: { id_detalle_usuario: true },
     });
+
+    let detalle;
+    const data = {
+      mp_token_cipher: enc.cipher,
+      mp_token_iv: enc.iv,
+      mp_token_tag: enc.tag,
+      mp_enabled: enable === false ? false : true,
+      mp_onboarded_at: new Date(),
+    };
+
+    if (existingDetalle) {
+      detalle = await prisma.DetalleUsuario.update({
+        where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
+        data,
+      });
+    } else {
+      detalle = await prisma.DetalleUsuario.create({
+        data: {
+          id_usuario: userId,
+          ...data,
+        },
+      });
+    }
 
     res.json({ message: "Token configurado", enabled: detalle.mp_enabled });
   } catch (error) {
@@ -322,20 +331,26 @@ router.delete("/mp-token", authenticateToken, async (req, res) => {
         .json({ error: "Solo ONGs pueden modificar pagos" });
     }
 
-    await prisma.DetalleUsuario.update({
+    const existingDetalle = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: userId },
-      data: {
-        mp_token_cipher: null,
-        mp_token_iv: null,
-        mp_token_tag: null,
-        mp_enabled: false,
-      },
-    }).catch(async () => {
-      // Si no existe, crear registro deshabilitado
+      select: { id_detalle_usuario: true },
+    });
+
+    if (existingDetalle) {
+      await prisma.DetalleUsuario.update({
+        where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
+        data: {
+          mp_token_cipher: null,
+          mp_token_iv: null,
+          mp_token_tag: null,
+          mp_enabled: false,
+        },
+      });
+    } else {
       await prisma.DetalleUsuario.create({
         data: { id_usuario: userId, mp_enabled: false },
       });
-    });
+    }
 
     res.json({ message: "Pagos deshabilitados", enabled: false });
   } catch (error) {
@@ -505,14 +520,22 @@ router.post(
       }
 
       // Actualizar o crear registro en DetalleUsuario con la nueva URL
-      const updatedDetalle = await prisma.DetalleUsuario.upsert({
+      const existingDetalle = await prisma.DetalleUsuario.findFirst({
         where: { id_usuario: userId },
-        update: { profile_picture: imageUrl },
-        create: {
-          id_usuario: userId,
-          profile_picture: imageUrl,
-        },
+        select: { id_detalle_usuario: true },
       });
+
+      const updatedDetalle = existingDetalle
+        ? await prisma.DetalleUsuario.update({
+            where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
+            data: { profile_picture: imageUrl },
+          })
+        : await prisma.DetalleUsuario.create({
+            data: {
+              id_usuario: userId,
+              profile_picture: imageUrl,
+            },
+          });
 
       console.log("✅ Imagen de perfil guardada:", imageUrl);
 
@@ -614,10 +637,17 @@ router.delete("/profile-image", authenticateToken, async (req, res) => {
     }
 
     // Actualizar base de datos
-    await prisma.DetalleUsuario.update({
+    const existingDetalle = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: userId },
-      data: { profile_picture: null },
+      select: { id_detalle_usuario: true },
     });
+
+    if (existingDetalle) {
+      await prisma.DetalleUsuario.update({
+        where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
+        data: { profile_picture: null },
+      });
+    }
 
     res.json({ message: "Imagen de perfil eliminada exitosamente" });
   } catch (error) {

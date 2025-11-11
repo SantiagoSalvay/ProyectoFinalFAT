@@ -196,33 +196,53 @@ router.post('/mp/callback', async (req, res) => {
         const puntosGanados = pedidoReciente.cantidad * pedidoReciente.tipoDonacion.puntos;
         
         // Donador
-        await prisma.DetalleUsuario.upsert({
+        const existingDetalleDonador = await prisma.DetalleUsuario.findFirst({
           where: { id_usuario: pedidoReciente.id_usuario },
-          update: {
-            puntosActuales: { increment: puntosGanados },
-            ultima_fecha_actualizacion: new Date()
-          },
-          create: {
-            id_usuario: pedidoReciente.id_usuario,
-            puntosActuales: puntosGanados,
-            ultima_fecha_actualizacion: new Date()
-          }
+          select: { id_detalle_usuario: true }
         });
+
+        if (existingDetalleDonador) {
+          await prisma.DetalleUsuario.update({
+            where: { id_detalle_usuario: existingDetalleDonador.id_detalle_usuario },
+            data: {
+              puntosActuales: { increment: puntosGanados },
+              ultima_fecha_actualizacion: new Date()
+            }
+          });
+        } else {
+          await prisma.DetalleUsuario.create({
+            data: {
+              id_usuario: pedidoReciente.id_usuario,
+              puntosActuales: puntosGanados,
+              ultima_fecha_actualizacion: new Date()
+            }
+          });
+        }
 
         // ONG receptora
         const ongReceptora = pedidoReciente.publicacionEtiqueta.publicacion.usuario;
-        await prisma.DetalleUsuario.upsert({
+        const existingDetalleOng = await prisma.DetalleUsuario.findFirst({
           where: { id_usuario: ongReceptora.id_usuario },
-          update: {
-            puntosActuales: { increment: puntosGanados },
-            ultima_fecha_actualizacion: new Date()
-          },
-          create: {
-            id_usuario: ongReceptora.id_usuario,
-            puntosActuales: puntosGanados,
-            ultima_fecha_actualizacion: new Date()
-          }
+          select: { id_detalle_usuario: true }
         });
+
+        if (existingDetalleOng) {
+          await prisma.DetalleUsuario.update({
+            where: { id_detalle_usuario: existingDetalleOng.id_detalle_usuario },
+            data: {
+              puntosActuales: { increment: puntosGanados },
+              ultima_fecha_actualizacion: new Date()
+            }
+          });
+        } else {
+          await prisma.DetalleUsuario.create({
+            data: {
+              id_usuario: ongReceptora.id_usuario,
+              puntosActuales: puntosGanados,
+              ultima_fecha_actualizacion: new Date()
+            }
+          });
+        }
 
         console.log(`✅ Puntos otorgados automáticamente: Donador=${pedidoReciente.id_usuario} (+${puntosGanados}), ONG=${ongReceptora.id_usuario} (+${puntosGanados})`);
       }

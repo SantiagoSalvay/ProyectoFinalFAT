@@ -26,20 +26,30 @@ const calcularPuntosDonacion = (cantidad, puntosPorTipo) => {
 // Función para actualizar puntos de un usuario
 const actualizarPuntosUsuario = async (idUsuario, puntosGanados) => {
   try {
-    await prisma.DetalleUsuario.upsert({
+    const existingDetalle = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: idUsuario },
-      update: {
-        puntosActuales: {
-          increment: puntosGanados
-        },
-        ultima_fecha_actualizacion: new Date()
-      },
-      create: {
-        id_usuario: idUsuario,
-        puntosActuales: puntosGanados,
-        ultima_fecha_actualizacion: new Date()
-      }
+      select: { id_detalle_usuario: true }
     });
+
+    if (existingDetalle) {
+      await prisma.DetalleUsuario.update({
+        where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
+        data: {
+          puntosActuales: {
+            increment: puntosGanados
+          },
+          ultima_fecha_actualizacion: new Date()
+        }
+      });
+    } else {
+      await prisma.DetalleUsuario.create({
+        data: {
+          id_usuario: idUsuario,
+          puntosActuales: puntosGanados,
+          ultima_fecha_actualizacion: new Date()
+        }
+      });
+    }
   } catch (error) {
     console.error('Error actualizando puntos del usuario:', error);
     throw error;
