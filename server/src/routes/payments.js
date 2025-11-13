@@ -32,16 +32,16 @@ router.post('/mp/create', auth, async (req, res) => {
       return res.status(400).json({ error: 'amount debe ser un número mayor a 0' });
     }
 
-    const ongUser = await prisma.Usuario.findUnique({
+    const ongUser = await prisma.usuario.findUnique({
       where: { id_usuario: parseInt(ongId) },
-      select: { id_usuario: true, id_tipo_usuario: true, DetalleUsuario: true }
+      select: { id_usuario: true, id_tipo_usuario: true }
     });
 
     if (!ongUser || ongUser.id_tipo_usuario !== 2) {
       return res.status(404).json({ error: 'ONG no válida' });
     }
 
-    const detalle = await prisma.DetalleUsuario.findFirst({
+    const detalle = await prisma.detalleUsuario.findFirst({
       where: { id_usuario: parseInt(ongId) },
       select: { mp_enabled: true, mp_token_cipher: true, mp_token_iv: true, mp_token_tag: true }
     });
@@ -88,23 +88,23 @@ router.post('/mp/create', auth, async (req, res) => {
 
     // Registrar pedido de donación inmediatamente al crear la preferencia
     try {
-      const dineroTipo = await prisma.TipoDonacion.findFirst({
+      const dineroTipo = await prisma.tipoDonacion.findFirst({
         where: { tipo_donacion: 'Dinero' },
         select: { id_tipo_donacion: true }
       });
 
       if (dineroTipo) {
         // Asegurar etiqueta y publicación "contenedor" para donaciones monetarias de esta ONG
-        let etiqueta = await prisma.Etiqueta.findFirst({ where: { etiqueta: 'Donaciones Monetarias' } });
+        let etiqueta = await prisma.etiqueta.findFirst({ where: { etiqueta: 'Donaciones Monetarias' } });
         if (!etiqueta) {
-          etiqueta = await prisma.Etiqueta.create({ data: { etiqueta: 'Donaciones Monetarias' } });
+          etiqueta = await prisma.etiqueta.create({ data: { etiqueta: 'Donaciones Monetarias' } });
         }
 
-        let publicacion = await prisma.Publicacion.findFirst({
+        let publicacion = await prisma.publicacion.findFirst({
           where: { id_usuario: parseInt(ongId), titulo: 'Donación Monetaria Directa' }
         });
         if (!publicacion) {
-          publicacion = await prisma.Publicacion.create({
+          publicacion = await prisma.publicacion.create({
             data: {
               id_usuario: parseInt(ongId),
               titulo: 'Donación Monetaria Directa',
@@ -115,11 +115,11 @@ router.post('/mp/create', auth, async (req, res) => {
           });
         }
 
-        let pubEtiqueta = await prisma.PublicacionEtiqueta.findFirst({
+        let pubEtiqueta = await prisma.publicacionEtiqueta.findFirst({
           where: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
         });
         if (!pubEtiqueta) {
-          pubEtiqueta = await prisma.PublicacionEtiqueta.create({
+          pubEtiqueta = await prisma.publicacionEtiqueta.create({
             data: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
           });
         }
@@ -133,10 +133,10 @@ router.post('/mp/create', auth, async (req, res) => {
           }
         });
 
-        console.log(`✅ PedidoDonacion creado: usuario=${req.user.id_usuario}, cantidad=${Math.round(amt)}, ONG=${ongId}`);
+        console.log(`✅ pedidoDonacion creado: usuario=${req.user.id_usuario}, cantidad=${Math.round(amt)}, ONG=${ongId}`);
       }
     } catch (logErr) {
-      console.warn('No se pudo registrar PedidoDonacion:', logErr?.message || logErr);
+      console.warn('No se pudo registrar pedidoDonacion:', logErr?.message || logErr);
     }
 
     return res.json({ id: prefResult.id, init_point: prefResult.init_point });
@@ -159,7 +159,7 @@ router.post('/mp/callback', async (req, res) => {
       console.log(`Processing payment callback: ${paymentId}`);
       
       // Buscar el pedido de donación más reciente para este pago
-      const pedidoReciente = await prisma.PedidoDonacion.findFirst({
+      const pedidoReciente = await prisma.pedidoDonacion.findFirst({
         where: {
           fecha_donacion: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Últimas 24 horas
@@ -183,7 +183,7 @@ router.post('/mp/callback', async (req, res) => {
 
       if (pedidoReciente && pedidoReciente.estado_evaluacion === 'pendiente') {
         // Marcar como aprobada automáticamente para donaciones monetarias
-        await prisma.PedidoDonacion.update({
+        await prisma.pedidoDonacion.update({
           where: { id_pedido: pedidoReciente.id_pedido },
           data: {
             estado_evaluacion: 'aprobada',
@@ -196,13 +196,13 @@ router.post('/mp/callback', async (req, res) => {
         const puntosGanados = pedidoReciente.cantidad * pedidoReciente.tipoDonacion.puntos;
         
         // Donador
-        const existingDetalleDonador = await prisma.DetalleUsuario.findFirst({
+        const existingDetalleDonador = await prisma.detalleUsuario.findFirst({
           where: { id_usuario: pedidoReciente.id_usuario },
           select: { id_detalle_usuario: true }
         });
 
         if (existingDetalleDonador) {
-          await prisma.DetalleUsuario.update({
+          await prisma.detalleUsuario.update({
             where: { id_detalle_usuario: existingDetalleDonador.id_detalle_usuario },
             data: {
               puntosActuales: { increment: puntosGanados },
@@ -210,7 +210,7 @@ router.post('/mp/callback', async (req, res) => {
             }
           });
         } else {
-          await prisma.DetalleUsuario.create({
+          await prisma.detalleUsuario.create({
             data: {
               id_usuario: pedidoReciente.id_usuario,
               puntosActuales: puntosGanados,
@@ -221,13 +221,13 @@ router.post('/mp/callback', async (req, res) => {
 
         // ONG receptora
         const ongReceptora = pedidoReciente.publicacionEtiqueta.publicacion.usuario;
-        const existingDetalleOng = await prisma.DetalleUsuario.findFirst({
+        const existingDetalleOng = await prisma.detalleUsuario.findFirst({
           where: { id_usuario: ongReceptora.id_usuario },
           select: { id_detalle_usuario: true }
         });
 
         if (existingDetalleOng) {
-          await prisma.DetalleUsuario.update({
+          await prisma.detalleUsuario.update({
             where: { id_detalle_usuario: existingDetalleOng.id_detalle_usuario },
             data: {
               puntosActuales: { increment: puntosGanados },
@@ -235,7 +235,7 @@ router.post('/mp/callback', async (req, res) => {
             }
           });
         } else {
-          await prisma.DetalleUsuario.create({
+          await prisma.detalleUsuario.create({
             data: {
               id_usuario: ongReceptora.id_usuario,
               puntosActuales: puntosGanados,

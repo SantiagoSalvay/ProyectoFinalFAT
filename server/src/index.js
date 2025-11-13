@@ -5,6 +5,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 import authRoutes from "./routes/auth.js";
 import oauthRoutes from "./routes/oauth.js";
 import forumRoutes from "./routes/forum.js";
@@ -109,8 +110,17 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/ranking", rankingRoutes);
 
+// Verificar si existe la carpeta dist antes de servir archivos estáticos
+const distPath = path.join(__dirname, "../../dist");
+const indexPath = path.join(distPath, "index.html");
+const distExists = fs.existsSync(distPath);
+const indexExists = fs.existsSync(indexPath);
+
 // Servir archivos estáticos del frontend (build de Vite) - DESPUÉS de las rutas API
-app.use(express.static(path.join(__dirname, "../../dist")));
+// Solo si la carpeta dist existe (modo producción o build realizado)
+if (distExists) {
+  app.use(express.static(distPath));
+}
 
 // Ruta API de prueba
 app.get("/api", (req, res) => {
@@ -153,8 +163,24 @@ app.get("/health/db", async (req, res) => {
 });
 
 // Catch-all: Servir index.html para rutas del frontend (React Router)
+// Solo si el archivo existe (modo producción)
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../dist/index.html"));
+  // Si la ruta es una ruta API, no intentar servir index.html
+  if (req.path.startsWith("/api") || req.path.startsWith("/auth")) {
+    return res.status(404).json({ error: "Ruta no encontrada" });
+  }
+
+  // Si existe el archivo index.html, servirlo
+  if (indexExists) {
+    return res.sendFile(indexPath);
+  }
+
+  // En desarrollo, si no existe dist, devolver un mensaje informativo
+  res.status(404).json({
+    error: "Frontend no disponible",
+    message: "El frontend no está compilado. En desarrollo, usa el servidor de Vite en el puerto 3000.",
+    development: process.env.NODE_ENV !== "production"
+  });
 });
 
 // Manejo de errores global
