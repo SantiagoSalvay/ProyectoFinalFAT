@@ -107,7 +107,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       autoHideDelay: notification.autoHideDelay || 5000
     }
 
-    setNotifications(prev => [newNotification, ...prev])
+    setNotifications(prev => {
+      const existingIndex = prev.findIndex(existing => existing.id === newNotification.id)
+
+      if (existingIndex !== -1) {
+        const updatedNotification = {
+          ...prev[existingIndex],
+          ...newNotification,
+          id: prev[existingIndex].id,
+          timestamp: new Date(),
+          read: false
+        }
+
+        return [
+          updatedNotification,
+          ...prev.filter((_, index) => index !== existingIndex)
+        ]
+      }
+
+      return [newNotification, ...prev]
+    })
 
     // Auto-hide functionality
     if (newNotification.autoHide) {

@@ -221,6 +221,32 @@ export function useUserNotifications() {
     setLastCheck(currentTime)
     setAnalysis(analysisResult)
 
+    const biographyNotificationId = 'global-missing-biography'
+    const biographyMissing = analysisResult.missingProfileFields.some(field =>
+      field.toLowerCase().includes('biograf')
+    )
+
+    if (biographyMissing) {
+      const existingBiographyNotification = notifications.find(n => n.id === biographyNotificationId)
+
+      if (!existingBiographyNotification) {
+        addNotification({
+          id: biographyNotificationId,
+          type: 'warning',
+          title: 'Completa tu biografía',
+          message: 'Tu biografía está vacía o incompleta. Agrega más información para que la comunidad te conozca mejor.',
+          link: '/profile',
+          category: 'profile',
+          priority: 'medium'
+        })
+      }
+    } else {
+      const existingBiographyNotification = notifications.find(n => n.id === biographyNotificationId)
+      if (existingBiographyNotification) {
+        removeNotification(biographyNotificationId)
+      }
+    }
+
     // DESACTIVADO: Notificaciones de perfil incompleto (muy intrusivas y no precisas)
     // if (analysisResult.profileCompleteness < 70) {
     //   const notificationId = 'profile-incomplete'
@@ -290,7 +316,7 @@ export function useUserNotifications() {
         link: '/profile'
       })
     }
-  }, [user, lastCheck, performCompleteAnalysis, addNotification])
+  }, [user, lastCheck, performCompleteAnalysis, addNotification, removeNotification, notifications])
 
   // Función para monitorear respuestas a preguntas
   const monitorQuestionResponses = useCallback(async () => {

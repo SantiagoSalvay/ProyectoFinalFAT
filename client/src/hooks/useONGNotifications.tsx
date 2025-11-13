@@ -31,68 +31,55 @@ export function useONGNotifications() {
       const tipoONGData: TipoONGData | null = await api.getTipoONG();
       
       // Verificar qué datos faltan
-      const missingData: string[] = [];
-      
-      // Verificar biografía
-      const userBio = (user as any).bio;
-      if (!userBio || userBio.trim() === '') {
-        missingData.push('biografía');
-      }
-      
-      // Verificar grupo social
-      if (!tipoONGData?.grupo_social || tipoONGData.grupo_social.trim() === '') {
-        missingData.push('grupo social');
-      }
-      
-      // Verificar necesidad
-      if (!tipoONGData?.necesidad || tipoONGData.necesidad.trim() === '') {
-        missingData.push('necesidad');
+      const missingGroupSocial = !tipoONGData?.grupo_social || tipoONGData.grupo_social.trim() === '';
+      const missingNecesidad = !tipoONGData?.necesidad || tipoONGData.necesidad.trim() === '';
+
+      const groupSocialNotificationId = 'ong-missing-group-social';
+      const necesidadNotificationId = 'ong-missing-necesidad';
+
+      // Limpiar notificación antigua si existe
+      const legacyNotification = notifications.find(n => n.id === 'ong-missing-data');
+      if (legacyNotification) {
+        removeNotification(legacyNotification.id);
       }
 
-      const notificationId = 'ong-missing-data';
-      const existingNotification = notifications.find(n => n.id === notificationId);
-
-      // Si hay datos faltantes, crear notificación SOLO si no existe
-      if (missingData.length > 0) {
-        
-        if (!existingNotification) {
-          const missingDataText = missingData.length === 1 
-            ? missingData[0] 
-            : missingData.length === 2 
-              ? `${missingData[0]} y ${missingData[1]}`
-              : `${missingData.slice(0, -1).join(', ')} y ${missingData[missingData.length - 1]}`;
-
-          // Determinar el enlace apropiado
-          const hasBioMissing = missingData.includes('biografía');
-          const hasOtherMissing = missingData.some(item => item !== 'biografía');
-          
-          let link = '/complete-data';
-          let message = `Te faltan completar los siguientes datos: ${missingDataText}. `;
-          
-          if (hasBioMissing && hasOtherMissing) {
-            message += 'Completa tu biografía en el perfil y los demás datos en la página de completar información.';
-            link = '/profile'; // Priorizar perfil si falta biografía
-          } else if (hasBioMissing) {
-            message += 'Completa tu biografía en el perfil.';
-            link = '/profile';
-          } else {
-            message += 'Completa los datos en la página de completar información.';
-            link = '/complete-data';
-          }
-
+      if (missingGroupSocial) {
+        const existingGroupSocialNotification = notifications.find(n => n.id === groupSocialNotificationId);
+        if (!existingGroupSocialNotification) {
           addNotification({
-            id: notificationId,
+            id: groupSocialNotificationId,
             type: 'warning',
-            title: 'Datos de ONG incompletos',
-            message,
-            link
+            title: 'Completa tu grupo social',
+            message: 'Agrega el grupo social al que pertenece tu organización para mejorar la visibilidad de tus campañas.',
+            link: '/complete-data',
+            category: 'system',
+            priority: 'high'
           });
         }
       } else {
-        // Si no hay datos faltantes, eliminar notificación existente
-        const existingNotification = notifications.find(n => n.id === 'ong-missing-data');
-        if (existingNotification) {
-          removeNotification(existingNotification.id);
+        const existingGroupSocialNotification = notifications.find(n => n.id === groupSocialNotificationId);
+        if (existingGroupSocialNotification) {
+          removeNotification(existingGroupSocialNotification.id);
+        }
+      }
+
+      if (missingNecesidad) {
+        const existingNecesidadNotification = notifications.find(n => n.id === necesidadNotificationId);
+        if (!existingNecesidadNotification) {
+          addNotification({
+            id: necesidadNotificationId,
+            type: 'warning',
+            title: 'Especifica tu necesidad principal',
+            message: 'Indica la necesidad principal de tu ONG para conectar con voluntarios y donantes adecuados.',
+            link: '/complete-data',
+            category: 'system',
+            priority: 'high'
+          });
+        }
+      } else {
+        const existingNecesidadNotification = notifications.find(n => n.id === necesidadNotificationId);
+        if (existingNecesidadNotification) {
+          removeNotification(existingNecesidadNotification.id);
         }
       }
     } catch (error) {

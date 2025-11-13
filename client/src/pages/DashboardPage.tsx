@@ -37,10 +37,6 @@ export default function DashboardPage() {
   const [expandPoints, setExpandPoints] = useState(false);
   const [mpStatus, setMpStatus] = useState<{ enabled: boolean } | null>(null);
   const [loadingMP, setLoadingMP] = useState(false);
-  const [mpAccessToken, setMpAccessToken] = useState('');
-  const [mpSaving, setMpSaving] = useState(false);
-  const [mpMessage, setMpMessage] = useState('');
-  const [mpError, setMpError] = useState('');
 
   useEffect(() => {
     const fetchTipoONG = async () => {
@@ -134,65 +130,24 @@ export default function DashboardPage() {
         {/* MP Setup Banner for ONGs */}
         {isONG && mpStatus && mpStatus.enabled === false && (
           <div className="mb-6 p-4 rounded-lg border-l-4" style={{ backgroundColor: '#fef3c7', borderColor: '#f59e0b' }}>
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">
-                <AlertTriangle className="w-5 h-5" color="#92400e" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold" style={{ color: '#92400e' }}>Configura tus donaciones monetarias</p>
-                <p className="text-sm" style={{ color: '#92400e' }}>
-                  Aún no configuraste la recepción de donaciones por pagos. Sigue los pasos para habilitarlas y poder recibir aportes.
-                </p>
-                <div className="mt-3 p-3 rounded-md border" style={{ borderColor: '#f59e0b22', backgroundColor: '#fff7ed' }}>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#92400e' }}>
-                    Access Token de Mercado Pago (APP_USR-...)
-                  </label>
-                  <div className="flex gap-3 items-center">
-                    <input
-                      type="password"
-                      className="input-field flex-1"
-                      placeholder="APP_USR-..."
-                      value={mpAccessToken}
-                      onChange={e => setMpAccessToken(e.target.value)}
-                      disabled={mpSaving}
-                    />
-                    <button
-                      className="btn-primary text-sm"
-                      disabled={mpSaving || !mpAccessToken.trim().startsWith('APP_USR-')}
-                      onClick={async () => {
-                        setMpSaving(true)
-                        setMpMessage('')
-                        setMpError('')
-                        try {
-                          await api.setOngMPToken(mpAccessToken.trim(), true)
-                          setMpMessage('Token guardado. Pagos habilitados.')
-                          setMpAccessToken('')
-                          setMpStatus({ enabled: true })
-                        } catch (err: any) {
-                          setMpError(err?.message || 'Error al guardar el token')
-                        } finally {
-                          setMpSaving(false)
-                        }
-                      }}
-                    >
-                      {mpSaving ? 'Guardando...' : 'Habilitar pagos'}
-                    </button>
-                    <button
-                      className="btn-secondary text-sm"
-                      disabled={mpSaving}
-                      onClick={() => navigate('/pagos/configurar')}
-                    >
-                      Más opciones
-                    </button>
-                  </div>
-                  {mpMessage && (
-                    <div className="mt-3 text-sm" style={{ color: '#166534' }}>✅ {mpMessage}</div>
-                  )}
-                  {mpError && (
-                    <div className="mt-3 text-sm" style={{ color: '#991b1b' }}>❌ {mpError}</div>
-                  )}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="mt-0.5">
+                  <AlertTriangle className="w-5 h-5" color="#92400e" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold" style={{ color: '#92400e' }}>Configura tu token de Mercado Pago</p>
+                  <p className="text-sm mt-1" style={{ color: '#92400e' }}>
+                    Aún no configuraste la recepción de donaciones por pagos. Configura tu token de Mercado Pago para habilitarlas y poder recibir aportes.
+                  </p>
                 </div>
               </div>
+              <button
+                className="btn-primary text-sm whitespace-nowrap"
+                onClick={() => navigate('/pagos/configurar')}
+              >
+                Configurar ahora
+              </button>
             </div>
           </div>
         )}
