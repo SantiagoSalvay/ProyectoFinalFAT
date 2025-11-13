@@ -50,11 +50,28 @@ router.post('/mp/create', auth, async (req, res) => {
       return res.status(400).json({ error: 'La ONG no está habilitada para recibir donaciones monetarias' });
     }
 
-    const accessToken = decryptSecret({
-      cipher: detalle.mp_token_cipher,
-      iv: detalle.mp_token_iv,
-      tag: detalle.mp_token_tag
-    });
+    // Validar que todos los campos de encriptación estén presentes
+    if (!detalle.mp_token_iv || !detalle.mp_token_tag) {
+      return res.status(400).json({ 
+        error: 'La configuración de pagos de la ONG está incompleta. La ONG debe reconfigurar su token de MercadoPago.' 
+      });
+    }
+
+    let accessToken;
+    try {
+      accessToken = decryptSecret({
+        cipher: detalle.mp_token_cipher,
+        iv: detalle.mp_token_iv,
+        tag: detalle.mp_token_tag
+      });
+    } catch (decryptError) {
+      console.error('Error al desencriptar token de MP:', decryptError.message);
+      return res.status(500).json({ 
+        error: 'Error al acceder a la configuración de pagos de la ONG',
+        details: decryptError.message,
+        hint: 'La ONG debe reconfigurar su token de MercadoPago. Esto puede ocurrir si la clave de encriptación del servidor cambió.'
+      });
+    }
 
     const mpClient = new MercadoPagoConfig({ accessToken });
     const preference = new Preference(mpClient);
