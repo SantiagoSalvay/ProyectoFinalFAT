@@ -154,22 +154,12 @@ router.post('/evaluar-donacion', auth, async (req, res) => {
 // Función para recalcular y actualizar rankings
 const recalcularRankings = async () => {
   try {
-    // Obtener todos los usuarios con sus puntos actuales
-    const usuarios = await prisma.DetalleUsuario.findMany({
-      include: {
-        Usuario: {
-          select: {
-            id_usuario: true,
-            nombre: true,
-            apellido: true,
-            id_tipo_usuario: true
-          }
-        }
-      },
-      orderBy: { puntosActuales: 'desc' }
-    });
+    // Obtener fechas del mes actual
+    const ahora = new Date();
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Crear o actualizar tipos de ranking (solo ONGs y Usuarios)
+    // Obtener o crear tipos de ranking
     const tipoRankingONG = await prisma.TipoRanking.upsert({
       where: { tipo_ranking: 'ONGs' },
       update: {},
@@ -182,44 +172,182 @@ const recalcularRankings = async () => {
       create: { tipo_ranking: 'Usuarios' }
     });
 
-    // Limpiar rankings existentes
-    await prisma.Ranking.deleteMany({});
+    // Obtener todas las donaciones aprobadas del mes actual
+    const donacionesMes = await prisma.PedidoDonacion.findMany({
+      where: {
+        estado_evaluacion: 'aprobada',
+        fecha_donacion: {
+          gte: inicioMes,
+          lte: finMes
+        }
+      },
+      include: {
+        tipoDonacion: true,
+        usuario: {
+          select: {
+            id_usuario: true,
+            id_tipo_usuario: true
+          }
+        },
+        publicacionEtiqueta: {
+          include: {
+            publicacion: {
+              include: {
+                usuario: {
+                  select: {
+                    id_usuario: true,
+                    id_tipo_usuario: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
 
-    // Crear rankings
-    const rankings = [];
-    let puestoONG = 1;
-    let puestoUsuario = 1;
+    // Calcular puntos por usuario
+    const puntosPorUsuario = new Map();
 
-    for (const detalle of usuarios) {
-      const usuario = detalle.Usuario;
+    for (const donacion of donacionesMes) {
+      const puntosDonacion = donacion.puntos_otorgados || 
+        (donacion.cantidad * donacion.tipoDonacion.puntos);
 
-      // Ranking por tipo de usuario
-      if (usuario.id_tipo_usuario === 2) { // ONG
-        rankings.push({
-          id_tipo_ranking: tipoRankingONG.id_tipo_ranking,
-          id_usuario: usuario.id_usuario,
-          puesto: puestoONG,
-          puntos: detalle.puntosActuales
+      // Puntos para el donador
+      const idDonador = donacion.id_usuario;
+      if (!puntosPorUsuario.has(idDonador)) {
+        puntosPorUsuario.set(idDonador, {
+          id_usuario: idDonador,
+          id_tipo_usuario: donacion.usuario.id_tipo_usuario,
+          puntos: 0
         });
-        puestoONG++;
-      } else { // Usuario regular
-        rankings.push({
-          id_tipo_ranking: tipoRankingUsuarios.id_tipo_ranking,
-          id_usuario: usuario.id_usuario,
-          puesto: puestoUsuario,
-          puntos: detalle.puntosActuales
-        });
-        puestoUsuario++;
+      }
+      puntosPorUsuario.get(idDonador).puntos += puntosDonacion;
+
+      // Puntos para la ONG receptora (si existe)
+      if (donacion.publicacionEtiqueta?.publicacion?.usuario) {
+        const ongReceptora = donacion.publicacionEtiqueta.publicacion.usuario;
+        const idONG = ongReceptora.id_usuario;
+        
+        if (!puntosPorUsuario.has(idONG)) {
+          puntosPorUsuario.set(idONG, {
+            id_usuario: idONG,
+            id_tipo_usuario: ongReceptora.id_tipo_usuario,
+            puntos: 0
+          });
+        }
+        puntosPorUsuario.get(idONG).puntos += puntosDonacion;
       }
     }
 
-    // Insertar todos los rankings
-    if (rankings.length > 0) {
-      await prisma.Ranking.createMany({ data: rankings });
+    // Separar usuarios por tipo
+    const ongs = [];
+    const usuarios = [];
+
+    for (const [idUsuario, datos] of puntosPorUsuario.entries()) {
+      if (datos.id_tipo_usuario === 2) { // ONG
+        ongs.push(datos);
+      } else if (datos.id_tipo_usuario === 1) { // Usuario regular
+        usuarios.push(datos);
+      }
     }
 
-    console.log(`✅ Rankings recalculados: ${rankings.length} entradas creadas`);
-    return rankings.length;
+    // Ordenar por puntos (descendente)
+    ongs.sort((a, b) => b.puntos - a.puntos);
+    usuarios.sort((a, b) => b.puntos - a.puntos);
+
+    // Actualizar o crear rankings de ONGs
+    for (let i = 0; i < ongs.length; i++) {
+      const ong = ongs[i];
+      const puesto = i + 1;
+
+      const rankingExistente = await prisma.Ranking.findFirst({
+        where: {
+          id_tipo_ranking: tipoRankingONG.id_tipo_ranking,
+          id_usuario: ong.id_usuario
+        }
+      });
+
+      if (rankingExistente) {
+        await prisma.Ranking.update({
+          where: { id_ranking: rankingExistente.id_ranking },
+          data: {
+            puesto: puesto,
+            puntos: ong.puntos
+          }
+        });
+      } else {
+        await prisma.Ranking.create({
+          data: {
+            id_tipo_ranking: tipoRankingONG.id_tipo_ranking,
+            id_usuario: ong.id_usuario,
+            puesto: puesto,
+            puntos: ong.puntos
+          }
+        });
+      }
+    }
+
+    // Actualizar o crear rankings de Usuarios
+    for (let i = 0; i < usuarios.length; i++) {
+      const usuario = usuarios[i];
+      const puesto = i + 1;
+
+      const rankingExistente = await prisma.Ranking.findFirst({
+        where: {
+          id_tipo_ranking: tipoRankingUsuarios.id_tipo_ranking,
+          id_usuario: usuario.id_usuario
+        }
+      });
+
+      if (rankingExistente) {
+        await prisma.Ranking.update({
+          where: { id_ranking: rankingExistente.id_ranking },
+          data: {
+            puesto: puesto,
+            puntos: usuario.puntos
+          }
+        });
+      } else {
+        await prisma.Ranking.create({
+          data: {
+            id_tipo_ranking: tipoRankingUsuarios.id_tipo_ranking,
+            id_usuario: usuario.id_usuario,
+            puesto: puesto,
+            puntos: usuario.puntos
+          }
+        });
+      }
+    }
+
+    // Actualizar puntos en DetalleUsuario para todos los usuarios que tienen puntos
+    for (const [idUsuario, datos] of puntosPorUsuario.entries()) {
+      const detalleExistente = await prisma.DetalleUsuario.findFirst({
+        where: { id_usuario: idUsuario }
+      });
+
+      if (detalleExistente) {
+        await prisma.DetalleUsuario.update({
+          where: { id_detalle_usuario: detalleExistente.id_detalle_usuario },
+          data: {
+            puntosActuales: datos.puntos,
+            ultima_fecha_actualizacion: new Date()
+          }
+        });
+      } else {
+        await prisma.DetalleUsuario.create({
+          data: {
+            id_usuario: idUsuario,
+            puntosActuales: datos.puntos,
+            ultima_fecha_actualizacion: new Date()
+          }
+        });
+      }
+    }
+
+    const totalRankings = ongs.length + usuarios.length;
+    console.log(`✅ Rankings recalculados: ${ongs.length} ONGs, ${usuarios.length} Usuarios (Total: ${totalRankings})`);
+    return totalRankings;
 
   } catch (error) {
     console.error('Error recalculando rankings:', error);
