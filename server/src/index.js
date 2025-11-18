@@ -17,6 +17,7 @@ import rankingRoutes from "./routes/ranking.js";
 import notificationsRoutes from "./routes/notifications.js";
 import ongRoutes from "./routes/ong.js";
 import ongRequestsRoutes from "./routes/ong-requests.js";
+import locationRoutes from "./routes/location.js";
 import passport from "./config/passport.js";
 import pkg from "@prisma/client";
 const { PrismaClient } = pkg;
@@ -110,6 +111,7 @@ app.use("/api/categories", categoriesRoutes);
   app.use("/api/payments", paymentsRoutes);
   app.use("/api/ranking", rankingRoutes);
   app.use("/api/notifications", notificationsRoutes);
+  app.use("/api/location", locationRoutes);
 
 // Verificar si existe la carpeta dist antes de servir archivos estáticos
 const distPath = path.join(__dirname, "../../dist");

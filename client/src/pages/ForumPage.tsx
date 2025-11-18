@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { API_BASE_URL } from "../config/api";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -144,7 +145,7 @@ export default function ForumPage() {
       }
       setLocationLoading(true);
       fetch(
-        `https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(newPost.location)}&limit=8&countrycodes=ar&dedupe=1`,
+        `${API_BASE_URL}/api/location/autocomplete?q=${encodeURIComponent(newPost.location)}&limit=8&countrycodes=ar&dedupe=1`,
       )
         .then(async (res) => {
           if (!res.ok) {
