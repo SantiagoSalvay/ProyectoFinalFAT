@@ -39,7 +39,7 @@ export default function HomePage() {
   const { ref: ctaRef, isVisible: ctaVisible } = useScrollAnimation()
   
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-fg)' }}>
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-screen flex items-center justify-center">
         {/* Background Image */}
@@ -113,7 +113,10 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900" ref={featuresRef}>
+      <section
+        className="home-section home-section--features py-12 sm:py-16 md:py-20"
+        ref={featuresRef}
+      >
         <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${featuresVisible ? 'animate-fade-in' : 'opacity-0'}`}>
           <div className="text-center mb-12 sm:mb-16" >
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-purple-600 to-purple-800 dark:from-purple-400 dark:to-purple-600 bg-clip-text text-transparent">
@@ -127,14 +130,14 @@ export default function HomePage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Feature 1 */}
-            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-gray-200 dark:border-purple-500/30">
+            <div className="feature-card p-6 sm:p-8 text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-500 dark:to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
                 <Heart className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-purple-300">
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 feature-card__title">
                 Donaciones Transparentes
               </h3>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+              <p className="text-sm sm:text-base feature-card__text">
                 Conecta directamente con organizaciones verificadas y sigue el impacto 
                 de tus donaciones en tiempo real.
               </p>
@@ -142,14 +145,14 @@ export default function HomePage() {
 
             {/* Feature 2 */}
             <div 
-              className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-gray-200 dark:border-emerald-500/30">
+              className="feature-card p-6 sm:p-8 text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
                 <Users className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-emerald-300">
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 feature-card__title">
                 Voluntariado Activo
               </h3>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+              <p className="text-sm sm:text-base feature-card__text">
                 Encuentra oportunidades de voluntariado que se adapten a tus habilidades 
                 y horarios disponibles.
               </p>
@@ -157,14 +160,14 @@ export default function HomePage() {
 
             {/* Feature 3 */}
             <div 
-              className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 sm:col-span-2 lg:col-span-1 border border-gray-200 dark:border-orange-500/30">
+              className="feature-card p-6 sm:p-8 text-center group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 sm:col-span-2 lg:col-span-1">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
                 <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-orange-300">
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 feature-card__title">
                 Comunidad Solidaria
               </h3>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+              <p className="text-sm sm:text-base feature-card__text">
                 Únete a una comunidad de personas comprometidas con el cambio social 
                 y comparte experiencias.
               </p>
@@ -174,7 +177,10 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-r from-purple-600 to-purple-800 overflow-hidden" ref={statsRef}>
+      <section
+        className="home-section home-section--stats py-12 sm:py-16 md:py-20 overflow-hidden"
+        ref={statsRef}
+      >
         <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${statsVisible ? 'animate-fade-in' : 'opacity-0'}`}>
           <div className="text-center mb-12 sm:mb-16" >
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
@@ -187,22 +193,22 @@ export default function HomePage() {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             <div 
-              className="text-center p-4 sm:p-6 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:scale-105 transition-all duration-300">
+              className="stats-card text-center p-4 sm:p-6 hover:scale-105 transition-all duration-300">
               <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2">500+</div>
               <div className="text-sm sm:text-base text-purple-200">Organizaciones</div>
             </div>
             <div 
-              className="text-center p-4 sm:p-6 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:scale-105 transition-all duration-300">
+              className="stats-card text-center p-4 sm:p-6 hover:scale-105 transition-all duration-300">
               <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2">10K+</div>
               <div className="text-sm sm:text-base text-purple-200">Voluntarios</div>
             </div>
             <div 
-              className="text-center p-4 sm:p-6 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:scale-105 transition-all duration-300">
+              className="stats-card text-center p-4 sm:p-6 hover:scale-105 transition-all duration-300">
               <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2">$2M+</div>
               <div className="text-sm sm:text-base text-purple-200">Donaciones</div>
             </div>
             <div 
-              className="text-center p-4 sm:p-6 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:scale-105 transition-all duration-300 col-span-2 lg:col-span-1">
+              className="stats-card text-center p-4 sm:p-6 hover:scale-105 transition-all duration-300 col-span-2 lg:col-span-1">
               <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2">50K+</div>
               <div className="text-sm sm:text-base text-purple-200">Vidas Impactadas</div>
             </div>
@@ -212,27 +218,31 @@ export default function HomePage() {
 
       {/* CTA Section - Solo para usuarios no autenticados */}
       {!isAuthenticated && (
-        <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-purple-50 to-emerald-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-emerald-900/20" ref={ctaRef}>
+        <section
+          className="home-section home-section--cta py-12 sm:py-16 md:py-20"
+          ref={ctaRef}
+        >
           <div className={`max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 ${ctaVisible ? 'animate-fade-in' : 'opacity-0'}`}>
             <h2 
               className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 via-purple-700 to-emerald-600 dark:from-purple-300 dark:via-purple-400 dark:to-emerald-400 bg-clip-text text-transparent">
               ¿Listo para hacer la diferencia?
             </h2>
             <p 
-              className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 px-4 text-gray-700 dark:text-gray-300">
+              className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 px-4"
+              style={{ color: 'var(--color-muted)' }}>
               Únete a miles de personas que ya están creando un impacto positivo 
               en sus comunidades y en el mundo.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <Link
                 to="/register"
-                className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 dark:from-purple-500 dark:to-purple-600 dark:hover:from-purple-600 dark:hover:to-purple-700 text-white text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-medium"
+                className="w-full sm:w-auto cta-button cta-button--primary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-medium"
               >
                 Registrarse Ahora
               </Link>
               <Link
                 to="/login"
-                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-medium"
+                className="w-full sm:w-auto cta-button cta-button--secondary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-medium"
               >
                 Ya Tengo Cuenta
               </Link>
