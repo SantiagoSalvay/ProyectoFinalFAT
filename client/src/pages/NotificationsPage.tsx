@@ -23,14 +23,11 @@ export default function NotificationsPage() {
                 <div className="text-xs text-gray-400 mt-2">{n.timestamp.toLocaleString()}</div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <button 
-                  onClick={() => {
-                    markAsRead(n.id);
-                    removeNotification(n.id);
-                  }} 
-                  className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 transition-colors"
+                <button
+                  onClick={() => removeNotification(n.id)}
+                  className="text-xs bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 transition-colors"
                 >
-                  {n.read ? 'Cerrar' : 'Marcar como leída'}
+                  Eliminar
                 </button>
               </div>
             </li>

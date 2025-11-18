@@ -106,9 +106,10 @@ app.use("/api/ongs", ongsRoutes);
 app.use("/api/ong", ongRoutes); // Ruta para búsqueda de ONGs por CUIT (SISA)
 app.use("/api/ong-requests", ongRequestsRoutes); // Solicitudes de registro de ONGs
 app.use("/api/categories", categoriesRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/payments", paymentsRoutes);
-app.use("/api/ranking", rankingRoutes);
+  app.use("/api/admin", adminRoutes);
+  app.use("/api/payments", paymentsRoutes);
+  app.use("/api/ranking", rankingRoutes);
+  app.use("/api/notifications", notificationsRoutes);
 
 // Verificar si existe la carpeta dist antes de servir archivos estáticos
 const distPath = path.join(__dirname, "../../dist");
@@ -165,12 +166,12 @@ app.get("/health/db", async (req, res) => {
 // Catch-all: Servir index.html para rutas del frontend (React Router)
 // Solo si el archivo existe (modo producción)
 app.get("*", (req, res) => {
-  // Si la ruta es una ruta API, no intentar servir index.html
-  if (req.path.startsWith("/api") || req.path.startsWith("/auth")) {
+  // No interceptar rutas de API
+  if (req.path.startsWith("/api")) {
     return res.status(404).json({ error: "Ruta no encontrada" });
   }
 
-  // Si existe el archivo index.html, servirlo
+  // Servir SPA para cualquier otra ruta (incluye /auth/callback)
   if (indexExists) {
     return res.sendFile(indexPath);
   }
