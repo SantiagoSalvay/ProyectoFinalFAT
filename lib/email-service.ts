@@ -1,13 +1,21 @@
 import nodemailer from 'nodemailer';
 
 // Configuración del transportador de email
+const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+const port = parseInt(process.env.SMTP_PORT || '587');
+const secure = process.env.SMTP_SECURE === 'true' ? true : (port === 465);
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
+  host,
+  port,
+  secure,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
+  },
+  requireTLS: !secure,
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
@@ -74,7 +82,7 @@ export const emailService = {
     try {
       const template = emailTemplates.verifyEmail(verificationToken);
       await transporter.sendMail({
-        from: process.env.SMTP_USER,
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to,
         subject: template.subject,
         html: template.html
@@ -94,7 +102,7 @@ export const emailService = {
     try {
       const template = emailTemplates.resetPassword(resetToken);
       await transporter.sendMail({
-        from: process.env.SMTP_USER,
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to,
         subject: template.subject,
         html: template.html
@@ -106,4 +114,4 @@ export const emailService = {
       throw error;
     }
   }
-}; 
+};

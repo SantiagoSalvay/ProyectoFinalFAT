@@ -4,13 +4,21 @@ const nodemailer = require('nodemailer');
 const prisma = new PrismaClient();
 
 // Configuración del transportador de email (igual que en el servicio)
+const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+const port = parseInt(process.env.SMTP_PORT || '587');
+const secure = process.env.SMTP_SECURE === 'true' ? true : (port === 465);
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
+  host,
+  port,
+  secure,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
+  },
+  requireTLS: !secure,
+  tls: {
+    rejectUnauthorized: false
   }
 });
 

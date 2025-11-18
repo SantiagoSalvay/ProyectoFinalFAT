@@ -16,21 +16,27 @@ const createTransporter = () => {
     throw new Error('Configuración SMTP incompleta. Verifica las variables de entorno SMTP_USER y SMTP_PASS.');
   }
 
+  const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const secure = process.env.SMTP_SECURE === 'true' ? true : (port === 465);
+
   console.log('🔧 [EMAIL SERVICE] Creando transporter con configuración:', {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '465'),
+    host,
+    port,
+    secure,
     user: process.env.SMTP_USER,
-    pass: 'Configurada' // No mostrar la contraseña en logs
+    pass: 'Configurada'
   });
   
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '465'),
-    secure: true,
+    host,
+    port,
+    secure,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
     },
+    requireTLS: !secure,
     // Configuraciones para evitar spam
     tls: {
       rejectUnauthorized: false
@@ -505,7 +511,7 @@ export const emailService = {
       console.log('🔗 [EMAIL SERVICE] Enlace generado:', `${process.env.APP_URL || 'http://localhost:3000'}/verificar/${verificationToken}`);
       
       await transporter.sendMail({
-        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 📧" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         html: template.html
@@ -529,7 +535,7 @@ export const emailService = {
       
       // Usar EXACTAMENTE el mismo código que sendVerificationEmail
       await transporter.sendMail({
-        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 📧" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         html: template.html
@@ -567,7 +573,7 @@ export const emailService = {
       
       // Usar exactamente el mismo formato que verification
       const mailOptions = {
-        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`, // Cambié el emoji a ser igual
+        from: `"DEMOS+ 📧" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         html: template.html
@@ -602,7 +608,7 @@ export const emailService = {
       const transporter = createTransporter();
       
       await transporter.sendMail({
-        from: `"DEMOS+ 🎉" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 🎉" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         html: template.html
@@ -632,7 +638,7 @@ export const emailService = {
       const transporter = createTransporter();
       
       await transporter.sendMail({
-        from: `"DEMOS+ Security" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ Security" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         text: template.text,
@@ -671,7 +677,7 @@ export const emailService = {
       const transporter = createTransporter();
 
       await transporter.sendMail({
-        from: `"DEMOS+ Security" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ Security" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         text: template.text,
@@ -709,7 +715,7 @@ export const emailService = {
       const transporter = createTransporter();
 
       await transporter.sendMail({
-        from: `"DEMOS+ Welcome" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ Welcome" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         text: template.text,
@@ -745,7 +751,7 @@ export const emailService = {
       const transporter = createTransporter();
 
       await transporter.sendMail({
-        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 📧" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: 'Solicitud de registro recibida - DEMOS+',
         html: `
@@ -842,7 +848,7 @@ export const emailService = {
       const transporter = createTransporter();
 
       await transporter.sendMail({
-        from: `"DEMOS+ 🎉" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 🎉" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: '¡Tu cuenta en DEMOS+ ha sido aprobada!',
         html: `
@@ -942,7 +948,7 @@ export const emailService = {
       const transporter = createTransporter();
 
       await transporter.sendMail({
-        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 📧" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: 'Actualización sobre tu solicitud en DEMOS+',
         html: `
