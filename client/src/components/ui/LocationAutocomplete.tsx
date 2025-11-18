@@ -389,7 +389,7 @@ export default function LocationAutocomplete({
 
       {/* Lista de sugerencias desplegable */}
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 rounded-md shadow-lg max-h-80 overflow-y-auto location-suggestions">
           {suggestions.map((suggestion, index) => {
             const isManual = suggestion.type === "manual";
             const isFirst = index === 0;
@@ -399,38 +399,33 @@ export default function LocationAutocomplete({
                 key={index}
                 type="button"
                 onClick={() => handleSelectSuggestion(suggestion)}
-                className={`w-full px-4 py-3 text-left hover:bg-purple-50 focus:bg-purple-50 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors ${
-                  isFirst ? "bg-purple-50 border-l-4 border-l-purple-500" : ""
+                className={`w-full px-4 py-3 text-left focus:outline-none border-b last:border-b-0 transition-colors location-suggestions__option ${
+                  isFirst ? "location-suggestions__option--highlight" : ""
                 }`}
               >
                 <div className="flex items-start">
                   <MapPin
-                    className={`w-4 h-4 mr-3 mt-0.5 flex-shrink-0 ${
-                      isFirst ? "text-purple-600" : "text-gray-400"
-                    }`}
+                    className="w-4 h-4 mr-3 mt-0.5 flex-shrink-0"
+                    style={{
+                      color: isFirst ? "var(--accent)" : "var(--color-muted)",
+                    }}
                   />
                   <div className="flex-1 min-w-0">
-                    <div
-                      className={`text-sm break-words ${
-                        isFirst
-                          ? "font-semibold text-gray-900"
-                          : "text-gray-700"
-                      }`}
-                    >
+                    <div className="text-sm break-words">
                       {suggestion.full}
                     </div>
                     {isFirst && (
-                      <div className="text-xs text-purple-600 mt-1 font-medium">
+                      <div className="text-xs mt-1 font-medium location-suggestions__primary-hint">
                         ✓ Presiona ENTER o haz clic para usar esta dirección
                       </div>
                     )}
                     {isManual && !isFirst && (
-                      <div className="text-xs text-blue-600 mt-1">
+                      <div className="text-xs mt-1 location-suggestions__hint">
                         Usar dirección exacta como la escribiste
                       </div>
                     )}
                     {!isManual && !isFirst && (
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs mt-1 location-suggestions__source">
                         Sugerencia de LocationIQ
                       </div>
                     )}

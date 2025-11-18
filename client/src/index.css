@@ -169,6 +169,47 @@ html[data-theme="dark"] .text-emerald-600 { color: #6ee7b7 !important; }
 }
 .input-field:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent); }
 
+/* Location autocomplete dropdown */
+.location-suggestions {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-fg);
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.45);
+}
+
+.location-suggestions__option {
+  background-color: var(--color-card);
+  color: var(--color-fg);
+  border-color: var(--color-border);
+}
+
+.location-suggestions__option:hover,
+.location-suggestions__option:focus {
+  background-color: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+
+.location-suggestions__option--highlight {
+  border-left: 4px solid var(--accent);
+  background-color: color-mix(in oklab, var(--accent) 16%, transparent);
+}
+
+.location-suggestions__option--highlight:hover,
+.location-suggestions__option--highlight:focus {
+  background-color: color-mix(in oklab, var(--accent) 24%, transparent);
+}
+
+.location-suggestions__primary-hint {
+  color: var(--accent);
+}
+
+.location-suggestions__hint {
+  color: var(--link);
+}
+
+.location-suggestions__source {
+  color: var(--color-muted);
+}
+
 /* Scrollbar coherente con modo oscuro */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: color-mix(in oklab, var(--color-bg) 92%, black); }
