@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { API_BASE_URL } from "../../config/api";
 import { MapPin } from "lucide-react";
 
 interface LocationAutocompleteProps {
@@ -65,7 +66,7 @@ export default function LocationAutocomplete({
       }
 
       fetch(
-        `https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(searchQuery)}&limit=15&countrycodes=ar&dedupe=0&addressdetails=1&normalizeaddress=1&viewbox=-64.3,-31.3,-64.0,-31.5&bounded=1`,
+        `${API_BASE_URL}/api/location/autocomplete?q=${encodeURIComponent(searchQuery)}&limit=15&countrycodes=ar&dedupe=0&addressdetails=1&normalizeaddress=1&viewbox=-64.3,-31.3,-64.0,-31.5&bounded=1`,
       )
         .then(async (res) => {
           if (!res.ok) {

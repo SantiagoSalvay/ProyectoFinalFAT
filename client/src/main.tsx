@@ -5,6 +5,11 @@ import App from './App'
 import './index.css'
 import { ThemeProvider } from './contexts/ThemeContext'
 
+const methods = ['log','info','debug','warn','error','trace'] as const
+methods.forEach((m) => {
+  ;(console as any)[m] = () => {}
+})
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
@@ -13,4 +18,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,
-) 
+)

@@ -1,13 +1,24 @@
 import nodemailer from 'nodemailer';
 
 // Configuración del transportador de email (IDÉNTICA a la de verificación)
+const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+const port = parseInt(process.env.SMTP_PORT || '587');
+const secure = process.env.SMTP_SECURE === 'true' ? true : (port === 465);
+const isBrevo = String(host).includes('brevo');
+const passRaw = isBrevo
+  ? (process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '')
+  : (process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || '');
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
+  host,
+  port,
+  secure,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+    user: process.env.SMTP_USER || process.env.EMAIL_USER,
+    pass: (passRaw || '').replace(/\s+/g, '')
+  },
+  requireTLS: !secure,
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
@@ -65,7 +76,7 @@ export const passwordResetService = {
       
       // EXACTAMENTE igual al código de sendVerificationEmail
       await transporter.sendMail({
-        from: `"DEMOS+ 📧" <${process.env.SMTP_USER}>`,
+        from: `"DEMOS+ 📧" <${process.env.SMTP_FROM || process.env.EMAIL_USER || process.env.SMTP_USER}>`,
         to,
         subject: template.subject,
         html: template.html

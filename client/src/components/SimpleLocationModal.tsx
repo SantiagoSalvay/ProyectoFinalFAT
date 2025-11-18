@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { X, MapPin, Search, Loader2, Check } from 'lucide-react';
 
 interface SimpleLocationModalProps {
@@ -47,7 +48,7 @@ export default function SimpleLocationModal({
     setIsSearching(true);
     try {
       const response = await fetch(
-        `https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_API_KEY}&q=${encodeURIComponent(query)}&limit=8&countrycodes=ar&addressdetails=1`
+        `${API_BASE_URL}/api/location/autocomplete?q=${encodeURIComponent(query)}&limit=8&countrycodes=ar&addressdetails=1`
       );
 
       if (!response.ok) {

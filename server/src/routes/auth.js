@@ -31,6 +31,22 @@ import {
 const router = express.Router();
 const prisma = new PrismaClient();
 
+router.get('/smtp-health', async (req, res) => {
+  try {
+    await emailService.verifyTransporter();
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode
+    });
+  }
+});
+
 // Resumen del dashboard para el usuario autenticado
 router.get('/dashboard/summary', authenticateToken, async (req, res) => {
   try {
@@ -1274,4 +1290,4 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-export default router; 
+export default router;
