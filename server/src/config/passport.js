@@ -16,90 +16,116 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     try {
       console.log('🔍 Google OAuth Profile:', profile);
       
-      // Buscar Usuario existente por google_id en detalleUsuario
-      let detalleUsuario = await prisma.detalleUsuario.findUnique({
-        where: { google_id: profile.id },
+      const email = profile.emails[0]?.value;
+      const googleId = profile.id;
+      const profilePicture = profile.photos[0]?.value;
+      
+      if (!email) {
+        return done(new Error('No email found in Google profile'), null);
+      }
+
+      // Buscar Usuario existente por google_id en detalleUsuario (caso más común - login rápido)
+      const detalleUsuario = await prisma.detalleUsuario.findUnique({
+        where: { google_id: googleId },
         include: { Usuario: true }
       });
 
       if (detalleUsuario) {
-        console.log('✅ Usuario existente encontrado:', detalleUsuario.Usuario.email);
-        return done(null, detalleUsuario.Usuario);
+        console.log('✅ Usuario existente encontrado por Google ID:', detalleUsuario.Usuario.email);
+        // Incluir DetalleUsuario en el usuario para evitar consulta adicional en callback
+        const userWithDetails = {
+          ...detalleUsuario.Usuario,
+          DetalleUsuario: {
+            auth_provider: 'google',
+            profile_picture: detalleUsuario.profile_picture,
+            email_verified: detalleUsuario.email_verified
+          }
+        };
+        return done(null, userWithDetails);
       }
 
-      // Buscar Usuario existente por email
-      let user = await prisma.Usuario.findUnique({
-        where: { email: profile.emails[0].value },
+      // Buscar Usuario existente por email (para vincular cuenta existente)
+      const existingUser = await prisma.Usuario.findUnique({
+        where: { email },
         include: { DetalleUsuario: true }
       });
 
-      if (user) {
-        // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
-        if (!user.DetalleUsuario) {
-          await prisma.detalleUsuario.create({
-            data: {
-              id_usuario: user.id_usuario,
-              google_id: profile.id,
-              auth_provider: 'google',
-              profile_picture: profile.photos[0]?.value,
-              email_verified: true
-            }
-          });
-        } else {
-          // Si ya tiene detalleUsuario, actualizar con google_id
-          await prisma.detalleUsuario.update({
-            where: { id_usuario: user.id_usuario },
-            data: {
-              google_id: profile.id,
-              auth_provider: 'google',
-              profile_picture: profile.photos[0]?.value,
-              email_verified: true
-            }
-          });
-        }
+      if (existingUser) {
+        // Usar upsert para crear o actualizar DetalleUsuario en una sola operación
+        await prisma.detalleUsuario.upsert({
+          where: { id_usuario: existingUser.id_usuario },
+          update: {
+            google_id: googleId,
+            auth_provider: 'google',
+            profile_picture: profilePicture,
+            email_verified: true
+          },
+          create: {
+            id_usuario: existingUser.id_usuario,
+            google_id: googleId,
+            auth_provider: 'google',
+            profile_picture: profilePicture,
+            email_verified: true
+          }
+        });
+        
         console.log('🔄 Usuario existente actualizado con Google ID');
-        return done(null, user);
+        
+        // Retornar usuario con DetalleUsuario incluido
+        const userWithDetails = {
+          ...existingUser,
+          DetalleUsuario: {
+            auth_provider: 'google',
+            profile_picture: profilePicture,
+            email_verified: true
+          }
+        };
+        return done(null, userWithDetails);
       }
 
-      // Crear nuevo Usuario con su detalle
+      // Crear nuevo Usuario con su detalle (transacción única)
       const newUser = await prisma.Usuario.create({
         data: {
-          nombre: profile.name.givenName,
+          nombre: profile.name.givenName || '',
           apellido: profile.name.familyName || '',
-          email: profile.emails[0].value,
+          email,
           id_tipo_usuario: 1, // Usuario regular por defecto
           DetalleUsuario: {
             create: {
-              google_id: profile.id,
+              google_id: googleId,
               auth_provider: 'google',
-              profile_picture: profile.photos[0]?.value,
+              profile_picture: profilePicture,
               email_verified: true
             }
           }
+        },
+        include: {
+          DetalleUsuario: true
         }
       });
 
       console.log('🆕 Nuevo Usuario creado:', newUser.email);
 
-      // Enviar emails de notificación para nuevo Usuario OAuth
-      try {
-        console.log('📧 [GOOGLE OAUTH] Enviando emails de notificación...');
-        
-        const userName = `${newUser.nombre} ${newUser.apellido}`.trim();
-        
-        // 1. Email de cuenta creada exitosamente
-        await emailService.sendOAuthAccountCreatedEmail(newUser.email, userName, 'Google');
-        console.log('✅ [GOOGLE OAUTH] Email de cuenta creada enviado');
-        
-        // 2. Email de bienvenida
-        await emailService.sendWelcomeEmail(newUser.email, userName);
-        console.log('✅ [GOOGLE OAUTH] Email de bienvenida enviado');
-        
-      } catch (emailError) {
-        console.error('⚠️ [GOOGLE OAUTH] Error al enviar emails (no crítico):', emailError);
-      }
+      // Enviar emails de forma asíncrona (no bloquear el flujo de autenticación)
+      const userName = `${newUser.nombre} ${newUser.apellido}`.trim();
+      emailService.sendOAuthAccountCreatedEmail(newUser.email, userName, 'Google')
+        .then(() => console.log('✅ [GOOGLE OAUTH] Email de cuenta creada enviado'))
+        .catch(err => console.error('⚠️ [GOOGLE OAUTH] Error al enviar email de cuenta creada (no crítico):', err));
+      
+      emailService.sendWelcomeEmail(newUser.email, userName)
+        .then(() => console.log('✅ [GOOGLE OAUTH] Email de bienvenida enviado'))
+        .catch(err => console.error('⚠️ [GOOGLE OAUTH] Error al enviar email de bienvenida (no crítico):', err));
 
-      return done(null, newUser);
+      // Retornar usuario con DetalleUsuario incluido
+      const userWithDetails = {
+        ...newUser,
+        DetalleUsuario: {
+          auth_provider: 'google',
+          profile_picture: newUser.DetalleUsuario?.profile_picture,
+          email_verified: newUser.DetalleUsuario?.email_verified
+        }
+      };
+      return done(null, userWithDetails);
 
   } catch (error) {
     console.error('❌ Error en Google OAuth:', error);

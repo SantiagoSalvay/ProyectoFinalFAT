@@ -26,59 +26,68 @@ router.get('/google/callback',
   }),
   async (req, res) => {
     try {
-      console.log('🎉 Google OAuth exitoso para usuario:', req.user.email);
-      
-      // Obtener el detalle del usuario para acceder a auth_provider
-      const userWithDetails = await prisma.Usuario.findUnique({
-        where: { id_usuario: req.user.id_usuario },
-        include: { DetalleUsuario: true }
-      });
-      
-      // Enviar email de notificación de login para usuarios existentes
-      try {
-        console.log('📧 [GOOGLE OAUTH LOGIN] Enviando email de notificación de login...');
+      const user = req.user;
+      if (!user) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=user_not_found`);
+      }
 
-        const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
-        const userAgent = req.headers['user-agent'] || 'Desconocido';
-        const currentDateTime = new Date().toLocaleString('es-ES', {
-          timeZone: 'America/Argentina/Buenos_Aires',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
+      console.log('🎉 Google OAuth exitoso para usuario:', user.email);
+      
+      // Usar DetalleUsuario que ya viene en req.user (optimizado en passport.js)
+      // Solo consultar si no está presente (fallback por compatibilidad)
+      let detalleUsuario = user.DetalleUsuario;
+      if (!detalleUsuario) {
+        const userWithDetails = await prisma.Usuario.findUnique({
+          where: { id_usuario: user.id_usuario },
+          select: { DetalleUsuario: { select: { auth_provider: true } } }
         });
-
-        const loginInfo = {
-          dateTime: currentDateTime,
-          ipAddress: ipAddress,
-          userAgent: userAgent,
-          location: 'Argentina'
-        };
-
-        const userName = `${req.user.nombre} ${req.user.apellido}`.trim();
-        await emailService.sendLoginNotificationEmail(req.user.email, userName, loginInfo);
-        console.log('✅ [GOOGLE OAUTH LOGIN] Email de notificación de login enviado');
-      } catch (emailError) {
-        console.error('⚠️ [GOOGLE OAUTH LOGIN] Error al enviar email de notificación de login (no crítico):', emailError);
+        detalleUsuario = userWithDetails?.DetalleUsuario;
       }
       
-      // Generar JWT token
+      const authProvider = detalleUsuario?.auth_provider || 'google';
+      
+      // Generar JWT token inmediatamente (no esperar email)
       const token = jwt.sign(
         { 
-          userId: req.user.id_usuario,
-          email: req.user.email,
-          tipo_usuario: req.user.id_tipo_usuario,
-          provider: userWithDetails?.DetalleUsuario?.auth_provider || 'google'
+          userId: user.id_usuario,
+          email: user.email,
+          tipo_usuario: user.id_tipo_usuario,
+          provider: authProvider
         },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
 
-      // Redirigir al frontend con el token
+      // Enviar email de notificación de forma asíncrona (no bloquear la respuesta)
+      const userName = `${user.nombre} ${user.apellido}`.trim();
+      const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
+      const userAgent = req.headers['user-agent'] || 'Desconocido';
+      const currentDateTime = new Date().toLocaleString('es-ES', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      const loginInfo = {
+        dateTime: currentDateTime,
+        ipAddress: ipAddress,
+        userAgent: userAgent,
+        location: 'Argentina'
+      };
+
+      // Enviar email de forma asíncrona (no bloquea la respuesta)
+      emailService.sendLoginNotificationEmail(user.email, userName, loginInfo)
+        .then(() => console.log('✅ [GOOGLE OAUTH LOGIN] Email de notificación de login enviado'))
+        .catch(err => console.error('⚠️ [GOOGLE OAUTH LOGIN] Error al enviar email de notificación de login (no crítico):', err));
+
+      // Redirigir al frontend con el token inmediatamente
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const redirectUrl = `${frontendUrl}/auth/callback?token=${token}&provider=google`;
+      const redirectUrl = `${frontendUrl}/auth/callback?token=${token}&provider=${authProvider}`;
       res.redirect(redirectUrl);
 
     } catch (error) {
