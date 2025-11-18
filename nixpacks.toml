@@ -6,7 +6,7 @@ cmds = ["pnpm install --frozen-lockfile --prefer-offline"]
 
 [phases.build]
 cmds = [
-  "cd server && npx prisma generate && cd ..",
+  "cd server && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate && cd ..",
   "pnpm run build"
 ]
 
