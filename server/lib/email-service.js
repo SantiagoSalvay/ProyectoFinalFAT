@@ -26,7 +26,7 @@ const createTransporter = () => {
     secure,
     user: process.env.SMTP_USER,
     pass: 'Configurada'
-  });
+  }); 
   
   return nodemailer.createTransport({
     host,
