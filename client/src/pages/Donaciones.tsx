@@ -132,7 +132,7 @@ export default function Donaciones() {
       }
       
       setSuccess('¡Gracias por tu donación! Tu descripción ha sido registrada: ' + itemDescription);
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
