@@ -10,7 +10,7 @@
     "wake-db": "node wake-railway-db.js",
     "keep-db-alive": "node keep-db-alive.js",
     "build": "echo 'No build step required'",
-    "postinstall": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate",
+    "postinstall": "cross-env PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--experimental-vm-modules\" jest",
     "test:watch": "cross-env NODE_ENV=test NODE_OPTIONS=\"--experimental-vm-modules\" jest --watch",
     "test:coverage": "cross-env NODE_ENV=test NODE_OPTIONS=\"--experimental-vm-modules\" jest --coverage",
