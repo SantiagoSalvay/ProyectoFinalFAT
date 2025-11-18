@@ -8,7 +8,7 @@ export default function Donaciones() {
   const [selectedOng, setSelectedOng] = useState('');
   const [price, setPrice] = useState('');
   const [donationType, setDonationType] = useState('');
-  const [otherDescription, setOtherDescription] = useState('');
+  const [itemDescription, setItemDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -73,14 +73,14 @@ export default function Donaciones() {
         return;
       }
       
-      if (parsedPrice > 100000) {
-        setError('El monto máximo de donación es $100,000.');
+      if (parsedPrice > 99999999) {
+        setError('El monto máximo de donación es $99.999.999 (8 dígitos).');
         setLoading(false);
         return;
       }
       
-      if (!/^\d{1,}(\.?\d{0,2})?$/.test(price)) {
-        setError('Formato de monto inválido. Use números con máximo 2 decimales.');
+      if (!/^\d{1,8}(\.\d{0,2})?$/.test(price)) {
+        setError('Formato de monto inválido. Hasta 8 dígitos y máximo 2 decimales.');
         setLoading(false);
         return;
       }
@@ -119,19 +119,19 @@ export default function Donaciones() {
         setLoading(false);
       }
     } else if (donationType === 'otros') {
-      if (!otherDescription.trim()) {
+      if (!itemDescription.trim()) {
         setError('Por favor ingresa una descripción para tu donación.');
         setLoading(false);
         return;
       }
       
-      if (otherDescription.trim().length < 10) {
+      if (itemDescription.trim().length < 10) {
         setError('La descripción debe tener al menos 10 caracteres.');
         setLoading(false);
         return;
       }
       
-      setSuccess('¡Gracias por tu donación! Tu descripción ha sido registrada: ' + otherDescription);
+      setSuccess('¡Gracias por tu donación! Tu descripción ha sido registrada: ' + itemDescription);
       setLoading(false);
     }
   };
@@ -223,17 +223,19 @@ export default function Donaciones() {
                     Monto a donar (ARS)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-semibold" style={{ color: 'var(--color-muted)' }}>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-semibold" style={{ color: 'var(--color-muted)', pointerEvents: 'none' }}>
                       $
                     </span>
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="input-field w-full pl-8 text-lg"
+                      className="input-field w-full text-lg"
+                      style={{ paddingLeft: '2.5rem' }}
                       value={price}
                       onChange={e => {
                         let val = e.target.value.replace(/,/g, '.');
-                        if (/^\d*(\.?\d{0,2})?$/.test(val)) setPrice(val);
+                        // Permitir hasta 8 dígitos enteros y hasta 2 decimales
+                        if (/^\d{0,8}(\.\d{0,2})?$/.test(val)) setPrice(val);
                       }}
                       placeholder="0.00"
                       required
@@ -269,23 +271,41 @@ export default function Donaciones() {
             )}
 
             {donationType && donationType !== 'dinero' && donationType !== 'otros' && (
-              <div className="text-center">
-                <p className="mb-4" style={{ color: 'var(--color-muted)' }}>
-                  Para donaciones de {donationType}, puedes encontrar la ONG en el mapa y coordinar la entrega
-                </p>
-                <button
-                  type="button"
-                  className="btn-primary w-full text-lg py-3"
-                  onClick={() => {
-                    if (ongs.length === 0) {
-                      setOngsError(true);
-                    } else {
-                      window.location.href = `/map?ongId=${selectedOng}`;
-                    }
-                  }}
-                >
-                  🗺️ Buscar ONG en el mapa
-                </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-fg)' }}>
+                    Describe los objetos que deseas donar
+                  </label>
+                  <textarea
+                    className="input-field w-full"
+                    placeholder={`Ej: 10 abrigos de invierno talla M-L, 5 cajas de alimentos no perecederos, juguetes para niños de 3-6 años, etc.`}
+                    value={itemDescription}
+                    onChange={e => setItemDescription(e.target.value)}
+                    rows={4}
+                  />
+                  <div className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
+                    {itemDescription.length}/500 caracteres
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <p className="mb-4" style={{ color: 'var(--color-muted)' }}>
+                    Para donaciones de {donationType}, puedes encontrar la ONG en el mapa y coordinar la entrega
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-primary w-full text-lg py-3"
+                    onClick={() => {
+                      if (ongs.length === 0) {
+                        setOngsError(true);
+                      } else {
+                        window.location.href = `/map?ongId=${selectedOng}&desc=${encodeURIComponent(itemDescription)}`;
+                      }
+                    }}
+                  >
+                    🗺️ Buscar ONG en el mapa
+                  </button>
+                </div>
               </div>
             )}
 
@@ -298,13 +318,13 @@ export default function Donaciones() {
                   <textarea
                     className="input-field w-full"
                     placeholder="Ej: Libros usados en buen estado, ropa de invierno para niños, etc."
-                    value={otherDescription}
-                    onChange={e => setOtherDescription(e.target.value)}
+                    value={itemDescription}
+                    onChange={e => setItemDescription(e.target.value)}
                     rows={4}
                     required
                   />
                   <div className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
-                    {otherDescription.length}/500 caracteres
+                    {itemDescription.length}/500 caracteres
                   </div>
                 </div>
                 <button
