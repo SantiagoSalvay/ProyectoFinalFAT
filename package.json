@@ -12,8 +12,7 @@
     "server:install": "cd server && npm install",
     "install:all": "npm install && npm run server:install",
     "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
-    "start": "node server/src/index.js",
-    "postinstall": "cd server && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate"
+    "start": "node server/src/index.js"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
