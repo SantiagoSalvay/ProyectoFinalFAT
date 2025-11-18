@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { api, ONG } from '../services/api'
 import { Trophy, Star, Users, Heart, TrendingUp, Award, Filter, Search, Building, Medal, Crown } from 'lucide-react'
 
@@ -32,23 +32,25 @@ export default function RankingPage() {
     const fetchRankings = async () => {
       try {
         setLoading(true)
-        
+
         // Cargar rankings del tipo seleccionado
         const response = await fetch(`/api/ranking/rankings?tipo=${tipoRanking}&limite=100`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         })
-        
+
         if (response.ok) {
           const data: RankingResponse = await response.json()
+          console.debug('[RankingPage] /api/ranking/rankings response:', data)
+
           setRankings(data.rankings)
-          
+
           // Calcular estadísticas
           const totalPuntos = data.rankings.reduce((sum, r) => sum + r.puntos, 0)
           const ongsCount = data.rankings.filter(r => r.usuario.tipo_usuario === 2).length
           const usuariosCount = data.rankings.filter(r => r.usuario.tipo_usuario === 1).length
-          
+
           setStats({
             total_participantes: data.rankings.length,
             total_ongs: ongsCount,
@@ -56,16 +58,22 @@ export default function RankingPage() {
             total_puntos: totalPuntos,
             avg_puntos: data.rankings.length > 0 ? totalPuntos / data.rankings.length : 0
           })
+
+          if (data.rankings.length === 0) {
+            console.warn('[RankingPage] No se recibieron rankings desde la API. Comprueba que el backend tiene rankings calculados y que la ruta `/api/ranking/rankings` responde correctamente.')
+          }
+        } else {
+          console.warn('[RankingPage] Falló la petición a /api/ranking/rankings:', response.status)
         }
-        
-        // Cargar mi ranking personal
+
+        // Cargar mi ranking personal (si hay token válido)
         try {
           const miRankingResponse = await fetch(`/api/ranking/mi-ranking?tipo=${tipoRanking}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
           })
-          
+
           if (miRankingResponse.ok) {
             const miRankingData = await miRankingResponse.json()
             setMiRanking(miRankingData)
@@ -73,7 +81,7 @@ export default function RankingPage() {
         } catch (error) {
           console.log('No se pudo cargar ranking personal (usuario no autenticado)')
         }
-        
+
       } catch (error) {
         console.error('Error al cargar rankings:', error)
       } finally {
@@ -82,6 +90,52 @@ export default function RankingPage() {
     }
     fetchRankings()
   }, [tipoRanking])
+
+  // Handler para recalcular rankings (requiere token admin)
+  const [recalculating, setRecalculating] = useState(false)
+  const [recalcMessage, setRecalcMessage] = useState<string | null>(null)
+
+  const handleRecalculate = async () => {
+    setRecalcMessage(null)
+    setRecalculating(true)
+    try {
+      const resp = await fetch('/api/ranking/recalcular', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const body = await resp.json().catch(() => null)
+      if (resp.ok) {
+        setRecalcMessage(`Rankings recalculados: ${body?.cantidad_rankings ?? '?:?'} entradas`)
+        // Volver a cargar rankings
+        try { await (async () => {
+          const r = await fetch(`/api/ranking/rankings?tipo=${tipoRanking}&limite=100`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          })
+          if (r.ok) {
+            const d = await r.json()
+            setRankings(d.rankings || [])
+            setStats({
+              total_participantes: (d.rankings || []).length,
+              total_ongs: (d.rankings || []).filter((x:any)=> x.usuario.tipo_usuario===2).length,
+              total_usuarios: (d.rankings || []).filter((x:any)=> x.usuario.tipo_usuario===1).length,
+              total_puntos: (d.rankings || []).reduce((s:any, it:any)=> s + it.puntos, 0),
+              avg_puntos: (d.rankings || []).length>0 ? ((d.rankings||[]).reduce((s:any,it:any)=>s+it.puntos,0)/ (d.rankings||[]).length) : 0
+            })
+          }
+        })() } catch (e) { /* ignore */ }
+      } else {
+        setRecalcMessage(`Error recalculando: ${resp.status} ${body?.error || body?.message || ''}`)
+      }
+    } catch (err:any) {
+      setRecalcMessage(`Error de conexión: ${err?.message || String(err)}`)
+    } finally {
+      setRecalculating(false)
+    }
+  }
 
   const getRankIcon = (position: number) => {
     switch (position) {
@@ -261,7 +315,21 @@ export default function RankingPage() {
           </div>
           <div className="divide-y divide-gray-200">
             {filteredRankings.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">No hay participantes que coincidan con los filtros seleccionados.</div>
+              <div className="p-6 text-center text-gray-500">
+                <div>No hay participantes que coincidan con los filtros seleccionados.</div>
+                <div className="mt-4">
+                  <button
+                    onClick={handleRecalculate}
+                    className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                    disabled={recalculating}
+                  >
+                    {recalculating ? '⏳ Recalculando...' : '🔄 Recalcular rankings (admin)'}
+                  </button>
+                </div>
+                {recalcMessage && (
+                  <div className="mt-3 text-sm text-gray-700">{recalcMessage}</div>
+                )}
+              </div>
             ) : (
               filteredRankings.map((ranking) => (
                 <div key={ranking.usuario.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
