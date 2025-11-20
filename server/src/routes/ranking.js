@@ -159,18 +159,16 @@ const recalcularRankings = async () => {
     const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
     const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Obtener o crear tipos de ranking
-    const tipoRankingONG = await prisma.TipoRanking.upsert({
-      where: { tipo_ranking: 'ONGs' },
-      update: {},
-      create: { tipo_ranking: 'ONGs' }
-    });
+    // Crear o actualizar tipos de ranking (solo ONGs y Usuarios)
+    let tipoRankingONG = await prisma.TipoRanking.findFirst({ where: { tipo_ranking: 'ONGs' } });
+    if (!tipoRankingONG) {
+      tipoRankingONG = await prisma.TipoRanking.create({ data: { tipo_ranking: 'ONGs' } });
+    }
 
-    const tipoRankingUsuarios = await prisma.TipoRanking.upsert({
-      where: { tipo_ranking: 'Usuarios' },
-      update: {},
-      create: { tipo_ranking: 'Usuarios' }
-    });
+    let tipoRankingUsuarios = await prisma.TipoRanking.findFirst({ where: { tipo_ranking: 'Usuarios' } });
+    if (!tipoRankingUsuarios) {
+      tipoRankingUsuarios = await prisma.TipoRanking.create({ data: { tipo_ranking: 'Usuarios' } });
+    }
 
     // Obtener todas las donaciones aprobadas del mes actual
     const donacionesMes = await prisma.PedidoDonacion.findMany({
@@ -461,19 +459,10 @@ router.get('/mi-ranking', auth, async (req, res) => {
   }
 });
 
-// Endpoint para recalcular rankings (solo admin)
-router.post('/recalcular', auth, async (req, res) => {
+// Endpoint para recalcular rankings (accesible públicamente)
+// Nota: permitido a cualquier usuario (sin requerir permisos admin)
+router.post('/recalcular', async (req, res) => {
   try {
-    // Verificar que el usuario sea admin
-    const usuario = await prisma.Usuario.findUnique({
-      where: { id_usuario: req.user.id_usuario },
-      select: { id_tipo_usuario: true }
-    });
-
-    if (!usuario || usuario.id_tipo_usuario !== 3) {
-      return res.status(403).json({ error: 'Solo los administradores pueden recalcular rankings' });
-    }
-
     const cantidadRankings = await recalcularRankings();
 
     res.json({ 

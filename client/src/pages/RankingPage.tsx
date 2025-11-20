@@ -44,19 +44,22 @@ export default function RankingPage() {
           const data: RankingResponse = await response.json()
           console.debug('[RankingPage] /api/ranking/rankings response:', data)
 
-          setRankings(data.rankings)
+          // Eliminar duplicados, reasignar puestos y guardar
+          let deduped = dedupeByUserId(data.rankings || [])
+          deduped = assignSequentialPositions(deduped)
+          setRankings(deduped)
 
-          // Calcular estadísticas
-          const totalPuntos = data.rankings.reduce((sum, r) => sum + r.puntos, 0)
-          const ongsCount = data.rankings.filter(r => r.usuario.tipo_usuario === 2).length
-          const usuariosCount = data.rankings.filter(r => r.usuario.tipo_usuario === 1).length
+          // Calcular estadísticas usando la lista deduplicada y re-posicionada
+          const totalPuntos = deduped.reduce((sum, r) => sum + (r.puntos || 0), 0)
+          const ongsCount = deduped.filter(r => r.usuario.tipo_usuario === 2).length
+          const usuariosCount = deduped.filter(r => r.usuario.tipo_usuario === 1).length
 
           setStats({
-            total_participantes: data.rankings.length,
+            total_participantes: deduped.length,
             total_ongs: ongsCount,
             total_usuarios: usuariosCount,
             total_puntos: totalPuntos,
-            avg_puntos: data.rankings.length > 0 ? totalPuntos / data.rankings.length : 0
+            avg_puntos: deduped.length > 0 ? totalPuntos / deduped.length : 0
           })
 
           if (data.rankings.length === 0) {
@@ -95,6 +98,41 @@ export default function RankingPage() {
   const [recalculating, setRecalculating] = useState(false)
   const [recalcMessage, setRecalcMessage] = useState<string | null>(null)
 
+  // Mostrar todos los usuarios (admin) cuando no haya rankings
+  const [showingAllUsers, setShowingAllUsers] = useState(false)
+  const [allUsersLoading, setAllUsersLoading] = useState(false)
+  const [allUsersError, setAllUsersError] = useState<string | null>(null)
+
+  // Eliminar duplicados por usuario.id (mantener el que tenga más puntos)
+  const dedupeByUserId = (arr: RankingData[]) => {
+    const map = new Map<number, RankingData>()
+    for (const item of arr) {
+      const id = item.usuario.id
+      const existing = map.get(id)
+      if (!existing) {
+        map.set(id, item)
+      } else {
+        // Mantener el que tenga más puntos, si empate mantener el de menor puesto
+        if ((item.puntos ?? 0) > (existing.puntos ?? 0)) {
+          map.set(id, item)
+        } else if ((item.puntos ?? 0) === (existing.puntos ?? 0) && (item.puesto ?? Infinity) < (existing.puesto ?? Infinity)) {
+          map.set(id, item)
+        }
+      }
+    }
+    // Devolver ordenado por puesto si existe, sino por puntos desc
+    const result = Array.from(map.values())
+    result.sort((a, b) => (a.puesto ?? Infinity) - (b.puesto ?? Infinity) || (b.puntos ?? 0) - (a.puntos ?? 0))
+    return result
+  }
+
+  // Reasignar puestos secuenciales según puntos (desc) y devolver copia nueva
+  const assignSequentialPositions = (arr: RankingData[]) => {
+    const copy = [...arr]
+    copy.sort((a, b) => (b.puntos ?? 0) - (a.puntos ?? 0) || (a.usuario.id - b.usuario.id))
+    return copy.map((item, idx) => ({ ...item, puesto: idx + 1 }))
+  }
+
   const handleRecalculate = async () => {
     setRecalcMessage(null)
     setRecalculating(true)
@@ -102,7 +140,6 @@ export default function RankingPage() {
       const resp = await fetch('/api/ranking/recalcular', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         }
       })
@@ -111,19 +148,21 @@ export default function RankingPage() {
       if (resp.ok) {
         setRecalcMessage(`Rankings recalculados: ${body?.cantidad_rankings ?? '?:?'} entradas`)
         // Volver a cargar rankings
-        try { await (async () => {
+          try { await (async () => {
           const r = await fetch(`/api/ranking/rankings?tipo=${tipoRanking}&limite=100`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           })
-          if (r.ok) {
+            if (r.ok) {
             const d = await r.json()
-            setRankings(d.rankings || [])
+            let deduped = dedupeByUserId(d.rankings || [])
+            deduped = assignSequentialPositions(deduped)
+            setRankings(deduped)
             setStats({
-              total_participantes: (d.rankings || []).length,
-              total_ongs: (d.rankings || []).filter((x:any)=> x.usuario.tipo_usuario===2).length,
-              total_usuarios: (d.rankings || []).filter((x:any)=> x.usuario.tipo_usuario===1).length,
-              total_puntos: (d.rankings || []).reduce((s:any, it:any)=> s + it.puntos, 0),
-              avg_puntos: (d.rankings || []).length>0 ? ((d.rankings||[]).reduce((s:any,it:any)=>s+it.puntos,0)/ (d.rankings||[]).length) : 0
+              total_participantes: (deduped || []).length,
+              total_ongs: (deduped || []).filter((x:any)=> x.usuario.tipo_usuario===2).length,
+              total_usuarios: (deduped || []).filter((x:any)=> x.usuario.tipo_usuario===1).length,
+              total_puntos: (deduped || []).reduce((s:any, it:any)=> s + it.puntos, 0),
+              avg_puntos: (deduped || []).length>0 ? ((deduped||[]).reduce((s:any,it:any)=>s+it.puntos,0)/ (deduped||[]).length) : 0
             })
           }
         })() } catch (e) { /* ignore */ }
@@ -134,6 +173,47 @@ export default function RankingPage() {
       setRecalcMessage(`Error de conexión: ${err?.message || String(err)}`)
     } finally {
       setRecalculating(false)
+    }
+  }
+
+  const handleShowAllUsers = async () => {
+    setAllUsersError(null)
+    setAllUsersLoading(true)
+    setShowingAllUsers(true)
+    try {
+      const tipo = tipoRanking === 'ONGs' ? 'ong' : 'user'
+      const res = await api.adminListUsersAll({ type: tipo })
+      const users = res.users || []
+
+      // Mapear usuarios a la estructura de ranking para renderizado simple
+      const mapped: RankingData[] = users.map((u: any) => ({
+        // puesto temporal; se recalculará luego
+        puesto: 0,
+        usuario: {
+          id: u.id_usuario,
+          nombre: u.nombre || 'Sin nombre',
+          apellido: u.apellido || '',
+          tipo_usuario: u.id_tipo_usuario || (tipo === 'ong' ? 2 : 1)
+        },
+        puntos: (u.puntos as number) || 0,
+        ultima_actualizacion: u.ultima_actualizacion || ''
+      }))
+
+      const dedupedMapped = dedupeByUserId(mapped)
+      const positioned = assignSequentialPositions(dedupedMapped)
+      setRankings(positioned)
+      setStats({
+        total_participantes: positioned.length,
+        total_ongs: positioned.filter(m => m.usuario.tipo_usuario === 2).length,
+        total_usuarios: positioned.filter(m => m.usuario.tipo_usuario === 1).length,
+        total_puntos: positioned.reduce((s, it) => s + it.puntos, 0),
+        avg_puntos: positioned.length > 0 ? positioned.reduce((s, it) => s + it.puntos, 0) / positioned.length : 0
+      })
+    } catch (e: any) {
+      console.error('Error cargando todos los usuarios:', e)
+      setAllUsersError(e?.message || 'Error al obtener usuarios (¿eres admin?)')
+    } finally {
+      setAllUsersLoading(false)
     }
   }
 
@@ -323,8 +403,20 @@ export default function RankingPage() {
                     className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
                     disabled={recalculating}
                   >
-                    {recalculating ? '⏳ Recalculando...' : '🔄 Recalcular rankings (admin)'}
+                    {recalculating ? '⏳ Recalculando...' : '🔄 Recalcular rankings'}
                   </button>
+                </div>
+                <div className="mt-3">
+                  <button
+                    onClick={handleShowAllUsers}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
+                    disabled={allUsersLoading}
+                  >
+                    {allUsersLoading ? '⏳ Cargando...' : '👥 Mostrar todos los usuarios (admin)'}
+                  </button>
+                  {allUsersError && (
+                    <div className="mt-2 text-sm text-red-600">{allUsersError}</div>
+                  )}
                 </div>
                 {recalcMessage && (
                   <div className="mt-3 text-sm text-gray-700">{recalcMessage}</div>
