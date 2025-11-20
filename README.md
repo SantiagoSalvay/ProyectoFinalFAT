@@ -25,9 +25,12 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
   - ✅ **Inicio de sesión con redes sociales** (IMPLEMENTADO)
 
 - 💰 **Gestión de Donaciones**
-  - Seguimiento de donaciones
-  - Historial de transacciones
-  - Generación de comprobantes
+  - ✅ **Donaciones no-monetarias (ropa, comida, juguetes, muebles, etc)** (IMPLEMENTADO)
+  - ✅ **Donaciones monetarias con Mercado Pago** (IMPLEMENTADO)
+  - ✅ **Evaluación de donaciones por ONGs** (IMPLEMENTADO)
+  - ✅ **Cálculo automático de puntos** (IMPLEMENTADO)
+  - ✅ **Historial de transacciones y donaciones** (IMPLEMENTADO)
+  - ✅ **Generación de comprobantes** (PENDIENTE)
 
 - 📍 **Mapa Interactivo**
   - ✅ **Visualización de ONGs cercanas** (IMPLEMENTADO)
@@ -74,6 +77,9 @@ DEMOS+ es una plataforma innovadora diseñada para conectar ONGs con donantes y 
 ### Integraciones y Servicios
 - **Gmail SMTP** (Envío de emails de verificación)
 - **Railway/PostgreSQL** (Base de datos en la nube)
+- **Mercado Pago API** (Pagos y donaciones monetarias con sandbox)
+- **Google OAuth 2.0** (Autenticación con Google)
+- **Twitter OAuth** (Autenticación con Twitter)
 
 ### Seguridad
 - ✅ **Verificación de email obligatoria**
@@ -224,6 +230,57 @@ Si ves entradas duplicadas o saltos en las posiciones, la UI ahora:
 - elimina duplicados por `usuario.id` (mantiene la entrada con más puntos),
 - reasigna los puestos secuenciales (1,2,3...) ordenando por `puntos` desc.
 
+### Sistema de Donaciones (Endpoints y ejemplos)
+
+**Crear donación no-monetaria:**
+```bash
+curl -X POST http://localhost:3000/api/donations \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ongId": 1,
+    "donationType": "ropa",
+    "itemDescription": "10 camisetas azules",
+    "cantidad": 10
+  }'
+```
+
+**Listar mis donaciones:**
+```bash
+curl -X GET http://localhost:3000/api/donations/my-donations \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Crear donación monetaria (Mercado Pago):**
+```bash
+curl -X POST http://localhost:3000/api/payments/mp/create \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ongId": 1,
+    "description": "Donación para proyecto X",
+    "amount": 100
+  }'
+```
+
+**Tipos de donación soportados:**
+- `dinero` - Donación monetaria
+- `ropa` - Prendas de vestir
+- `juguetes` - Juguetes y entretenimiento
+- `comida` - Alimentos
+- `muebles` - Muebles y enseres
+- `otros` - Otros artículos
+
+**Notas sobre donaciones:**
+- Todas las donaciones requieren autenticación
+- Al donar, el estado es "pendiente" hasta que la ONG evalúe
+- Una vez evaluada como "aprobada", se calculan automáticamente los puntos
+- Los puntos se suman al ranking del usuario
+- Donaciones monetarias se guardan automáticamente al crear preferencia MP
+- El pago aprobado en MP actualiza automáticamente el estado a "aprobada"
+
+Para más detalles sobre testing, ver `TESTING_GUIDE.md`
+Para documentación técnica completa, ver `IMPLEMENTACION_DONACIONES.md`
 
 ## 🔄 Sistema de Autenticación y Perfiles Completo
 

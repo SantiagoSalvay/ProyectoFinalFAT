@@ -49,9 +49,16 @@ export default function Donaciones() {
     setSuccess('');
     setInitPoint('');
 
-    // Verificar autenticación para donaciones monetarias
-    if (donationType === 'dinero' && !isAuthenticated) {
-      setError('Debes iniciar sesión para realizar donaciones monetarias.');
+    // Validación: donationType debe estar seleccionado
+    if (!donationType) {
+      setError('Por favor selecciona un tipo de donación.');
+      setLoading(false);
+      return;
+    }
+
+    // Verificar autenticación para todas las donaciones
+    if (!isAuthenticated) {
+      setError('Debes iniciar sesión para realizar donaciones.');
       setLoading(false);
       return;
     }
@@ -118,7 +125,59 @@ export default function Donaciones() {
       } finally {
         setLoading(false);
       }
-    } else if (donationType === 'otros') {
+    } else if (donationType && donationType !== 'dinero') {
+      // Donaciones no monetarias (ropa, juguetes, comida, muebles, otros)
+      if (!itemDescription.trim()) {
+        setError('Por favor ingresa una descripción para tu donación.');
+        setLoading(false);
+        return;
+      }
+      
+      if (itemDescription.trim().length < 10) {
+        setError('La descripción debe tener al menos 10 caracteres.');
+        setLoading(false);
+        return;
+      }
+      
+      if (!selectedOng) {
+        setError('Selecciona una ONG para tu donación.');
+        setLoading(false);
+        return;
+      }
+
+      // Llamar al endpoint para guardar la donación en BD
+      try {
+        const response = await fetch('/api/donations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userToken}`
+          },
+          body: JSON.stringify({
+            ongId: parseInt(selectedOng),
+            donationType: donationType,
+            itemDescription: itemDescription.trim(),
+            cantidad: 1
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error al registrar la donación');
+        }
+
+        const data = await response.json();
+        setSuccess(`✅ ¡Donación registrada exitosamente! La ONG evaluará tu donación de ${donationType} y te otorgará puntos.`);
+        // Limpiar formulario
+        setItemDescription('');
+        setDonationType('');
+      } catch (err: any) {
+        setError(`Error al registrar la donación: ${err.message || 'Error desconocido'}`);
+      } finally {
+        setLoading(false);
+      }
+    } else if (donationType === 'otros' && false) {
+      // Esta rama ahora se maneja en el bloque anterior
       if (!itemDescription.trim()) {
         setError('Por favor ingresa una descripción para tu donación.');
         setLoading(false);

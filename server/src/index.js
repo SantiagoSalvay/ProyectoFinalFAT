@@ -13,6 +13,7 @@ import ongsRoutes from "./routes/ongs.js";
 import categoriesRoutes from "./routes/categories.js";
 import adminRoutes from "./routes/admin.js";
 import paymentsRoutes from "./routes/payments.js";
+import donationsRoutes from "./routes/donations.js";
 import rankingRoutes from "./routes/ranking.js";
 import notificationsRoutes from "./routes/notifications.js";
 import ongRoutes from "./routes/ong.js";
@@ -109,6 +110,7 @@ app.use("/api/ong-requests", ongRequestsRoutes); // Solicitudes de registro de O
 app.use("/api/categories", categoriesRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/payments", paymentsRoutes);
+  app.use("/api", donationsRoutes);
   app.use("/api/ranking", rankingRoutes);
   app.use("/api/notifications", notificationsRoutes);
   app.use("/api/location", locationRoutes);

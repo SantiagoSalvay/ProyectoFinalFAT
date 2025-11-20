@@ -73,12 +73,74 @@ router.post('/mp/create', auth, async (req, res) => {
       });
     }
 
+    // PASO 1: Crear PedidoDonacion ANTES de generar preferencia MP
+    let pedidoDonacion = null;
+    try {
+      const dineroTipo = await prisma.tipoDonacion.findFirst({
+        where: { tipo_donacion: 'Dinero' },
+        select: { id_tipo_donacion: true }
+      });
+
+      if (!dineroTipo) {
+        return res.status(500).json({ error: 'Tipo de donación "Dinero" no configurado en la base de datos' });
+      }
+
+      // Asegurar etiqueta y publicación "contenedor" para donaciones monetarias de esta ONG
+      let etiqueta = await prisma.etiqueta.findFirst({ where: { etiqueta: 'Donaciones Monetarias' } });
+      if (!etiqueta) {
+        etiqueta = await prisma.etiqueta.create({ data: { etiqueta: 'Donaciones Monetarias' } });
+      }
+
+      let publicacion = await prisma.publicacion.findFirst({
+        where: { id_usuario: parseInt(ongId), titulo: 'Donación Monetaria Directa' }
+      });
+      if (!publicacion) {
+        publicacion = await prisma.publicacion.create({
+          data: {
+            id_usuario: parseInt(ongId),
+            titulo: 'Donación Monetaria Directa',
+            descripcion_publicacion: 'Registro de donaciones monetarias directas',
+            ubicacion: null,
+            imagenes: null
+          }
+        });
+      }
+
+      let pubEtiqueta = await prisma.publicacionEtiqueta.findFirst({
+        where: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
+      });
+      if (!pubEtiqueta) {
+        pubEtiqueta = await prisma.publicacionEtiqueta.create({
+          data: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
+        });
+      }
+
+      // CREAR PedidoDonacion en estado "pendiente"
+      pedidoDonacion = await prisma.pedidoDonacion.create({
+        data: {
+          id_publicacion_etiqueta: pubEtiqueta.id_publicacion_etiqueta,
+          id_usuario: req.user.id_usuario,
+          id_tipo_donacion: dineroTipo.id_tipo_donacion,
+          cantidad: Math.round(amt),
+          estado_evaluacion: 'pendiente'
+        }
+      });
+
+      console.log(`✅ PedidoDonacion creado ANTES de MP: id_pedido=${pedidoDonacion.id_pedido}, usuario=${req.user.id_usuario}, monto=${amt}`);
+    } catch (createErr) {
+      console.error('Error creando PedidoDonacion:', createErr?.message);
+      return res.status(500).json({ 
+        error: 'Error creando registro de donación',
+        details: createErr?.message 
+      });
+    }
+
+    // PASO 2: Crear preferencia MP con el ID del PedidoDonacion en metadata
     const mpClient = new MercadoPagoConfig({ accessToken });
     const preference = new Preference(mpClient);
 
     const baseUrl = process.env.FRONTEND_BASE_URL || req.headers.origin || 'http://localhost:3000';
     const apiBaseUrl = process.env.API_BASE_URL || req.protocol + '://' + req.get('host');
-    // URLs de back_urls deben apuntar al endpoint del backend que procesa y luego redirige al frontend
     const successUrl = process.env.MP_SUCCESS_URL || `${apiBaseUrl}/api/payments/mp/process-payment`;
     const failureUrl = process.env.MP_FAILURE_URL || `${apiBaseUrl}/api/payments/mp/process-payment`;
     const pendingUrl = process.env.MP_PENDING_URL || `${apiBaseUrl}/api/payments/mp/process-payment`;
@@ -94,7 +156,8 @@ router.post('/mp/create', auth, async (req, res) => {
       ],
       metadata: {
         ongId: String(ongId),
-        donorId: String(req.user.id_usuario)
+        donorId: String(req.user.id_usuario),
+        pedidoId: String(pedidoDonacion.id_pedido)  // NUEVO: incluir ID del pedido
       },
       back_urls: {
         success: successUrl,
@@ -104,59 +167,6 @@ router.post('/mp/create', auth, async (req, res) => {
     };
 
     const prefResult = await preference.create({ body });
-
-    // Registrar pedido de donación inmediatamente al crear la preferencia
-    try {
-      const dineroTipo = await prisma.tipoDonacion.findFirst({
-        where: { tipo_donacion: 'Dinero' },
-        select: { id_tipo_donacion: true }
-      });
-
-      if (dineroTipo) {
-        // Asegurar etiqueta y publicación "contenedor" para donaciones monetarias de esta ONG
-        let etiqueta = await prisma.etiqueta.findFirst({ where: { etiqueta: 'Donaciones Monetarias' } });
-        if (!etiqueta) {
-          etiqueta = await prisma.etiqueta.create({ data: { etiqueta: 'Donaciones Monetarias' } });
-        }
-
-        let publicacion = await prisma.publicacion.findFirst({
-          where: { id_usuario: parseInt(ongId), titulo: 'Donación Monetaria Directa' }
-        });
-        if (!publicacion) {
-          publicacion = await prisma.publicacion.create({
-            data: {
-              id_usuario: parseInt(ongId),
-              titulo: 'Donación Monetaria Directa',
-              descripcion_publicacion: 'Registro de donaciones monetarias directas',
-              ubicacion: null,
-              imagenes: null
-            }
-          });
-        }
-
-        let pubEtiqueta = await prisma.publicacionEtiqueta.findFirst({
-          where: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
-        });
-        if (!pubEtiqueta) {
-          pubEtiqueta = await prisma.publicacionEtiqueta.create({
-            data: { id_publicacion: publicacion.id_publicacion, id_etiqueta: etiqueta.id_etiqueta }
-          });
-        }
-
-        await prisma.pedidoDonacion.create({
-          data: {
-            id_publicacion_etiqueta: pubEtiqueta.id_publicacion_etiqueta,
-            id_usuario: req.user.id_usuario,
-            id_tipo_donacion: dineroTipo.id_tipo_donacion,
-            cantidad: Math.round(amt)
-          }
-        });
-
-        console.log(`✅ pedidoDonacion creado: usuario=${req.user.id_usuario}, cantidad=${Math.round(amt)}, ONG=${ongId}`);
-      }
-    } catch (logErr) {
-      console.warn('No se pudo registrar pedidoDonacion:', logErr?.message || logErr);
-    }
 
     return res.json({ id: prefResult.id, init_point: prefResult.init_point });
   } catch (error) {
@@ -178,27 +188,16 @@ async function processPaymentFromMP(paymentId, accessToken) {
       throw new Error('No se pudo obtener el pago o no tiene metadata');
     }
 
-    const { ongId, donorId } = paymentData.metadata;
-    if (!ongId || !donorId) {
-      throw new Error('El pago no tiene los metadata necesarios (ongId, donorId)');
+    const { ongId, donorId, pedidoId } = paymentData.metadata;
+    if (!ongId || !donorId || !pedidoId) {
+      throw new Error('El pago no tiene los metadata necesarios (ongId, donorId, pedidoId)');
     }
 
     const paymentStatus = paymentData.status; // 'approved', 'pending', 'rejected', etc.
     
-    // Buscar el pedido de donación usando los metadata
-    const pedidoDonacion = await prisma.pedidoDonacion.findFirst({
-      where: {
-        id_usuario: parseInt(donorId),
-        fecha_donacion: {
-          gte: new Date(Date.now() - 2 * 60 * 60 * 1000) // Últimas 2 horas para ser más preciso
-        },
-        publicacionEtiqueta: {
-          publicacion: {
-            id_usuario: parseInt(ongId)
-          }
-        },
-        estado_evaluacion: 'pendiente'
-      },
+    // Buscar el pedido de donación usando el ID directo desde metadata (mucho más eficiente)
+    const pedidoDonacion = await prisma.pedidoDonacion.findUnique({
+      where: { id_pedido: parseInt(pedidoId) },
       include: {
         tipoDonacion: true,
         usuario: true,
@@ -211,13 +210,19 @@ async function processPaymentFromMP(paymentId, accessToken) {
             }
           }
         }
-      },
-      orderBy: { fecha_donacion: 'desc' }
+      }
     });
 
     if (!pedidoDonacion) {
-      console.warn(`⚠️ No se encontró pedidoDonacion para paymentId=${paymentId}, ongId=${ongId}, donorId=${donorId}`);
+      console.warn(`⚠️ No se encontró pedidoDonacion con id_pedido=${pedidoId}`);
       return { success: false, message: 'Pedido de donación no encontrado' };
+    }
+
+    // Validar que el pedido pertenece a los usuarios correctos
+    if (pedidoDonacion.id_usuario !== parseInt(donorId) || 
+        pedidoDonacion.publicacionEtiqueta.publicacion.id_usuario !== parseInt(ongId)) {
+      console.warn(`⚠️ Validación fallida: pedido=${pedidoId}, donador=${pedidoDonacion.id_usuario} vs ${donorId}, ong=${pedidoDonacion.publicacionEtiqueta.publicacion.id_usuario} vs ${ongId}`);
+      return { success: false, message: 'Validación de propietarios fallida' };
     }
 
     // Solo procesar si el estado del pago es 'approved'
@@ -312,59 +317,28 @@ router.get('/mp/process-payment', async (req, res) => {
       return res.status(400).json({ error: 'payment_id o collection_id es requerido' });
     }
 
-    // Obtener el preference para obtener los metadata (ongId, donorId)
-    // Primero necesitamos el accessToken de la ONG
-    // Como no tenemos el preference_id de manera confiable, necesitamos otra estrategia
-    // Buscar pedidosDonacion recientes y encontrar el que corresponde
-    
-    // Buscar pedidosDonacion recientes pendientes
-    const pedidosRecientes = await prisma.pedidoDonacion.findMany({
-      where: {
-        fecha_donacion: {
-          gte: new Date(Date.now() - 2 * 60 * 60 * 1000) // Últimas 2 horas
-        },
-        estado_evaluacion: 'pendiente'
+    console.log(`📥 GET process-payment recibido: paymentId=${paymentId}`);
+
+    // Obtener todas las ONGs habilitadas para MP (necesitamos intentar con todas para encontrar el token correcto)
+    const ongsConMP = await prisma.detalleUsuario.findMany({
+      where: { 
+        mp_enabled: true,
+        mp_token_cipher: { not: null },
+        mp_token_iv: { not: null },
+        mp_token_tag: { not: null }
       },
       include: {
-        publicacionEtiqueta: {
-          include: {
-            publicacion: {
-              include: {
-                    usuario: {
-                      include: {
-                        DetalleUsuario: {
-                          select: {
-                            mp_enabled: true,
-                            mp_token_cipher: true,
-                            mp_token_iv: true,
-                            mp_token_tag: true
-                          }
-                        }
-                      }
-                    }
-              }
-            }
-          }
+        usuario: {
+          select: { id_usuario: true }
         }
-      },
-      orderBy: { fecha_donacion: 'desc' },
-      take: 10 // Limitar búsqueda a los 10 más recientes
+      }
     });
 
     let processed = false;
-    let errorMessage = 'No se pudo procesar el pago';
+    let lastError = null;
 
     // Intentar procesar con cada ONG hasta encontrar la correcta
-    for (const pedido of pedidosRecientes) {
-      const ong = pedido.publicacionEtiqueta?.publicacion?.usuario;
-      if (!ong) continue;
-
-      // DetalleUsuario es un array en el schema, tomar el primero
-      const detalle = Array.isArray(ong.DetalleUsuario) ? ong.DetalleUsuario[0] : ong.DetalleUsuario;
-      if (!detalle || !detalle.mp_enabled || !detalle.mp_token_cipher || !detalle.mp_token_iv || !detalle.mp_token_tag) {
-        continue;
-      }
-
+    for (const detalle of ongsConMP) {
       try {
         const accessToken = decryptSecret({
           cipher: detalle.mp_token_cipher,
@@ -389,13 +363,14 @@ router.get('/mp/process-payment', async (req, res) => {
         }
       } catch (err) {
         // Continuar con la siguiente ONG si falla
-        console.warn(`Error procesando con ONG ${ong.id_usuario}:`, err.message);
+        lastError = err;
+        console.warn(`Error procesando con ONG ${detalle.usuario.id_usuario}:`, err.message);
         continue;
       }
     }
 
     if (!processed) {
-      console.error(`No se pudo procesar payment ${paymentId}`);
+      console.error(`No se pudo procesar payment ${paymentId}:`, lastError?.message);
       const baseUrl = process.env.FRONTEND_BASE_URL || req.headers.origin || 'http://localhost:3000';
       return res.redirect(`${baseUrl}/donaciones/error`);
     }
@@ -416,58 +391,30 @@ router.post('/mp/callback', async (req, res) => {
       
       if (!paymentId) {
         console.warn('⚠️ Callback recibido sin paymentId');
-        return res.status(400).json({ error: 'payment_id es requerido' });
+        return res.status(200).json({ message: 'OK' }); // Responder 200 para que MP no reintente
       }
 
-      console.log(`📥 Webhook recibido: paymentId=${paymentId}, type=${type}`);
+      console.log(`📥 Webhook de MP recibido: paymentId=${paymentId}, type=${type}`);
 
-      // Obtener el preference para obtener los metadata (ongId, donorId)
-      // Buscar pedidosDonacion recientes pendientes
-      const pedidosRecientes = await prisma.pedidoDonacion.findMany({
-        where: {
-          fecha_donacion: {
-            gte: new Date(Date.now() - 2 * 60 * 60 * 1000) // Últimas 2 horas
-          },
-          estado_evaluacion: 'pendiente'
+      // Obtener todas las ONGs habilitadas para MP
+      const ongsConMP = await prisma.detalleUsuario.findMany({
+        where: { 
+          mp_enabled: true,
+          mp_token_cipher: { not: null },
+          mp_token_iv: { not: null },
+          mp_token_tag: { not: null }
         },
         include: {
-          publicacionEtiqueta: {
-            include: {
-              publicacion: {
-                include: {
-                    usuario: {
-                      include: {
-                        DetalleUsuario: {
-                          select: {
-                            mp_enabled: true,
-                            mp_token_cipher: true,
-                            mp_token_iv: true,
-                            mp_token_tag: true
-                          }
-                        }
-                      }
-                    }
-                }
-              }
-            }
+          usuario: {
+            select: { id_usuario: true }
           }
-        },
-        orderBy: { fecha_donacion: 'desc' },
-        take: 10 // Limitar búsqueda a los 10 más recientes
+        }
       });
 
       let processed = false;
 
       // Intentar procesar con cada ONG hasta encontrar la correcta
-      for (const pedido of pedidosRecientes) {
-        const ong = pedido.publicacionEtiqueta?.publicacion?.usuario;
-        if (!ong) continue;
-
-        const detalle = ong.DetalleUsuario;
-        if (!detalle || !detalle.mp_enabled || !detalle.mp_token_cipher || !detalle.mp_token_iv || !detalle.mp_token_tag) {
-          continue;
-        }
-
+      for (const detalle of ongsConMP) {
         try {
           const accessToken = decryptSecret({
             cipher: detalle.mp_token_cipher,
@@ -483,7 +430,7 @@ router.post('/mp/callback', async (req, res) => {
           }
         } catch (err) {
           // Continuar con la siguiente ONG si falla
-          console.warn(`Error procesando webhook con ONG ${ong.id_usuario}:`, err.message);
+          console.warn(`Error procesando webhook con ONG ${detalle.usuario.id_usuario}:`, err.message);
           continue;
         }
       }
@@ -493,7 +440,7 @@ router.post('/mp/callback', async (req, res) => {
       }
     }
     
-    // Siempre responder 200 para que MP no reintente
+    // Siempre responder 200 para que MP no reintente indefinidamente
     res.status(200).send('OK');
   } catch (error) {
     console.error('Error procesando callback de MP:', error);
