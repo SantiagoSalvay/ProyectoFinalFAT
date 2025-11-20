@@ -2,7 +2,6 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { decryptSecret } from '../../lib/encryption-service.js';
-import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -136,9 +135,6 @@ router.post('/mp/create', auth, async (req, res) => {
     }
 
     // PASO 2: Crear preferencia MP con el ID del PedidoDonacion en metadata
-    const mpClient = new MercadoPagoConfig({ accessToken });
-    const preference = new Preference(mpClient);
-
     const baseUrl = process.env.FRONTEND_BASE_URL || req.headers.origin || 'http://localhost:3000';
     const apiBaseUrl = process.env.API_BASE_URL || req.protocol + '://' + req.get('host');
     const successUrl = process.env.MP_SUCCESS_URL || `${apiBaseUrl}/api/payments/mp/process-payment`;
@@ -157,7 +153,7 @@ router.post('/mp/create', auth, async (req, res) => {
       metadata: {
         ongId: String(ongId),
         donorId: String(req.user.id_usuario),
-        pedidoId: String(pedidoDonacion.id_pedido)  // NUEVO: incluir ID del pedido
+        pedidoId: String(pedidoDonacion.id_pedido)
       },
       back_urls: {
         success: successUrl,
@@ -166,7 +162,21 @@ router.post('/mp/create', auth, async (req, res) => {
       }
     };
 
-    const prefResult = await preference.create({ body });
+    // Llamada directa a la API de MercadoPago para crear la preferencia
+    const prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const prefResult = await prefResp.json();
+    if (!prefResp.ok) {
+      console.error('Error creando preferencia en MercadoPago:', prefResult);
+      return res.status(502).json({ error: 'Error creando preferencia en MercadoPago', details: prefResult });
+    }
 
     return res.json({ id: prefResult.id, init_point: prefResult.init_point });
   } catch (error) {
@@ -178,14 +188,20 @@ router.post('/mp/create', auth, async (req, res) => {
 // Función auxiliar para procesar el pago desde MercadoPago
 async function processPaymentFromMP(paymentId, accessToken) {
   try {
-    const mpClient = new MercadoPagoConfig({ accessToken });
-    const payment = new Payment(mpClient);
-    
-    // Obtener el pago desde MercadoPago
-    const paymentData = await payment.get({ id: paymentId });
-    
+    // Obtener el pago desde la API de MercadoPago
+    const paymentResp = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    const paymentData = await paymentResp.json();
+    if (!paymentResp.ok) {
+      console.error('Error consultando pago en MercadoPago:', paymentData);
+      throw new Error('No se pudo obtener el pago desde MercadoPago');
+    }
+
     if (!paymentData || !paymentData.metadata) {
-      throw new Error('No se pudo obtener el pago o no tiene metadata');
+      throw new Error('El pago no contiene metadata');
     }
 
     const { ongId, donorId, pedidoId } = paymentData.metadata;
