@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
+import axios from 'axios';
 import { emailService } from '../../lib/email-service.js';
 import { passwordResetService } from '../../lib/password-reset-service.js';
 import { searchONGByCUIT } from '../../lib/sisa-csv-service.js';
@@ -30,6 +31,22 @@ import {
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+router.get('/smtp-health', async (req, res) => {
+  try {
+    await emailService.verifyTransporter();
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode
+    });
+  }
+});
 
 // Resumen del dashboard para el usuario autenticado
 router.get('/dashboard/summary', authenticateToken, async (req, res) => {
@@ -509,7 +526,11 @@ router.post('/register',
 
     // Enviar email de verificación
     try {
-      await emailService.sendVerificationEmail(correo, verificationToken);
+      if (emailService.sendVerificationEmailWithFallback) {
+        await emailService.sendVerificationEmailWithFallback(correo, verificationToken);
+      } else {
+        await emailService.sendVerificationEmail(correo, verificationToken);
+      }
       
       const successResponse = {
         message: 'Te hemos enviado un correo de verificación. Por favor, revisa tu bandeja de entrada y haz clic en el enlace para activar tu cuenta.',
@@ -519,12 +540,49 @@ router.post('/register',
       res.status(200).json(successResponse);
     } catch (emailError) {
       console.error('Error al enviar email de verificación:', emailError);
-      
-      // Eliminar el registro pendiente si no se pudo enviar el email
+
+      // Fallback: enviar vía Brevo API HTTP si SMTP está bloqueado
+      try {
+        const apiKey = process.env.EMAIL_PASSWORD || process.env.BREVO_API_KEY;
+        const senderEmail = process.env.SMTP_FROM || process.env.EMAIL_USER || process.env.SMTP_USER;
+        if (apiKey && senderEmail) {
+          const verificationLink = `${process.env.APP_URL || 'http://localhost:3000'}/verificar/${verificationToken}`;
+          const subject = 'Verifica tu correo electrónico - DEMOS+';
+          const html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #2b555f;">Verifica tu correo electrónico</h2>
+              <p>Gracias por registrarte en DEMOS+. Haz clic en el siguiente botón para activar tu cuenta:</p>
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="${verificationLink}" style="background-color: #2b555f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Verificar correo</a>
+              </div>
+              <p style="font-size: 12px; color: #666;">Si no puedes hacer clic, copia y pega este enlace: ${verificationLink}</p>
+            </div>
+          `;
+          const payload = {
+            sender: { email: senderEmail, name: 'DEMOS+ 📧' },
+            to: [{ email: correo }],
+            subject,
+            htmlContent: html
+          };
+          const headers = { 'api-key': apiKey, 'Content-Type': 'application/json' };
+          const url = 'https://api.brevo.com/v3/smtp/email';
+          const resSend = await axios.post(url, payload, { headers });
+          if (resSend.status >= 200 && resSend.status < 300) {
+            res.status(200).json({
+              message: 'Te hemos enviado un correo de verificación (fallback API). Revisa tu bandeja de entrada.',
+              requiresVerification: true
+            });
+            return;
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Fallback Brevo API falló:', fallbackError?.message || fallbackError);
+      }
+
+      // Si el fallback también falló, limpiar y responder 500
       await prisma.RegistroPendiente.delete({
         where: { verification_token: verificationToken }
       });
-      
       res.status(500).json({ 
         error: 'Error al enviar el correo de verificación. Por favor, intenta nuevamente.' 
       });
@@ -1274,4 +1332,4 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-export default router; 
+export default router;
