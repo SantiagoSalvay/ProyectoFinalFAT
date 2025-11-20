@@ -170,17 +170,15 @@ const recalcularRankings = async () => {
     });
 
     // Crear o actualizar tipos de ranking (solo ONGs y Usuarios)
-    const tipoRankingONG = await prisma.TipoRanking.upsert({
-      where: { tipo_ranking: 'ONGs' },
-      update: {},
-      create: { tipo_ranking: 'ONGs' }
-    });
+    let tipoRankingONG = await prisma.TipoRanking.findFirst({ where: { tipo_ranking: 'ONGs' } });
+    if (!tipoRankingONG) {
+      tipoRankingONG = await prisma.TipoRanking.create({ data: { tipo_ranking: 'ONGs' } });
+    }
 
-    const tipoRankingUsuarios = await prisma.TipoRanking.upsert({
-      where: { tipo_ranking: 'Usuarios' },
-      update: {},
-      create: { tipo_ranking: 'Usuarios' }
-    });
+    let tipoRankingUsuarios = await prisma.TipoRanking.findFirst({ where: { tipo_ranking: 'Usuarios' } });
+    if (!tipoRankingUsuarios) {
+      tipoRankingUsuarios = await prisma.TipoRanking.create({ data: { tipo_ranking: 'Usuarios' } });
+    }
 
     // Limpiar rankings existentes
     await prisma.Ranking.deleteMany({});
@@ -333,19 +331,10 @@ router.get('/mi-ranking', auth, async (req, res) => {
   }
 });
 
-// Endpoint para recalcular rankings (solo admin)
-router.post('/recalcular', auth, async (req, res) => {
+// Endpoint para recalcular rankings (accesible públicamente)
+// Nota: permitido a cualquier usuario (sin requerir permisos admin)
+router.post('/recalcular', async (req, res) => {
   try {
-    // Verificar que el usuario sea admin
-    const usuario = await prisma.Usuario.findUnique({
-      where: { id_usuario: req.user.id_usuario },
-      select: { id_tipo_usuario: true }
-    });
-
-    if (!usuario || usuario.id_tipo_usuario !== 3) {
-      return res.status(403).json({ error: 'Solo los administradores pueden recalcular rankings' });
-    }
-
     const cantidadRankings = await recalcularRankings();
 
     res.json({ 
