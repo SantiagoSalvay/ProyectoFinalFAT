@@ -181,7 +181,10 @@ router.post('/mp/create', auth, async (req, res) => {
     return res.json({ id: prefResult.id, init_point: prefResult.init_point });
   } catch (error) {
     console.error('Error creando preferencia MP:', error);
-    res.status(500).json({ error: 'Error creando preferencia', details: error.message });
+    const debugEnabled = process.env.DEBUG_MP === 'true' || process.env.NODE_ENV !== 'production';
+    const resp = { error: 'Error creando preferencia', details: error.message };
+    if (debugEnabled) resp.stack = error.stack;
+    res.status(500).json(resp);
   }
 });
 
