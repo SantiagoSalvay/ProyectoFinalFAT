@@ -51,23 +51,34 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       });
 
       if (existingUser) {
-        // Usar upsert para crear o actualizar DetalleUsuario en una sola operación
-        await prisma.detalleUsuario.upsert({
-          where: { id_usuario: existingUser.id_usuario },
-          update: {
-            google_id: googleId,
-            auth_provider: 'google',
-            profile_picture: profilePicture,
-            email_verified: true
-          },
-          create: {
-            id_usuario: existingUser.id_usuario,
-            google_id: googleId,
-            auth_provider: 'google',
-            profile_picture: profilePicture,
-            email_verified: true
-          }
+        // Buscar DetalleUsuario existente por id_usuario (no es único, usar findFirst)
+        const existingDetalle = await prisma.detalleUsuario.findFirst({
+          where: { id_usuario: existingUser.id_usuario }
         });
+
+        if (existingDetalle) {
+          // Actualizar DetalleUsuario existente
+          await prisma.detalleUsuario.update({
+            where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
+            data: {
+              google_id: googleId,
+              auth_provider: 'google',
+              profile_picture: profilePicture,
+              email_verified: true
+            }
+          });
+        } else {
+          // Crear nuevo DetalleUsuario
+          await prisma.detalleUsuario.create({
+            data: {
+              id_usuario: existingUser.id_usuario,
+              google_id: googleId,
+              auth_provider: 'google',
+              profile_picture: profilePicture,
+              email_verified: true
+            }
+          });
+        }
         
         console.log('🔄 Usuario existente actualizado con Google ID');
         
@@ -132,6 +143,10 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     return done(error, null);
   }
 }));
+  console.log('✅ Google OAuth configurado correctamente');
+} else {
+  console.log('⚠️ Google OAuth no configurado - faltan credenciales en .env');
+}
 
 // Configurar estrategia de Twitter (solo si las credenciales están disponibles)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
@@ -170,11 +185,16 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
       });
 
       if (user) {
-        // Si el Usuario existe pero no tiene DetalleUsuario, crearlo
-        if (!user.DetalleUsuario) {
-          await prisma.detalleUsuario.create({
+        // Buscar DetalleUsuario existente por id_usuario (puede ser array, usar findFirst)
+        const existingDetalle = await prisma.detalleUsuario.findFirst({
+          where: { id_usuario: user.id_usuario }
+        });
+
+        if (existingDetalle) {
+          // Actualizar DetalleUsuario existente usando id_detalle_usuario (único)
+          await prisma.detalleUsuario.update({
+            where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
             data: {
-              id_usuario: user.id_usuario,
               twitter_id: profile.id,
               auth_provider: 'twitter',
               profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
@@ -182,10 +202,10 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
             }
           });
         } else {
-          // Si ya tiene detalleUsuario, actualizar con twitter_id
-          await prisma.detalleUsuario.update({
-            where: { id_usuario: user.id_usuario },
+          // Crear nuevo DetalleUsuario
+          await prisma.detalleUsuario.create({
             data: {
+              id_usuario: user.id_usuario,
               twitter_id: profile.id,
               auth_provider: 'twitter',
               profile_picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
@@ -273,5 +293,5 @@ passport.deserializeUser(async (id, done) => {
     done(error, null);
   }
 });
-}
+
 export default passport;
