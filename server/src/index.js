@@ -41,6 +41,13 @@ const allowedOrigins = [
   "http://localhost:3002",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3002",
+
+  // Dominios en producción
+  "https://demosmas.site",
+  "https://www.demosmas.site",
+  "http://demosmas.site",
+  "http://www.demosmas.site",
+
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -54,8 +61,14 @@ app.use(
       }
 
       // En producción, permitir el dominio actual
-      if (process.env.NODE_ENV === 'production' && (origin.includes('railway.app') || origin.includes('amplifyapp.com'))) {
-        return callback(null, true);
+      if (process.env.NODE_ENV === 'production') {
+        if (
+          origin.includes('railway.app') ||
+          origin.includes('amplifyapp.com') ||
+          origin.includes('demosmas.site')
+        ) {
+          return callback(null, true);
+        }
       }
 
       if (allowedOrigins.includes(origin)) {
