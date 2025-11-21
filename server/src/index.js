@@ -52,16 +52,16 @@ app.use(
       if (!origin) {
         return callback(null, true);
       }
-      
+
       // En producción, permitir el dominio actual
       if (process.env.NODE_ENV === 'production' && (origin.includes('railway.app') || origin.includes('amplifyapp.com'))) {
         return callback(null, true);
       }
-      
+
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      
+
       return callback(new Error("CORS not allowed"));
     },
     credentials: true,
@@ -89,7 +89,7 @@ app.use(
     secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { 
+    cookie: {
       secure: process.env.NODE_ENV === 'production', // true en producción con HTTPS
       httpOnly: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -108,15 +108,15 @@ app.use("/api/ongs", ongsRoutes);
 app.use("/api/ong", ongRoutes); // Ruta para búsqueda de ONGs por CUIT (SISA)
 app.use("/api/ong-requests", ongRequestsRoutes); // Solicitudes de registro de ONGs
 app.use("/api/categories", categoriesRoutes);
-  app.use("/api/admin", adminRoutes);
-  app.use("/api/payments", paymentsRoutes);
-  app.use("/api", donationsRoutes);
-  app.use("/api/ranking", rankingRoutes);
-  app.use("/api/notifications", notificationsRoutes);
-  app.use("/api/location", locationRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/payments", paymentsRoutes);
+app.use("/api", donationsRoutes);
+app.use("/api/ranking", rankingRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api/location", locationRoutes);
 
 // Verificar si existe la carpeta dist antes de servir archivos estáticos
-const distPath = path.join(__dirname, "../../dist");
+const distPath = path.join(__dirname, "../dist");
 const indexPath = path.join(distPath, "index.html");
 const distExists = fs.existsSync(distPath);
 const indexExists = fs.existsSync(indexPath);

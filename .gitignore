@@ -8,6 +8,8 @@ pnpm-debug.log*
 # Production builds
 dist/
 build/
+# Permitir el build del frontend en server/dist para Railway
+!server/dist
 
 # Environment variables
 .env
