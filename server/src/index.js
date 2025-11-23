@@ -35,6 +35,10 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const prisma = new PrismaClient();
 
+// Configurar trust proxy para Railway y otros proxies reversos
+// Esto permite que express-rate-limit y otras librerías obtengan la IP real del cliente
+app.set('trust proxy', 1);
+
 // Configurar CORS para permitir frontend en desarrollo y producción
 const allowedOrigins = [
   "http://localhost:3000",
