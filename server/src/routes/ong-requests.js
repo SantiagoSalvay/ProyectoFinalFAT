@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
-import { emailService } from '../../lib/email-service.js';
+import { emailService } from '../../lib/mailersend-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -103,14 +103,14 @@ router.post('/create', async (req, res) => {
 
   } catch (error) {
     console.error('Error creando solicitud de ONG:', error);
-    
+
     // Manejar error de constraint único de Prisma (P2002)
     if (error.code === 'P2002') {
       return res.status(400).json({
         error: 'Ya existe una solicitud con este email. Por favor verifica tu bandeja de entrada o contacta con soporte.'
       });
     }
-    
+
     res.status(500).json({
       error: 'Error al procesar la solicitud',
       details: error.message
@@ -125,9 +125,9 @@ router.post('/create', async (req, res) => {
 router.get('/list', async (req, res) => {
   try {
     const { estado } = req.query;
-    
+
     const whereClause = estado ? { estado } : {};
-    
+
     const solicitudes = await prisma.solicitudRegistroONG.findMany({
       where: whereClause,
       orderBy: [

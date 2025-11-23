@@ -2,7 +2,7 @@ import express from 'express';
 import passport from '../config/passport.js';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
-import { emailService } from '../../lib/email-service.js';
+import { emailService } from '../../lib/mailersend-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -19,10 +19,10 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 
 
 // Callback de Google OAuth
-router.get('/google/callback', 
-  passport.authenticate('google', { 
-    session: false, 
-    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed` 
+router.get('/google/callback',
+  passport.authenticate('google', {
+    session: false,
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`
   }),
   async (req, res) => {
     try {
@@ -33,7 +33,7 @@ router.get('/google/callback',
       }
 
       console.log('🎉 Google OAuth exitoso para usuario:', user.email);
-      
+
       // Usar DetalleUsuario que ya viene en req.user (optimizado en passport.js)
       // Solo consultar si no está presente (fallback por compatibilidad)
       let detalleUsuario = user.DetalleUsuario;
@@ -44,12 +44,12 @@ router.get('/google/callback',
         });
         detalleUsuario = userWithDetails?.DetalleUsuario;
       }
-      
+
       const authProvider = detalleUsuario?.auth_provider || 'google';
-      
+
       // Generar JWT token inmediatamente (no esperar email)
       const token = jwt.sign(
-        { 
+        {
           userId: user.id_usuario,
           email: user.email,
           tipo_usuario: user.id_tipo_usuario,
@@ -101,9 +101,9 @@ router.get('/google/callback',
 // Callback de Twitter OAuth (solo si está configurado)
 if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
   router.get('/twitter/callback',
-    passport.authenticate('twitter', { 
-      session: false, 
-      failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed` 
+    passport.authenticate('twitter', {
+      session: false,
+      failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`
     }),
     async (req, res) => {
       try {
@@ -174,7 +174,7 @@ if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
 router.get('/me', async (req, res) => {
   try {
     console.log('🔍 [AUTH/ME] Headers recibidos:', req.headers);
-    
+
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       console.log('❌ [AUTH/ME] No se proporcionó token de autorización');
@@ -183,10 +183,10 @@ router.get('/me', async (req, res) => {
 
     const token = authHeader.split(' ')[1];
     console.log('🔑 [AUTH/ME] Token recibido:', token ? 'Presente' : 'Ausente');
-    
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('✅ [AUTH/ME] Token decodificado:', { userId: decoded.userId, email: decoded.email });
-    
+
     const user = await prisma.Usuario.findUnique({
       where: { id_usuario: decoded.userId },
       select: {
@@ -217,7 +217,7 @@ router.get('/me', async (req, res) => {
 
     // Aplanar la estructura para mantener compatibilidad con el frontend
     console.log('🔍 [AUTH/ME] Redes sociales en BD:', user.redes_sociales);
-    
+
     const userResponse = {
       id_usuario: user.id_usuario,
       nombre: user.nombre,
@@ -233,7 +233,7 @@ router.get('/me', async (req, res) => {
       profile_picture: user.DetalleUsuario?.profile_picture || null,
       email_verified: user.DetalleUsuario?.email_verified || false
     };
-    
+
     console.log('📤 [AUTH/ME] Redes sociales enviadas:', userResponse.redes_sociales);
 
     // Si es persona y no tiene ubicación, incluir advertencia
