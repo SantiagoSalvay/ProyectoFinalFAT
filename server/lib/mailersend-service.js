@@ -1,29 +1,33 @@
 import { MailerSend, EmailParams, Sender, Recipient } from 'mailersend';
+import dotenv from 'dotenv';
+
+// Cargar variables de entorno
+dotenv.config();
 
 // Inicializar MailerSend con la API Key
 const mailerSend = new MailerSend({
-    apiKey: process.env.MAILERSEND_API_KEY || '',
+  apiKey: process.env.MAILERSEND_API_KEY || '',
 });
 
 // Validar configuración
 if (!process.env.MAILERSEND_API_KEY) {
-    console.error('❌ [MAILERSEND] MAILERSEND_API_KEY no está configurada');
+  console.error('❌ [MAILERSEND] MAILERSEND_API_KEY no está configurada');
 }
 
 // Email del remitente (debe estar verificado en MailerSend)
 const getFromEmail = () => {
-    return process.env.MAILERSEND_FROM_EMAIL || process.env.SMTP_USER || 'noreply@demosmas.site';
+  return process.env.MAILERSEND_FROM_EMAIL || process.env.SMTP_USER || 'noreply@demosmas.site';
 };
 
 const getFromName = () => {
-    return process.env.MAILERSEND_FROM_NAME || 'DEMOS+';
+  return process.env.MAILERSEND_FROM_NAME || 'DEMOS+';
 };
 
 // Plantillas de email (mismas que en email-service.js)
 const emailTemplates = {
-    verifyEmail: (verificationToken) => ({
-        subject: 'Verifica tu correo electrónico - DEMOS+',
-        html: `
+  verifyEmail: (verificationToken) => ({
+    subject: 'Verifica tu correo electrónico - DEMOS+',
+    html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="color: #2b555f; font-size: 32px; margin: 0;">DEMOS+</h1>
@@ -66,11 +70,11 @@ const emailTemplates = {
         </div>
       </div>
     `
-    }),
+  }),
 
-    resetPassword: (resetToken) => ({
-        subject: 'Recuperación de contraseña - DEMOS+',
-        html: `
+  resetPassword: (resetToken) => ({
+    subject: 'Recuperación de contraseña - DEMOS+',
+    html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="color: #2b555f; font-size: 32px; margin: 0;">DEMOS+</h1>
@@ -105,11 +109,11 @@ const emailTemplates = {
         </div>
       </div>
     `
-    }),
+  }),
 
-    welcomeEmail: (userName) => ({
-        subject: '¡Bienvenido a DEMOS+! Tu cuenta ha sido activada 🎉',
-        html: `
+  welcomeEmail: (userName) => ({
+    subject: '¡Bienvenido a DEMOS+! Tu cuenta ha sido activada 🎉',
+    html: `
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
         
         <!-- Header -->
@@ -137,28 +141,6 @@ const emailTemplates = {
           </a>
         </div>
         
-        <!-- Funcionalidades rápidas -->
-        <div style="padding: 0 30px 30px 30px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-              <div style="font-size: 24px; margin-bottom: 8px;">📝</div>
-              <div style="font-size: 14px; color: #495057; font-weight: 600;">Crear Foros</div>
-            </div>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-              <div style="font-size: 24px; margin-bottom: 8px;">🤝</div>
-              <div style="font-size: 14px; color: #495057; font-weight: 600;">Hacer Donaciones</div>
-            </div>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-              <div style="font-size: 24px; margin-bottom: 8px;">📢</div>
-              <div style="font-size: 14px; color: #495057; font-weight: 600;">Solicitar Ayuda</div>
-            </div>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-              <div style="font-size: 24px; margin-bottom: 8px;">💬</div>
-              <div style="font-size: 14px; color: #495057; font-weight: 600;">Participar</div>
-            </div>
-          </div>
-        </div>
-        
         <!-- Footer simple -->
         <div style="background: #2b555f; padding: 20px; text-align: center; color: white;">
           <p style="margin: 0; font-size: 14px; opacity: 0.8;">
@@ -168,11 +150,11 @@ const emailTemplates = {
         
       </div>
     `
-    }),
+  }),
 
-    loginNotification: (userName, loginInfo) => ({
-        subject: 'Nuevo inicio de sesión en tu cuenta DEMOS+',
-        html: `
+  loginNotification: (userName, loginInfo) => ({
+    subject: 'Nuevo inicio de sesión en tu cuenta DEMOS+',
+    html: `
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
         
         <!-- Header -->
@@ -222,19 +204,6 @@ const emailTemplates = {
           </div>
         </div>
         
-        <!-- Advertencia de seguridad -->
-        <div style="padding: 0 30px 30px 30px;">
-          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 8px;">
-            <div style="display: flex; align-items: center; margin-bottom: 10px;">
-              <span style="font-size: 20px; margin-right: 10px;">⚠️</span>
-              <strong style="color: #856404;">¿No fuiste tú?</strong>
-            </div>
-            <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
-              Si no iniciaste sesión en tu cuenta, te recomendamos cambiar tu contraseña inmediatamente y revisar la actividad de tu cuenta.
-            </p>
-          </div>
-        </div>
-        
         <!-- Footer -->
         <div style="background: #2b555f; padding: 20px; text-align: center; color: white;">
           <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.8;">
@@ -247,11 +216,11 @@ const emailTemplates = {
         
       </div>
     `
-    }),
+  }),
 
-    passwordChangeNotification: (userName, changeInfo) => ({
-        subject: 'Tu contraseña ha sido cambiada - DEMOS+',
-        html: `
+  passwordChangeNotification: (userName, changeInfo) => ({
+    subject: 'Tu contraseña ha sido cambiada - DEMOS+',
+    html: `
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
         
         <!-- Header -->
@@ -302,11 +271,11 @@ const emailTemplates = {
         
       </div>
     `
-    }),
+  }),
 
-    oauthAccountCreated: (userName, provider) => ({
-        subject: `¡Cuenta creada exitosamente con ${provider}! - DEMOS+`,
-        html: `
+  oauthAccountCreated: (userName, provider) => ({
+    subject: `¡Cuenta creada exitosamente con ${provider}! - DEMOS+`,
+    html: `
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
         
         <!-- Header -->
@@ -338,99 +307,99 @@ const emailTemplates = {
         
       </div>
     `
-    })
+  })
 };
 
 // Función auxiliar para enviar emails
 const sendEmail = async (to, subject, html, fromName = getFromName()) => {
-    try {
-        console.log('📧 [MAILERSEND] Enviando email:', {
-            to,
-            subject,
-            from: getFromEmail()
-        });
+  try {
+    console.log('📧 [MAILERSEND] Enviando email:', {
+      to,
+      subject,
+      from: getFromEmail()
+    });
 
-        const sentFrom = new Sender(getFromEmail(), fromName);
-        const recipients = [new Recipient(to)];
+    const sentFrom = new Sender(getFromEmail(), fromName);
+    const recipients = [new Recipient(to)];
 
-        const emailParams = new EmailParams()
-            .setFrom(sentFrom)
-            .setTo(recipients)
-            .setSubject(subject)
-            .setHtml(html);
+    const emailParams = new EmailParams()
+      .setFrom(sentFrom)
+      .setTo(recipients)
+      .setSubject(subject)
+      .setHtml(html);
 
-        const response = await mailerSend.email.send(emailParams);
+    const response = await mailerSend.email.send(emailParams);
 
-        console.log('✅ [MAILERSEND] Email enviado exitosamente:', response);
-        return true;
-    } catch (error) {
-        console.error('❌ [MAILERSEND] Error al enviar email:', {
-            message: error.message,
-            body: error.body,
-            statusCode: error.statusCode
-        });
-        throw error;
-    }
+    console.log('✅ [MAILERSEND] Email enviado exitosamente:', response);
+    return true;
+  } catch (error) {
+    console.error('❌ [MAILERSEND] Error al enviar email:', {
+      message: error.message,
+      body: error.body,
+      statusCode: error.statusCode
+    });
+    throw error;
+  }
 };
 
 // Servicio de email exportado
 export const emailService = {
-    /**
-     * Envía un correo de verificación
-     */
-    sendVerificationEmail: async (to, verificationToken) => {
-        const template = emailTemplates.verifyEmail(verificationToken);
-        return sendEmail(to, template.subject, template.html, 'DEMOS+ 📧');
-    },
+  /**
+   * Envía un correo de verificación
+   */
+  sendVerificationEmail: async (to, verificationToken) => {
+    const template = emailTemplates.verifyEmail(verificationToken);
+    return sendEmail(to, template.subject, template.html, 'DEMOS+ 📧');
+  },
 
-    /**
-     * Envía un correo de recuperación de contraseña
-     */
-    sendPasswordResetEmail: async (to, resetToken) => {
-        const template = emailTemplates.resetPassword(resetToken);
-        return sendEmail(to, template.subject, template.html, 'DEMOS+ 📧');
-    },
+  /**
+   * Envía un correo de recuperación de contraseña
+   */
+  sendPasswordResetEmail: async (to, resetToken) => {
+    const template = emailTemplates.resetPassword(resetToken);
+    return sendEmail(to, template.subject, template.html, 'DEMOS+ 📧');
+  },
 
-    /**
-     * Envía un correo de bienvenida después de la verificación
-     */
-    sendWelcomeEmail: async (to, userName) => {
-        const template = emailTemplates.welcomeEmail(userName);
-        return sendEmail(to, template.subject, template.html, 'DEMOS+ 🎉');
-    },
+  /**
+   * Envía un correo de bienvenida después de la verificación
+   */
+  sendWelcomeEmail: async (to, userName) => {
+    const template = emailTemplates.welcomeEmail(userName);
+    return sendEmail(to, template.subject, template.html, 'DEMOS+ 🎉');
+  },
 
-    /**
-     * Envía un correo de notificación de inicio de sesión
-     */
-    sendLoginNotificationEmail: async (to, userName, loginInfo) => {
-        const template = emailTemplates.loginNotification(userName, loginInfo);
-        return sendEmail(to, template.subject, template.html, 'DEMOS+ Security');
-    },
+  /**
+   * Envía un correo de notificación de inicio de sesión
+   */
+  sendLoginNotificationEmail: async (to, userName, loginInfo) => {
+    const template = emailTemplates.loginNotification(userName, loginInfo);
+    return sendEmail(to, template.subject, template.html, 'DEMOS+ Security');
+  },
 
-    /**
-     * Envía un correo de notificación de cambio de contraseña
-     */
-    sendPasswordChangeNotificationEmail: async (to, userName, changeInfo) => {
-        const template = emailTemplates.passwordChangeNotification(userName, changeInfo);
-        return sendEmail(to, template.subject, template.html, 'DEMOS+ Security');
-    },
+  /**
+   * Envía un correo de notificación de cambio de contraseña
+   */
+  sendPasswordChangeNotificationEmail: async (to, userName, changeInfo) => {
+    const template = emailTemplates.passwordChangeNotification(userName, changeInfo);
+    return sendEmail(to, template.subject, template.html, 'DEMOS+ Security');
+  },
 
-    /**
-     * Envía un correo de notificación de cuenta creada con OAuth
-     */
-    sendOAuthAccountCreatedEmail: async (to, userName, provider) => {
-        const template = emailTemplates.oauthAccountCreated(userName, provider);
-        return sendEmail(to, template.subject, template.html, 'DEMOS+ Welcome');
-    },
+  /**
+   * Envía un correo de notificación de cuenta creada con OAuth
+   */
+  sendOAuthAccountCreatedEmail: async (to, userName, provider) => {
+    const template = emailTemplates.oauthAccountCreated(userName, provider);
+    return sendEmail(to, template.subject, template.html, 'DEMOS+ Welcome');
+  },
 
-    /**
-     * Verifica la configuración de MailerSend
-     */
-    verifyTransporter: async () => {
-        if (!process.env.MAILERSEND_API_KEY) {
-            throw new Error('MAILERSEND_API_KEY no está configurada');
-        }
-        console.log('✅ [MAILERSEND] Configuración verificada');
-        return true;
+  /**
+   * Verifica la configuración de MailerSend
+   */
+  verifyTransporter: async () => {
+    if (!process.env.MAILERSEND_API_KEY) {
+      throw new Error('MAILERSEND_API_KEY no está configurada');
     }
+    console.log('✅ [MAILERSEND] Configuración verificada');
+    return true;
+  }
 };
