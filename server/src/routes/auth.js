@@ -844,79 +844,93 @@ router.post('/reset-password/:token',
       // Buscar token válido en la tabla PasswordResetToken
       const resetToken = await prisma.PasswordResetToken.findUnique({
         where: { token },
-        include: { Usuario: true }
+        include: { usuario: true }
       });
 
       if (!resetToken) {
         console.log('❌ [RESET PASSWORD] Token no encontrado');
         return res.status(400).json({ error: 'Token inválido o expirado' });
-      }
 
-      // Verificar si el token ya fue usado
-      if (resetToken.used) {
-        console.log('❌ [RESET PASSWORD] Token ya fue usado');
-        return res.status(400).json({ error: 'Este token ya fue utilizado' });
-      }
+        console.log('🔍 [RESET PASSWORD] Iniciando reset de contraseña...');
+        console.log('🔍 [RESET PASSWORD] Token recibido:', token);
+        console.log('🔍 [RESET PASSWORD] Nueva contraseña recibida:', nuevaContrasena ? 'SÍ' : 'NO');
 
-      // Verificar si el token expiró
-      if (new Date() > resetToken.expiry) {
-        console.log('❌ [RESET PASSWORD] Token expirado');
-        return res.status(400).json({ error: 'El token ha expirado. Solicita un nuevo enlace de recuperación.' });
-      }
-
-      console.log('✅ [RESET PASSWORD] Token válido para usuario:', resetToken.usuario.email);
-
-      // Encriptar nueva contraseña
-      const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
-
-      // Actualizar contraseña del usuario
-      await prisma.Usuario.update({
-        where: { id_usuario: resetToken.id_usuario },
-        data: { contrasena: hashedPassword }
-      });
-
-      // Marcar el token como usado
-      await prisma.PasswordResetToken.update({
-        where: { id: resetToken.id },
-        data: { used: true }
-      });
-
-      console.log('✅ [RESET PASSWORD] Contraseña actualizada exitosamente');
-
-      // Enviar email de notificación de cambio de contraseña
-      try {
-        console.log('📧 [RESET PASSWORD] Enviando email de notificación...');
-
-        const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
-        const userAgent = req.headers['user-agent'] || 'Desconocido';
-        const currentDateTime = new Date().toLocaleString('es-ES', {
-          timeZone: 'America/Argentina/Buenos_Aires',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
+        // Buscar token válido en la tabla PasswordResetToken
+        const resetToken = await prisma.PasswordResetToken.findUnique({
+          where: { token },
+          include: { usuario: true }
         });
 
-        const changeInfo = {
-          dateTime: currentDateTime,
-          ipAddress: ipAddress,
-          userAgent: userAgent
-        };
+        if (!resetToken) {
+          console.log('❌ [RESET PASSWORD] Token no encontrado');
+          return res.status(400).json({ error: 'Token inválido o expirado' });
+        }
 
-        await emailService.sendPasswordChangeNotificationEmail(resetToken.usuario.email, resetToken.usuario.nombre, changeInfo);
-        console.log('✅ [RESET PASSWORD] Email de notificación enviado');
-      } catch (emailError) {
-        console.error('⚠️ [RESET PASSWORD] Error al enviar email (no crítico):', emailError);
+        // Verificar si el token ya fue usado
+        if (resetToken.used) {
+          console.log('❌ [RESET PASSWORD] Token ya fue usado');
+          return res.status(400).json({ error: 'Este token ya fue utilizado' });
+        }
+
+        // Verificar si el token expiró
+        if (new Date() > resetToken.expiry) {
+          console.log('❌ [RESET PASSWORD] Token expirado');
+          return res.status(400).json({ error: 'El token ha expirado. Solicita un nuevo enlace de recuperación.' });
+        }
+
+        console.log('✅ [RESET PASSWORD] Token válido para usuario:', resetToken.usuario.email);
+
+        // Encriptar nueva contraseña
+        const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
+
+        // Actualizar contraseña del usuario
+        await prisma.Usuario.update({
+          where: { id_usuario: resetToken.id_usuario },
+          data: { contrasena: hashedPassword }
+        });
+
+        // Marcar el token como usado
+        await prisma.PasswordResetToken.update({
+          where: { id: resetToken.id },
+          data: { used: true }
+        });
+
+        console.log('✅ [RESET PASSWORD] Contraseña actualizada exitosamente');
+
+        // Enviar email de notificación de cambio de contraseña
+        try {
+          console.log('📧 [RESET PASSWORD] Enviando email de notificación...');
+
+          const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Desconocida';
+          const userAgent = req.headers['user-agent'] || 'Desconocido';
+          const currentDateTime = new Date().toLocaleString('es-ES', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+
+          const changeInfo = {
+            dateTime: currentDateTime,
+            ipAddress: ipAddress,
+            userAgent: userAgent
+          };
+
+          await emailService.sendPasswordChangeNotificationEmail(resetToken.usuario.email, resetToken.usuario.nombre, changeInfo);
+          console.log('✅ [RESET PASSWORD] Email de notificación enviado');
+        } catch (emailError) {
+          console.error('⚠️ [RESET PASSWORD] Error al enviar email (no crítico):', emailError);
+        }
+
+        res.json({ message: 'Contraseña actualizada exitosamente' });
+      } catch (error) {
+        console.error('❌ [RESET PASSWORD] Error:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
       }
-
-      res.json({ message: 'Contraseña actualizada exitosamente' });
-    } catch (error) {
-      console.error('❌ [RESET PASSWORD] Error:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
-    }
-  });
+    });
 
 // Verificar email y completar registro
 router.get('/verify-email/:token', async (req, res) => {
