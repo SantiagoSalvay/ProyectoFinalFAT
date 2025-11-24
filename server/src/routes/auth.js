@@ -593,6 +593,145 @@ router.post('/register',
     }
   });
 
+// Verificar email con token
+router.get('/verify-email/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        error: 'Token de verificación no proporcionado',
+        verified: false
+      });
+    }
+
+    console.log('🔍 [VERIFICACIÓN] Buscando registro pendiente con token:', token);
+
+    // Buscar el registro pendiente por token
+    const pendingRegistration = await prisma.registroPendiente.findFirst({
+      where: { verification_token: token }
+    });
+
+    if (!pendingRegistration) {
+      console.log('❌ [VERIFICACIÓN] Token no encontrado en la base de datos');
+      return res.status(400).json({
+        error: 'Token de verificación inválido o expirado',
+        verified: false,
+        tokenExpired: true
+      });
+    }
+
+    console.log('✅ [VERIFICACIÓN] Registro pendiente encontrado:', pendingRegistration.correo);
+
+    // Verificar si el usuario ya fue creado (token ya utilizado)
+    const existingUser = await prisma.usuario.findFirst({
+      where: { email: pendingRegistration.correo }
+    });
+
+    if (existingUser) {
+      console.log('⚠️ [VERIFICACIÓN] Usuario ya verificado anteriormente');
+
+      // Eliminar el registro pendiente ya que el usuario existe
+      await prisma.RegistroPendiente.delete({
+        where: { id: pendingRegistration.id }
+      });
+
+      return res.status(400).json({
+        error: 'Este correo ya ha sido verificado. Puedes iniciar sesión.',
+        verified: false,
+        alreadyVerified: true
+      });
+    }
+
+    // Verificar si el token expiró (solo si hay fecha de expiración)
+    if (pendingRegistration.token_expiry && new Date() > new Date(pendingRegistration.token_expiry)) {
+      console.log('⏰ [VERIFICACIÓN] Token expirado');
+      return res.status(400).json({
+        error: 'El token de verificación ha expirado',
+        verified: false,
+        tokenExpired: true,
+        email: pendingRegistration.correo
+      });
+    }
+
+    console.log('📝 [VERIFICACIÓN] Creando usuario verificado...');
+
+    // Crear el usuario en la tabla Usuario
+    const newUser = await prisma.Usuario.create({
+      data: {
+        nombre: pendingRegistration.nombre,
+        apellido: pendingRegistration.apellido || '',
+        email: pendingRegistration.correo,
+        contrasena: pendingRegistration.contrasena,
+        id_tipo_usuario: pendingRegistration.tipo_usuario,
+        ubicacion: pendingRegistration.ubicacion || '',
+        createdAt: new Date()
+      }
+    });
+
+    console.log('✅ [VERIFICACIÓN] Usuario creado con ID:', newUser.id_usuario);
+
+    // Crear el detalle del usuario
+    await prisma.DetalleUsuario.create({
+      data: {
+        id_usuario: newUser.id_usuario,
+        email_verified: true,
+        auth_provider: 'email',
+        puntosActuales: 0
+      }
+    });
+
+    console.log('✅ [VERIFICACIÓN] DetalleUsuario creado');
+
+    // Eliminar el registro pendiente
+    await prisma.RegistroPendiente.delete({
+      where: { id: pendingRegistration.id }
+    });
+
+    console.log('🗑️ [VERIFICACIÓN] Registro pendiente eliminado');
+
+    // Generar token JWT para login automático
+    const jwtToken = jwt.sign(
+      { userId: newUser.id_usuario, email: newUser.email, tipo_usuario: newUser.id_tipo_usuario },
+      process.env.JWT_SECRET || 'tu-secreto-jwt',
+      { expiresIn: '7d' }
+    );
+
+    console.log('🔑 [VERIFICACIÓN] Token JWT generado');
+
+    // Enviar email de bienvenida
+    try {
+      const userName = `${newUser.nombre} ${newUser.apellido}`.trim();
+      await emailService.sendWelcomeEmail(newUser.email, userName);
+      console.log('✅ [VERIFICACIÓN] Email de bienvenida enviado');
+    } catch (emailError) {
+      console.error('⚠️ [VERIFICACIÓN] Error al enviar email de bienvenida (no crítico):', emailError);
+    }
+
+    // Omitir contraseña de la respuesta
+    const { contrasena: _, ...userWithoutPassword } = newUser;
+
+    res.status(200).json({
+      message: 'Email verificado exitosamente',
+      verified: true,
+      user: {
+        ...userWithoutPassword,
+        tipo_usuario: newUser.id_tipo_usuario
+      },
+      token: jwtToken
+    });
+
+    console.log('🎉 [VERIFICACIÓN] Proceso completado exitosamente para:', newUser.email);
+
+  } catch (error) {
+    console.error('💥 [VERIFICACIÓN] Error al verificar email:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor al verificar el email',
+      verified: false
+    });
+  }
+});
+
 // Login de usuario
 router.post('/login',
   authLimiter,
@@ -816,71 +955,100 @@ router.post('/request-password-reset',
         await passwordResetService.sendPasswordResetEmail(correo, resetToken);
         console.log('✅ [RESET REQUEST] Email de recuperación enviado exitosamente');
 
-        if (!correo) {
-          return res.status(400).json({ error: 'El correo es requerido' });
-        }
-
-        // Buscar registro pendiente
-        const pendingRegistration = await prisma.RegistroPendiente.findFirst({
-          where: { correo }
+        res.status(200).json({
+          message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.'
         });
-
-        if (!pendingRegistration) {
-          // Verificar si el usuario ya está registrado
-          const existingUser = await prisma.Usuario.findFirst({
-            where: { email: correo }
-          });
-
-          if (existingUser) {
-            return res.status(400).json({
-              error: 'Este correo ya está verificado. Puedes iniciar sesión.'
-            });
-          }
-
-          return res.status(404).json({
-            error: 'No se encontró ningún registro pendiente para este correo.'
-          });
-        }
-
-        // Generar nuevo token de verificación
-        const newVerificationToken = uuidv4();
-        const newTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 días
-
-        // Actualizar el registro pendiente con el nuevo token
-        await prisma.RegistroPendiente.update({
-          where: { id: pendingRegistration.id },
-          data: {
-            verification_token: newVerificationToken,
-            token_expiry: newTokenExpiry
-          }
+      } catch (emailError) {
+        console.error('❌ [RESET REQUEST] Error al enviar email:', emailError);
+        // No revelar si el correo existe o no
+        res.status(200).json({
+          message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.'
         });
-
-        console.log('🔄 [REENVÍO] Token actualizado para:', correo);
-
-        // Reenviar email de verificación
-        try {
-          await emailService.sendVerificationEmail(correo, newVerificationToken);
-          console.log('✅ [REENVÍO] Email de verificación reenviado exitosamente');
-
-          res.status(200).json({
-            message: 'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.',
-            success: true
-          });
-        } catch (emailError) {
-          console.error('❌ [REENVÍO] Error al reenviar email:', emailError);
-          res.status(500).json({
-            error: 'Error al enviar el correo de verificación. Por favor, intenta nuevamente más tarde.'
-          });
-        }
-      } catch (error) {
-        console.error('💥 [REENVÍO] Error al procesar reenvío:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
       }
     } catch (error) {
-      console.error('💥 [REENVÍO] Error al procesar reenvío:', error);
+      console.error('💥 [RESET REQUEST] Error general:', error);
       res.status(500).json({ error: 'Error interno del servidor' });
     }
   });
+
+// Procesar reset de contraseña con token
+router.post('/reset-password/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { nuevaContrasena } = req.body;
+
+    console.log('🔍 [RESET PASSWORD] Procesando reset con token:', token);
+
+    if (!nuevaContrasena || nuevaContrasena.length < 8) {
+      return res.status(400).json({
+        error: 'La contraseña debe tener al menos 8 caracteres'
+      });
+    }
+
+    // Buscar el token en la base de datos
+    const resetToken = await prisma.PasswordResetToken.findFirst({
+      where: {
+        token: token,
+        used: false,
+        expiry: {
+          gt: new Date()
+        }
+      },
+      include: {
+        usuario: true
+      }
+    });
+
+    if (!resetToken) {
+      console.log('❌ [RESET PASSWORD] Token inválido o expirado');
+      return res.status(400).json({
+        error: 'El enlace de recuperación es inválido o ha expirado. Por favor, solicita uno nuevo.',
+        tokenExpired: true
+      });
+    }
+
+    console.log('✅ [RESET PASSWORD] Token válido encontrado para usuario:', resetToken.id_usuario);
+
+    // Hashear la nueva contraseña
+    const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
+
+    // Actualizar la contraseña del usuario
+    await prisma.Usuario.update({
+      where: { id_usuario: resetToken.id_usuario },
+      data: { contrasena: hashedPassword }
+    });
+
+    // Marcar el token como usado
+    await prisma.PasswordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true }
+    });
+
+    console.log('✅ [RESET PASSWORD] Contraseña actualizada exitosamente');
+
+    // Enviar email de confirmación
+    try {
+      await emailService.sendPasswordChangedEmail(
+        resetToken.usuario.email,
+        resetToken.usuario.nombre
+      );
+      console.log('✅ [RESET PASSWORD] Email de confirmación enviado');
+    } catch (emailError) {
+      console.error('⚠️ [RESET PASSWORD] Error al enviar email de confirmación (no crítico):', emailError);
+    }
+
+    res.status(200).json({
+      message: 'Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.',
+      success: true
+    });
+
+  } catch (error) {
+    console.error('💥 [RESET PASSWORD] Error al resetear contraseña:', error);
+    res.status(500).json({
+      error: 'Error al procesar el cambio de contraseña. Por favor, intenta nuevamente.'
+    });
+  }
+});
 
 // Actualizar perfil del usuario
 router.put('/profile', authenticateToken, async (req, res) => {
