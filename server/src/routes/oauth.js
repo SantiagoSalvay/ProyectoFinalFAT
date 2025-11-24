@@ -2,7 +2,7 @@ import express from 'express';
 import passport from '../config/passport.js';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
-import { emailService } from '../../lib/mailersend-service.js';
+import { emailService } from '../../lib/resend-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();

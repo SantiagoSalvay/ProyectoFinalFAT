@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
-import { emailService } from '../../lib/mailersend-service.js';
+import { emailService } from '../../lib/resend-service.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();

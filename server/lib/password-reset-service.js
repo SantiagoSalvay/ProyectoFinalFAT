@@ -1,4 +1,4 @@
-import { emailService } from './mailersend-service.js';
+import { emailService } from './resend-service.js';
 
 /**
  * Servicio de recuperación de contraseña

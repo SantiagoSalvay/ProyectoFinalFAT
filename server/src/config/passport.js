@@ -2,7 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { emailService } from '../../lib/mailersend-service.js';
+import { emailService } from '../../lib/resend-service.js';
 
 const prisma = new PrismaClient();
 

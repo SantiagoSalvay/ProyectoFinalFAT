@@ -1,18 +1,4 @@
 
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
-import nodemailer from 'nodemailer';
-import axios from 'axios';
-import { emailService } from '../../lib/mailersend-service.js';
-import { passwordResetService } from '../../lib/password-reset-service.js';
-import { searchONGByCUIT } from '../../lib/sisa-csv-service.js';
-import { authenticateToken } from '../middleware/auth.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SISA_CSV_PATH = path.join(__dirname, '../../data/listado_sisa.csv');
@@ -657,7 +643,7 @@ router.get('/verify-email/:token', async (req, res) => {
     console.log('📝 [VERIFICACIÓN] Creando usuario verificado...');
 
     // Crear el usuario en la tabla Usuario
-    const newUser = await prisma.Usuario.create({
+    const newUser = await prisma.usuario.create({
       data: {
         nombre: pendingRegistration.nombre,
         apellido: pendingRegistration.apellido || '',
@@ -672,7 +658,7 @@ router.get('/verify-email/:token', async (req, res) => {
     console.log('✅ [VERIFICACIÓN] Usuario creado con ID:', newUser.id_usuario);
 
     // Crear el detalle del usuario
-    await prisma.DetalleUsuario.create({
+    await prisma.detalleUsuario.create({
       data: {
         id_usuario: newUser.id_usuario,
         email_verified: true,
@@ -684,7 +670,7 @@ router.get('/verify-email/:token', async (req, res) => {
     console.log('✅ [VERIFICACIÓN] DetalleUsuario creado');
 
     // Eliminar el registro pendiente
-    await prisma.RegistroPendiente.delete({
+    await prisma.registroPendiente.delete({
       where: { id: pendingRegistration.id }
     });
 
