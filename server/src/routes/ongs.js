@@ -104,7 +104,7 @@ router.get("/", async (req, res) => {
       const rating =
         calificaciones.length > 0
           ? calificaciones.reduce((sum, cal) => sum + cal.puntuacion, 0) /
-            calificaciones.length
+          calificaciones.length
           : 0;
 
       // Parsear coordenadas si existen
@@ -527,15 +527,15 @@ router.post(
 
       const updatedDetalle = existingDetalle
         ? await prisma.DetalleUsuario.update({
-            where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
-            data: { profile_picture: imageUrl },
-          })
+          where: { id_detalle_usuario: existingDetalle.id_detalle_usuario },
+          data: { profile_picture: imageUrl },
+        })
         : await prisma.DetalleUsuario.create({
-            data: {
-              id_usuario: userId,
-              profile_picture: imageUrl,
-            },
-          });
+          data: {
+            id_usuario: userId,
+            profile_picture: imageUrl,
+          },
+        });
 
       console.log("✅ Imagen de perfil guardada:", imageUrl);
 
@@ -576,7 +576,7 @@ router.get("/:id/profile-image", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const detalleUsuario = await prisma.DetalleUsuario.findUnique({
+    const detalleUsuario = await prisma.DetalleUsuario.findFirst({
       where: { id_usuario: parseInt(id) },
       select: { profile_picture: true },
     });
