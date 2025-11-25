@@ -26,6 +26,7 @@ model Usuario {
   coordenadas              String?
   redes_sociales           String?
   telefono                 String?
+  foto_perfil              String?
   calificacionesRecibidas  CalificacionONG[]      @relation("ONGCalificada")
   calificacionesRealizadas CalificacionONG[]      @relation("UsuarioCalificador")
   DetalleUsuario           DetalleUsuario[]
@@ -261,7 +262,7 @@ model Notificacion {
 
 model SolicitudRevisionIPJ {
   id_solicitud      Int       @id @default(autoincrement())
-  id_usuario        Int
+  id_usuario        Int?
   email             String    @unique
   nombre            String
   nombre_legal      String?
@@ -274,7 +275,7 @@ model SolicitudRevisionIPJ {
   notas_admin       String?
   fecha_solicitud   DateTime  @default(now())
   fecha_revision    DateTime?
-  Usuario           Usuario   @relation(fields: [id_usuario], references: [id_usuario])
+  Usuario           Usuario?  @relation(fields: [id_usuario], references: [id_usuario])
 
   @@index([estado])
 }
