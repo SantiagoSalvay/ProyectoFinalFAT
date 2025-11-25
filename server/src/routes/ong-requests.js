@@ -84,7 +84,7 @@ router.post('/create', async (req, res) => {
 
     // Enviar email de confirmación al solicitante
     try {
-      await emailService.sendOngRequestReceivedEmail(email, nombre_organizacion, cuit);
+      await emailService.sendONGRequestReceivedEmail(email, nombre_organizacion, solicitud.id_solicitud);
     } catch (emailError) {
       console.error('Error enviando email de confirmación:', emailError);
       // No fallar la solicitud si el email falla
@@ -259,7 +259,8 @@ router.post('/:id/approve', async (req, res) => {
 
     // Enviar email de aprobación
     try {
-      await emailService.sendOngRequestApprovedEmail(solicitud.email, solicitud.nombre_organizacion);
+      const loginUrl = `${process.env.APP_URL || 'http://localhost:3000'}/login`;
+      await emailService.sendONGRequestApprovedEmail(solicitud.email, solicitud.nombre_organizacion, loginUrl);
     } catch (emailError) {
       console.error('Error enviando email de aprobación:', emailError);
       // No fallar la aprobación si el email falla
@@ -331,7 +332,8 @@ router.post('/:id/reject', async (req, res) => {
 
     // Enviar email de rechazo
     try {
-      await emailService.sendOngRequestRejectedEmail(solicitud.email, solicitud.nombre_organizacion, motivo_rechazo);
+      // TODO: Crear template de email para rechazos si es necesario
+      console.log('Email de rechazo no implementado aún');
     } catch (emailError) {
       console.error('Error enviando email de rechazo:', emailError);
       // No fallar el rechazo si el email falla
