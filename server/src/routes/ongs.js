@@ -576,7 +576,7 @@ router.get("/:id/profile-image", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const detalleUsuario = await prisma.DetalleUsuario.findFirst({
+    const detalleUsuario = await prisma.DetalleUsuario.findUnique({
       where: { id_usuario: parseInt(id) },
       select: { profile_picture: true },
     });

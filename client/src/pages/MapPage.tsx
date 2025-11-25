@@ -134,7 +134,7 @@ export default function MapPage() {
   const ongIdFromUrl = searchParams.get('ongId');
   const [geoError, setGeoError] = useState<string | null>(null);
   const [hasOpenedModal, setHasOpenedModal] = useState(false);
-  
+
   // Resetear hasOpenedModal cuando cambia el ongId de la URL
   useEffect(() => {
     setHasOpenedModal(false);
@@ -348,7 +348,7 @@ export default function MapPage() {
           const tipoONG = await api.getTipoONGById(ong.id);
           if (tipoONG?.grupo_social) group = tipoONG.grupo_social;
           if (tipoONG?.necesidad) need = tipoONG.necesidad;
-        } catch {}
+        } catch { }
 
         // Obtener categorías de la ONG
         let categories: Array<{
@@ -458,7 +458,7 @@ export default function MapPage() {
         </div>
 
         <div className="space-y-3">
-          
+
           {/* Filtro por categorías */}
           <div>
             <div className="flex items-center space-x-2 mb-2">
@@ -480,7 +480,7 @@ export default function MapPage() {
                       (cat) => cat.id_categoria === category.id_categoria
                     )
                   ).length;
-                
+
                   return (
                     <button
                       key={category.id_categoria}
@@ -491,11 +491,10 @@ export default function MapPage() {
                             : [...prev, category.id_categoria]
                         );
                       }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center ${
-                        isSelected
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center ${isSelected
                           ? "bg-white text-purple-700 shadow-md"
                           : "bg-purple-700 text-white hover:bg-purple-800"
-                      }`}
+                        }`}
                       style={
                         isSelected
                           ? {}
@@ -660,11 +659,10 @@ export default function MapPage() {
                 {filteredOngs.map((ong) => (
                   <div
                     key={ong.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-lg ${
-                      selectedONG?.id === ong.id
+                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-lg ${selectedONG?.id === ong.id
                         ? "border-purple-500 bg-purple-50 shadow-md"
                         : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
+                      }`}
                     onClick={() => setSelectedONG(ong)}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -885,7 +883,7 @@ export default function MapPage() {
                     Abrir en Google Maps
                   </a>
                 )}
-                
+
                 {selectedONG.website && (
                   <a
                     href={selectedONG.website}
